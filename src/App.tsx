@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Hammer, ChevronRight, User, Cpu, Key, Car, CheckCircle2, MessageSquare, Wrench, ArrowUp, ArrowLeft, Calculator, HardHat, Eye, EyeOff, Camera, ImageIcon, Code, Mic, Trash2 } from 'lucide-react';
+import { Sparkles, Hammer, ChevronRight, User, Cpu, Key, Car, CheckCircle2, MessageSquare, Wrench, ArrowUp, ArrowLeft, Calculator, HardHat, Eye, EyeOff, Camera, ImageIcon, Code, Mic, Trash2, Edit2, X, Save } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { NotificationContainer } from './components/NotificationContainer';
 import { toast } from './lib/notifications';
@@ -21,9 +21,130 @@ type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' 
 type AssistantMode = 'DIY & General' | 'Mechanic' | 'Estimator' | 'Contractor' | 'Coder';
 type ChatMessage = { role: 'user' | 'model', text: string, image?: string };
 
+type Task = {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: number;
+};
+
 
 
 // --- Components ---
+
+const TaskItem = ({ task, onToggle, onDelete, onEdit }: { task: Task, onToggle: () => void, onDelete: () => void, onEdit: (text: string) => void }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(task.text);
+  const [showModal, setShowModal] = useState(false);
+
+  const handleSave = () => {
+    if (editText.trim() && editText !== task.text) {
+      onEdit(editText.trim());
+    }
+    setIsEditing(false);
+    setShowModal(false);
+  };
+
+  return (
+    <>
+      <motion.div 
+        layout
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className={`group flex items-center gap-3 p-4 rounded-2xl border transition-all ${task.completed ? 'bg-black/20 border-white/5 opacity-60' : 'bg-surface/50 border-white/5 hover:border-primary/20'}`}
+      >
+        <button 
+          onClick={onToggle}
+          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors flex-shrink-0 ${task.completed ? 'bg-primary border-primary text-black' : 'border-white/20 text-transparent'}`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+        </button>
+
+        <div className="flex-1 min-w-0">
+          {isEditing ? (
+            <input 
+              autoFocus
+              className="w-full bg-transparent border-none outline-none text-sm text-text-primary p-0 m-0 font-medium"
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+          ) : (
+            <div 
+              onClick={() => setIsEditing(true)}
+              className={`text-sm font-medium truncate cursor-text ${task.completed ? 'line-through text-text-dim' : 'text-text-primary'}`}
+            >
+              {task.text}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={() => {
+              setEditText(task.text);
+              setShowModal(true);
+            }}
+            className="p-1.5 text-text-dim hover:text-primary transition-colors"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button 
+            onClick={onDelete}
+            className="p-1.5 text-text-dim hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-sm bg-surface border border-white/10 rounded-[2.5rem] p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-display font-bold text-text-primary">Edit Task</h3>
+                <button onClick={() => setShowModal(false)} className="text-text-dim hover:text-text-primary">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <textarea 
+                autoFocus
+                className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 transition-all font-medium mb-6 min-h-[120px] resize-none"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder="What needs to be done?"
+              />
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-3 rounded-full border border-white/10 text-text-secondary font-bold text-sm hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSave}
+                  className="flex-1 py-3 rounded-full bg-primary text-black font-bold text-sm shadow-[0_0_20px_rgba(245,166,35,0.3)] hover:shadow-[0_0_30px_rgba(245,166,35,0.5)] transition-all flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Save
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 const WelcomeScreen = ({ onNext }: { onNext: () => void }) => {
   return (
@@ -844,6 +965,10 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Welcome');
   const [chatMode, setChatMode] = useState<AssistantMode>('DIY & General');
   const [activeProject, setActiveProject] = useState<string>('');
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const saved = localStorage.getItem('forge_tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [onboarding, setOnboarding] = useState<OnboardingData>(() => {
     const saved = localStorage.getItem('forge_user');
     return saved ? JSON.parse(saved) : {
@@ -862,6 +987,10 @@ export default function App() {
       setCurrentScreen('Main');
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('forge_tasks', JSON.stringify(tasks));
+  }, [tasks]);
 
   const updateData = (key: keyof OnboardingData, value: any) => {
     setOnboarding(prev => ({ ...prev, [key]: value }));
@@ -1082,6 +1211,66 @@ export default function App() {
                     </div>
                     <h4 className="font-bold text-text-primary text-sm mb-1">Toolbox</h4>
                     <p className="text-text-secondary text-xs truncate max-w-full font-mono">{onboarding.inventory ? 'Loaded' : 'Empty'}</p>
+                  </div>
+                </div>
+
+                {/* Tasks Section */}
+                <div className="bg-card/30 rounded-[2rem] border border-border/20 p-6">
+                  <div className="flex items-center justify-between mb-4 px-2">
+                    <h3 className="font-display font-bold text-lg text-text-primary">Action Items</h3>
+                    <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                      {tasks.filter(t => !t.completed).length} Pending
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto no-scrollbar">
+                    {tasks.length === 0 ? (
+                      <div className="text-center py-8 opacity-30">
+                        <CheckCircle2 className="w-10 h-10 mx-auto mb-2" />
+                        <p className="text-xs uppercase tracking-widest">Clear for takeoff</p>
+                      </div>
+                    ) : (
+                      <AnimatePresence initial={false}>
+                        {tasks.map((task) => (
+                          <TaskItem 
+                            key={task.id} 
+                            task={task} 
+                            onToggle={() => {
+                              setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t));
+                            }}
+                            onDelete={() => {
+                              setTasks(prev => prev.filter(t => t.id !== task.id));
+                              toast.show("Task removed", "info");
+                            }}
+                            onEdit={(newText) => {
+                              setTasks(prev => prev.map(t => t.id === task.id ? { ...t, text: newText } : t));
+                            }}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    )}
+                  </div>
+
+                  <div className="relative group">
+                    <input 
+                      type="text"
+                      placeholder="Add a new task..."
+                      className="w-full bg-surface/50 border border-border/50 rounded-2xl py-3.5 pl-5 pr-12 text-sm text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 transition-all font-medium"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const input = e.currentTarget;
+                          const val = input.value.trim();
+                          if (val) {
+                            setTasks(prev => [{ id: Math.random().toString(36).substr(2, 9), text: val, completed: false, createdAt: Date.now() }, ...prev]);
+                            input.value = '';
+                            toast.show("Task added", "success");
+                          }
+                        }
+                      }}
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-primary/20 rounded-lg text-primary">
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </div>
                   </div>
                 </div>
 
