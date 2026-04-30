@@ -1,0 +1,9 @@
+{
+  "name": "Forge Android App",
+  "description": "An Android application developed from code in the newsteps4them-arch/forge repository, focusing on robust mobile functionality.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
