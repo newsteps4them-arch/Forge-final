@@ -9,9 +9,15 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "static-build": "vite build",
+    "android:sync": "vite build && npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
     "@google/genai": "^1.51.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
