@@ -1,0 +1,29 @@
+# Treat all files in the repo as binary by default if they are not specifically text
+* text=auto
+
+# Explicitly mark JAR and other binary as binary
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+
+# Frontend files
+*.js text
+*.ts text
+*.tsx text
+*.jsx text
+*.css text
+*.html text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+
+# Gradle files
+gradlew text eol=lf
+*.gradle text
+*.properties text

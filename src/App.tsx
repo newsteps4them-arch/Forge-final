@@ -2942,13 +2942,22 @@ export default function App() {
                     <p className="text-[10px] text-text-dim leading-relaxed uppercase tracking-wider mb-4">No Fees. No App Store. Full Hardware Access.</p>
                     
                     <div className="space-y-4">
+                      {/* GitHub Option */}
+                      <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 space-y-3">
+                         <div className="flex items-center gap-2">
+                            <Zap className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Option A: Professional GitHub Build</span>
+                         </div>
+                         <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">The automated build engine is active. Check your GitHub repository <b>Actions</b> tab for the finished APK artifact.</p>
+                      </div>
+
                       {/* PWABuilder Option */}
                       <div className="p-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
                          <div className="flex items-center gap-2">
-                            <Layers className="w-3 h-3 text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-primary">Option A: Generate APK (Free)</span>
+                            <Layers className="w-3 h-3 text-text-dim" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-primary">Option B: Web Bundler</span>
                          </div>
-                         <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">Use PWABuilder.com to bundle this app into an Android package for offline use.</p>
+                         <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">Use PWABuilder.com to bundle this URL into an Android package manually.</p>
                          <div className="flex items-center gap-2 p-2 bg-black/60 rounded-xl border border-white/10 overflow-hidden">
                            <code className="text-[9px] text-primary font-mono truncate flex-1">https://ais-pre-xhgeaqcs5ry32eqncav2st-491297065011.us-west2.run.app</code>
                            <button 

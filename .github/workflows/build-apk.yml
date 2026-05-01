@@ -34,17 +34,16 @@ jobs:
       - name: Capacitor Sync
         run: npx cap sync android
 
-      - name: Build Android APK
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: wrapper
-          build-root-directory: android
+          gradle-version: '8.14.3'
+          cache-disabled: false
 
       - name: Run Gradle Assemble
         run: |
           cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
