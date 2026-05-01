@@ -1,0 +1,137 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && (
+        // Action: Update Profile
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'assistantName', 'wakeWord', 'userName', 'apiKey', 
+          'vehicleInfo', 'inventory', 'onboardingComplete', 'email', 'updatedAt'
+        ])
+      );
+
+      function isValidUser(data) {
+        return data.keys().hasAll(['userName', 'onboardingComplete']) &&
+               data.userName is string && data.userName.size() <= 100 &&
+               data.onboardingComplete is bool &&
+               (data.assistantName == null || (data.assistantName is string && data.assistantName.size() <= 100)) &&
+               (data.email == null || (data.email is string && data.email.size() <= 200)) &&
+               (data.updatedAt == null || data.updatedAt is timestamp);
+      }
+    }
+
+    // --- Projects Collection ---
+    match /projects/{projectId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(projectId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(projectId) && 
+                      incoming().userId == request.auth.uid && 
+                      isValidProject(incoming());
+      allow update: if isSignedIn() && isValidId(projectId) && 
+                      existing().userId == request.auth.uid && 
+                      incoming().userId == request.auth.uid && 
+                      isValidProject(incoming()) && (
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'color', 'updatedAt'])
+                      );
+      allow delete: if isSignedIn() && isValidId(projectId) && existing().userId == request.auth.uid;
+
+      function isValidProject(data) {
+        return data.keys().hasAll(['name', 'userId']) &&
+               data.name is string && data.name.size() <= 100 &&
+               data.userId == request.auth.uid;
+      }
+    }
+
+    // --- Tasks Collection ---
+    match /tasks/{taskId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(taskId) && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidId(taskId) && 
+                      incoming().userId == request.auth.uid && 
+                      isValidTask(incoming());
+                      
+      allow update: if isSignedIn() && isValidId(taskId) && 
+                      existing().userId == request.auth.uid && 
+                      incoming().userId == request.auth.uid && 
+                      isValidTask(incoming()) && (
+                        // Action: Edit Task
+                        incoming().diff(existing()).affectedKeys().hasOnly(['text', 'completed', 'category', 'priority', 'dueDate', 'updatedAt'])
+                      );
+                      
+      allow delete: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid;
+
+      function isValidTask(data) {
+        return data.keys().hasAll(['text', 'completed', 'userId', 'priority']) &&
+               data.text is string && data.text.size() <= 1000 &&
+               data.completed is bool &&
+               data.userId == request.auth.uid &&
+               data.priority in ['Low', 'Medium', 'High'] &&
+               (data.category == null || (data.category is string && data.category.size() <= 50)) &&
+               (data.dueDate == null || (data.dueDate is string && data.dueDate.size() <= 20)) &&
+               (data.createdAt == null || data.createdAt is int || data.createdAt is timestamp) &&
+               (data.updatedAt == null || data.updatedAt is timestamp);
+      }
+    }
+
+    // --- Chat Collection ---
+    match /chats/{chatId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(chatId) && 
+                      incoming().userId == request.auth.uid && 
+                      isValidChat(incoming());
+
+      function isValidChat(data) {
+        return data.keys().hasAll(['role', 'text', 'userId', 'projectId']) &&
+               data.role in ['user', 'model'] &&
+               data.text is string && data.text.size() <= 10000 &&
+               data.userId == request.auth.uid &&
+               data.projectId is string;
+      }
+    }
+
+    // --- Inventory Collection ---
+    match /inventory/{itemId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidItem(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidItem(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+
+      function isValidItem(data) {
+        return data.keys().hasAll(['name', 'quantity', 'userId']) &&
+               data.name is string && data.name.size() <= 100 &&
+               data.quantity is int;
+      }
+    }
+  }
+}

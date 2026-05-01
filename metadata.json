@@ -1,9 +1,11 @@
 {
-  "name": "Forge Android App",
-  "description": "An Android application developed from code in the newsteps4them-arch/forge repository, focusing on robust mobile functionality.",
+  "name": "Team Forge: Engineering Suite",
+  "description": "Professional-grade hardware-software integration, automotive diagnostics, and high-performance workshop management tool.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "bluetooth",
+    "usb"
   ],
   "majorCapabilities": []
 }

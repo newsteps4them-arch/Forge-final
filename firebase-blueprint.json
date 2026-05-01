@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account and onboarding data",
+      "type": "object",
+      "properties": {
+        "assistantName": { "type": "string" },
+        "wakeWord": { "type": "string" },
+        "userName": { "type": "string" },
+        "apiKey": { "type": "string" },
+        "vehicleInfo": { "type": "string" },
+        "inventory": { "type": "string" },
+        "onboardingComplete": { "type": "boolean" },
+        "email": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userName", "onboardingComplete"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A workspace for tasks and chat",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "color": { "type": "string" }
+      },
+      "required": ["name", "userId"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A project task item",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "category": { "type": "string" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "dueDate": { "type": "string" },
+        "userId": { "type": "string" },
+        "projectId": { "type": "string" }
+      },
+      "required": ["text", "completed", "userId", "priority"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message in a chat history",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "image": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "userId": { "type": "string" },
+        "projectId": { "type": "string" }
+      },
+      "required": ["role", "text", "userId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "projects/{projectId}": {
+      "schema": "Project",
+      "description": "User projects"
+    },
+    "tasks/{taskId}": {
+      "schema": "Task",
+      "description": "All tasks"
+    },
+    "chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Chat log"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Forge Hub Assistant",
+  "short_name": "Forge Hub",
+  "id": "/",
+  "description": "Professional engineering and diagnostic suite for high-performance vehicles.",
+  "start_url": "./",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#020202",
+  "theme_color": "#F5A623",
+  "lang": "en-US",
+  "categories": ["utilities", "productivity", "automotive"],
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/10046/10046187.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/10046/10046187.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/10046/10046187.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1080&h=1920",
+      "sizes": "1080x1920",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Mobile Diagnostics"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1920&h=1080",
+      "sizes": "1920x1080",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Engineering Desktop"
+    }
+  ]
+}
