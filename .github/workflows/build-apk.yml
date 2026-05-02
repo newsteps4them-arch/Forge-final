@@ -38,7 +38,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.3'
-          validate-wrappers: never
+          validate-wrappers: false
           cache-disabled: false
 
       - name: Run Gradle Assemble
