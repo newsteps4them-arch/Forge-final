@@ -39,7 +39,7 @@ jobs:
         with:
           gradle-version: '8.14.3'
           add-job-summary: true
-          wrapper-validation-enabled: false
+          validate-wrappers: false
           cache-disabled: false
 
       - name: Run Gradle Assemble
