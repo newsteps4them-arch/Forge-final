@@ -44,8 +44,9 @@ jobs:
       - name: Run Gradle Assemble
         run: |
           cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          # If the wrapper JAR is corrupt, we can try to use the installed gradle version
+          # since setup-gradle provides it.
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
