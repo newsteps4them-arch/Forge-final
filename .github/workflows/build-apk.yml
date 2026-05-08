@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install Dependencies
@@ -35,23 +35,18 @@ jobs:
         run: npx cap sync android
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.14.3'
-          validate-wrappers: false
           cache-disabled: false
 
       - name: Run Gradle Assemble
         run: |
           cd android
-          # If the wrapper JAR is corrupt, we can try to use the installed gradle version
-          # since setup-gradle provides it.
-          gradle assembleDebug --no-daemon
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Forge-Final-Debug-APK
+          name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7

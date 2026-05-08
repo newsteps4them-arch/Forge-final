@@ -1,0 +1,1 @@
+290:const WelcomeScreen = ({ onNext, onLogin }: { onNext: () => void, onLogin: () => void }) => {

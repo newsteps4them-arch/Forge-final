@@ -345,6 +345,9 @@ const WelcomeScreen = ({ onNext, onLogin }: { onNext: () => void, onLogin: () =>
 
         <div className="space-y-4 max-w-[280px]">
           <p className="text-2xl font-black text-white/90 tracking-tight leading-tight">Multidisciplinary Engineering Suite.</p>
+          <p className="text-[11px] text-text-dim text-center leading-relaxed">
+            Your centralized hub for organizing projects, diagnosing vehicles via OBD-II, and accessing specialized AI experts.
+          </p>
           <div className="flex items-center justify-center gap-3">
              <div className="px-2 py-1 bg-white/5 rounded text-[10px] text-text-dim border border-white/5 font-mono">HARDWARE</div>
              <div className="px-2 py-1 bg-white/5 rounded text-[10px] text-text-dim border border-white/5 font-mono">SOFTWARE</div>
@@ -2277,6 +2280,9 @@ const DiagnosticScreen = ({ onBack, logs, onCommand, connected, setConnected, mo
   );
 };
   
+import { Capacitor } from '@capacitor/core';
+import { getRedirectResult, signInWithRedirect } from 'firebase/auth';
+
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -2345,11 +2351,36 @@ export default function App() {
 
     // Projects Listener
     const pq = query(collection(db, 'projects'), where('userId', '==', user.uid));
-    const unsubscribeProjects = onSnapshot(pq, (snapshot) => {
+    const unsubscribeProjects = onSnapshot(pq, async (snapshot) => {
       const fetchedProjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
-      setProjects(fetchedProjects);
-      if (fetchedProjects.length > 0 && !activeProject) {
-        setActiveProject(fetchedProjects[0].id);
+      
+      if (fetchedProjects.length === 0) {
+        // Auto-create a default project so the app is never entirely blank
+        try {
+          const newProj = {
+            name: 'General Diagnostics',
+            userId: user.uid,
+            createdAt: Date.now(),
+            color: '#F5A623'
+          };
+          const docRef = await addDoc(collection(db, 'projects'), newProj);
+          const createdProj = { id: docRef.id, ...newProj } as Project;
+          setProjects([createdProj]);
+          setActiveProject(docRef.id);
+        } catch(e) {
+          console.error("Failed to auto-create project", e);
+        }
+      } else {
+        setProjects(fetchedProjects);
+        if (!activeProject || !fetchedProjects.find(p => p.id === activeProject)) {
+          // Check local storage first
+          const saved = localStorage.getItem(`forge_active_project_${user.uid}`);
+          if (saved && fetchedProjects.find(p => p.id === saved)) {
+            setActiveProject(saved);
+          } else {
+            setActiveProject(fetchedProjects[0].id);
+          }
+        }
       }
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'projects'));
 
@@ -2497,9 +2528,27 @@ export default function App() {
     }
   }, [activeProject, user]);
 
+  useEffect(() => {
+    // Process redirect result if any
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        toast.show(`Signed in as ${result.user.displayName || result.user.email}`, "success");
+      }
+    }).catch((error) => {
+      if (error && error.code !== 'auth/redirect-cancelled-by-user') {
+        console.error("Auth redirect error: ", error);
+        toast.show(`Login issue: ${error.message || 'Check connection'}`, "error");
+      }
+    });
+  }, []);
+
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      if (Capacitor.isNativePlatform()) {
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        await signInWithPopup(auth, googleProvider);
+      }
     } catch (error: any) {
       toast.show(`Login failed: ${error.message}`, "error");
     }
@@ -2891,15 +2940,17 @@ export default function App() {
                     <div className="flex gap-3 w-full">
                       <button 
                         onClick={() => setCurrentScreen('Chat')}
-                        className="flex-1 bg-primary text-black py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(245,166,35,0.2)] hover:shadow-[0_15px_30px_rgba(245,166,35,0.4)] active:scale-95"
+                        className="flex-1 bg-primary text-black py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(245,166,35,0.2)] hover:shadow-[0_15px_30px_rgba(245,166,35,0.4)] active:scale-95 flex-col"
                       >
-                        <MessageSquare className="w-4 h-4" /> Open Comms
+                        <div className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Open Comms</div>
+                        <span className="text-[9px] opacity-70 tracking-wider">Start AI Chat</span>
                       </button>
                       <button 
                         onClick={() => setCurrentScreen('Diagnostics')}
-                        className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 hover:bg-white/10 active:scale-95"
+                        className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 hover:bg-white/10 active:scale-95 flex-col"
                       >
-                        <Terminal className="w-4 h-4" /> Terminal
+                        <div className="flex items-center gap-2"><Terminal className="w-4 h-4" /> Terminal</div>
+                        <span className="text-[9px] text-text-dim tracking-wider">OBD Diagnostics</span>
                       </button>
                     </div>
                   </div>
@@ -2907,22 +2958,22 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {[
-                    { mode: 'Mechanic', icon: Wrench, color: 'primary' },
-                    { mode: 'Contractor', icon: HardHat, color: 'blue-500' },
-                    { mode: 'Estimator', icon: Calculator, color: 'emerald-500' },
-                    { mode: 'Coder', icon: Code, color: 'purple-500' }
+                    { mode: 'Mechanic', icon: Wrench, color: 'primary', desc: 'Auto repair diagrams & diagnostics' },
+                    { mode: 'Contractor', icon: HardHat, color: 'blue-500', desc: 'Construction & remodeling advice' },
+                    { mode: 'Estimator', icon: Calculator, color: 'emerald-500', desc: 'Cost breakdowns & pricing' },
+                    { mode: 'Coder', icon: Code, color: 'purple-500', desc: 'Software dev & scripts' }
                   ].map(m => (
                     <button 
                       key={m.mode}
                       onClick={() => { setChatMode(m.mode as AssistantMode); setCurrentScreen('Chat'); }}
-                      className="bg-card/40 p-6 rounded-[2rem] border border-white/5 hover:border-primary/30 transition-all flex items-center gap-4 active:scale-95 group text-left"
+                      className="bg-card/40 p-5 rounded-[2rem] border border-white/5 hover:border-primary/30 transition-all flex items-start flex-col gap-3 active:scale-95 group text-left"
                     >
                       <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors`}>
                         <m.icon className={`w-5 h-5 text-primary`} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">{m.mode}</span>
-                        <span className="text-[8px] font-mono text-text-dim/40 uppercase tracking-widest mt-0.5">Subsystem_0{m.mode.length}</span>
+                        <span className="text-[12px] font-black text-white uppercase tracking-widest leading-none">{m.mode}</span>
+                        <span className="text-[9px] mt-2 font-mono text-text-dim uppercase tracking-widest">{m.desc}</span>
                       </div>
                     </button>
                   ))}
@@ -3339,16 +3390,25 @@ export default function App() {
             </motion.div>
           )}
 
-          {currentScreen === 'Chat' && activeProject && user && (
-            <ChatScreen 
-              key="chat"
-              onBack={() => setCurrentScreen('Main')} 
-              onboarding={onboarding} 
-              initialMode={chatMode} 
-              activeProject={activeProject}
-              user={user}
-              inventory={inventory}
-            />
+          {currentScreen === 'Chat' && user && (
+            activeProject ? (
+              <ChatScreen 
+                key="chat"
+                onBack={() => setCurrentScreen('Main')} 
+                onboarding={onboarding} 
+                initialMode={chatMode} 
+                activeProject={activeProject}
+                user={user}
+                inventory={inventory}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center h-full bg-[#050505]">
+                <div className="text-primary text-sm flex items-center gap-3 font-mono border border-primary/20 p-4 rounded-full bg-primary/5">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                  INITIALIZING WORKSPACE...
+                </div>
+              </div>
+            )
           )}
 
           {currentScreen === 'Inventory' && user && (
