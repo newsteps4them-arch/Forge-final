@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Sparkles, Hammer, ChevronRight, User, Cpu, Key, Car, CheckCircle2, MessageSquare, Wrench, Layers, BookOpen, Bot, ArrowUp, ArrowLeft, Calculator, HardHat, Eye, EyeOff, Camera, ImageIcon, Code, Mic, Trash2, Edit2, X, Save, LogOut, Search, Plus, Calendar, Flag, Terminal, Activity, Zap, Bluetooth, Link as LinkIcon, ExternalLink, Wifi, Usb } from 'lucide-react';
+import { Sparkles, Hammer, ChevronRight, User, Cpu, Key, Car, CheckCircle2, MessageSquare, Wrench, Layers, BookOpen, Bot, ArrowUp, ArrowLeft, Calculator, HardHat, Eye, EyeOff, Camera, ImageIcon, Code, Mic, Trash2, Edit2, X, Save, LogOut, Search, Plus, Calendar, Flag, Terminal, Activity, Zap, Bluetooth, Link as LinkIcon, ExternalLink, Wifi, Usb, Home, Gauge, ToggleLeft } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { NotificationContainer } from './components/NotificationContainer';
+import { BottomNavBar } from './components/BottomNavBar';
+import { LiveDataScreen } from './components/LiveDataScreen';
+import { CodingScreen } from './components/CodingScreen';
+import { TerminalScreen } from './components/TerminalScreen';
 import { toast } from './lib/notifications';
 import { 
-  auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged,
+  auth, db, googleProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, signInWithRedirect,
   doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc, onSnapshot, serverTimestamp 
 } from './lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
@@ -66,7 +70,7 @@ type OnboardingData = {
   onboardingComplete: boolean;
 };
 
-type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' | 'Inventory' | 'Vehicles' | 'Ready' | 'Main' | 'Chat' | 'Diagnostics';
+type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' | 'Inventory' | 'Vehicles' | 'Ready' | 'Main' | 'Chat' | 'Diagnostics' | 'LiveData' | 'Coding' | 'Terminal';
 type AssistantMode = 'DIY & General' | 'Mechanic' | 'Estimator' | 'Contractor' | 'Coder';
 type ChatMessage = { role: 'user' | 'model', text: string, image?: string };
 
@@ -287,7 +291,7 @@ const TaskItem = ({
   );
 };
 
-const WelcomeScreen = ({ onNext, onLogin }: { onNext: () => void, onLogin: () => void }) => {
+const WelcomeScreen = ({ onNext, onLogin, onLoginAnon }: { onNext: () => void, onLogin: () => void, onLoginAnon: () => void }) => {
   return (
     <div className="flex flex-col justify-between h-full py-12 px-8 bg-[#000] overflow-hidden relative">
       {/* Cinematic Grid Background */}
@@ -375,7 +379,7 @@ const WelcomeScreen = ({ onNext, onLogin }: { onNext: () => void, onLogin: () =>
            <div className="h-[2px] bg-white/5 flex-1" />
         </div>
         <button
-          onClick={onNext}
+          onClick={onLoginAnon}
           className="w-full bg-primary py-5 px-8 rounded-[1.5rem] text-black font-black text-[15px] uppercase tracking-[0.2em] transition-all active:scale-95 shadow-[0_15px_40px_rgba(245,166,35,0.4)] hover:shadow-[0_20px_50px_rgba(245,166,35,0.6)] flex items-center justify-center gap-2 group"
         >
           Initialize Workspace
@@ -1568,720 +1572,130 @@ const InventoryScreen = ({ onBack, inventory, user }: { onBack: () => void, inve
   );
 };
 
-const DiagnosticScreen = ({ onBack, logs, onCommand, connected, setConnected, mode, setMode, dtcs, protocol, setProtocol, onboarding, onSaveAnalysis }: { 
+const DiagnosticScreen = ({ onBack, connected, dtcs, onCommand }: { 
   onBack: () => void, 
-  logs: string[], 
-  onCommand: (cmd: string) => void, 
   connected: boolean, 
-  setConnected: (v: boolean) => void,
-  mode: 'Bluetooth' | 'USB' | 'Simulated',
-  setMode: (m: 'Bluetooth' | 'USB' | 'Simulated') => void,
   dtcs: DTC[],
-  protocol: string,
-  setProtocol: (p: string) => void,
-  onboarding: OnboardingData,
-  onSaveAnalysis: (report: string) => void
+  onCommand: (cmd: string) => void
 }) => {
-  const [input, setInput] = useState('');
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [selectedPidIds, setSelectedPidIds] = useState<string[]>([]);
-  const [isMonitoring, setIsMonitoring] = useState(false);
-  const [aiReport, setAiReport] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisStep, setAnalysisStep] = useState<string>('');
-  const [telemetry, setTelemetry] = useState<any[]>([]);
-  const [activeTest, setActiveTest] = useState<string | null>(null);
-  const logEndRef = useRef<HTMLDivElement>(null);
+   const [isScanning, setIsScanning] = useState(false);
+   const [scanType, setScanType] = useState<string>('');
 
-  const BIDIRECTIONAL_TESTS = [
-    { id: "0801", name: "Cooling Fan", sub: "High Speed", cmd: "08 01 01" },
-    { id: "0802", name: "Fuel Pump", sub: "Prime Loop", cmd: "08 02 01" },
-    { id: "0805", name: "EVAP Vent", sub: "Solenoid Toggle", cmd: "08 05 01" },
-    { id: "2F01", name: "DLR Lights", sub: "Force Active", cmd: "2F 01 03 01" },
-  ];
-
-  const handleRunTest = (test: typeof BIDIRECTIONAL_TESTS[0]) => {
-     setActiveTest(test.id);
-     onCommand(test.cmd);
-     setTimeout(() => setActiveTest(null), 2000);
-  };
-
-  useEffect(() => {
-    // Extract telemetry from logs
-    const newestLog = logs[0];
-    if (newestLog && newestLog.includes('RX:')) {
-      const match = newestLog.match(/\(([^:]+): ([\d.]+)/);
-      if (match) {
-        const name = match[1];
-        const value = parseFloat(match[2]);
-        setTelemetry(prev => {
-          const last = prev[prev.length - 1];
-          const newData = { time: new Date().toLocaleTimeString(), [name]: value };
-          return [...prev.slice(-19), newData];
-        });
+   const handleScan = (type: 'quick' | 'deep') => {
+      if (!connected) {
+         toast.show("Connect to vehicle first on Home screen", "error");
+         return;
       }
-    }
-  }, [logs]);
-
-  const handleRunAI = async () => {
-    if (logs.length === 0 && dtcs.length === 0) {
-      toast.show("No data to analyze. Run a scan first.", "info");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setAiReport(null);
-    setAnalysisStep('Initializing Neural Link...');
-    
-    try {
-      await new Promise(r => setTimeout(r, 800));
-      setAnalysisStep('Parsing ELM327 Stream...');
-      const logsText = logs.slice(0, 20).reverse().join('\n');
+      setIsScanning(true);
+      setScanType(type === 'quick' ? 'Quick Scan' : 'Deep Module Scan');
       
-      await new Promise(r => setTimeout(r, 600));
-      setAnalysisStep('Correlating DTC Database...');
-      const codesText = dtcs.length > 0 
-        ? dtcs.map(d => `- ${d.code}: ${d.description} (${d.status})`).join('\n')
-        : "No diagnostic codes (DTCs) currently detected.";
+      // Simulate scan sequence
+      setTimeout(() => {
+         onCommand("03"); // Request Emission-Related Diagnostic Trouble Codes
+      }, 1000);
+      
+      setTimeout(() => {
+         setIsScanning(false);
+         setScanType('');
+         toast.show("Scan complete", "success");
+      }, 3000);
+   };
 
-      const vehicleSummary = `${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`;
-
-      await new Promise(r => setTimeout(r, 600));
-      setAnalysisStep('Generating Advanced Report...');
-
-      const systemInstruction = `You are Forge AI Diagnostics (v4.5), a high-latency-hardened master automotive specialized engine.
-      VEHICLE_CONTEXT: ${vehicleSummary}
-      USER_IDENTITY: ${onboarding.userName}
-      ENGINEERING_PARAMETERS:
-      - Mode: Deep Packet Inspection of ELM327 streams.
-      - Logic: ISO-15031-6 cross-reference.
-      - Output: Precision diagnostic logic, root cause ranking, and service manual synthesis.
-
-      RESPONSE_STYLE: Engineering bulletin format. Use tabular data for root cause confidence. Concise, technical, and zero fluff.`;
-
-      const promptText = `
-        [DIAGNOSTIC_INTERRUPTION]
-        Forge Internal, execute priority analysis on high-fidelity buffered stream.
-
-        -- CORE_CONTEXT --
-        VEHICLE: ${vehicleSummary}
-        ELM_PROTOCOL: ${onboarding.vehicleProtocol}
-        SESSION_DURATION: ${logs.length > 50 ? 'Extensive' : 'Initial Boot'}
-
-        -- FAULT_REGISTRY (DTC) --
-        ${codesText}
-
-        -- RAW_TERMINAL_BUFFER (LAST 20 PACKETS) --
-        \`\`\`
-        ${logsText}
-        \`\`\`
-
-        EXECUTION_SEQUENCE:
-        1. CRITICALITY: Assess immediate safety risk (0-10).
-        2. BUFFER_INTEGRITY: Verify if the ELM327 stream shows timing fluctuations or protocol noise.
-        3. ROOT_CAUSE_VECTORS: Map the top 3 most probable mechanical/electrical failures in a technical table.
-        4. REMEDIAL_PROTOCOL: Step-by-step restoration logic for ${onboarding.userName}.
-      `;
-
-      const apiKey = onboarding.apiKey || import.meta.env.VITE_GEMINI_API_KEY;
-      const response = await generateChatResponse([{ role: 'user', parts: [{ text: promptText }] }], apiKey, systemInstruction);
-      setAiReport(response);
-      toast.show("Forge AI Analysis Generated", "success");
-    } catch (error: any) {
-      toast.show(error.message || "Analysis failed", "error");
-    } finally {
-      setIsAnalyzing(false);
-      setAnalysisStep('');
-    }
-  };
-
-  useEffect(() => {
-    let interval: any;
-    if (isMonitoring && connected && selectedPidIds.length > 0) {
-      interval = setInterval(() => {
-        // Cycle through selected PIDs
-        selectedPidIds.forEach((pidId, index) => {
-          setTimeout(() => {
-             onCommand(pidId);
-          }, index * 400); // Stagger requests
-        });
-      }, Math.max(3000, selectedPidIds.length * 500));
-    }
-    return () => clearInterval(interval);
-  }, [isMonitoring, connected, selectedPidIds, onCommand]);
-
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
-
-  const handleDetect = async () => {
-    if (!connected) {
-      toast.show("Connect to device first", "error");
-      return;
-    }
-    setIsDetecting(true);
-    
-    // Robust ELM327 initialization and protocol discovery sequence
-    const sequence = ["ATZ", "ATE0", "ATL0", "ATSP0", "0100", "ATDP"];
-    
-    for (const cmd of sequence) {
-      onCommand(cmd);
-      // Wait for simulation to "process" and log the response
-      await new Promise(r => setTimeout(r, 600));
-    }
-    
-    setIsDetecting(false);
-    toast.show("Advanced Protocol Sync Complete", "success");
-  };
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-    onCommand(input.trim().toUpperCase());
-    setInput('');
-  };
-
-  const QUICK_COMMANDS = [
-    { label: "Check Codes", cmd: "03" },
-    { label: "Read RPM", cmd: "010C" },
-    { label: "Reset CEL", cmd: "04" },
-    { label: "ELM Info", cmd: "ATI" },
-    { label: "Vin", cmd: "0902" }
-  ];
-
-  const EXTERNAL_APPS = [
-    { name: "Torque Pro", url: "torque://", icon: <Zap className="w-4 h-4" /> },
-    { name: "FORScan", url: "forscan://", icon: <Search className="w-4 h-4" /> },
-    { name: "OBD Fusion", url: "obdfusion://", icon: <Activity className="w-4 h-4" /> }
-  ];
-
-  const OBD_PIDS = [
-    { id: "0104", name: "Engine Load", unit: "%", desc: "Calculated engine load" },
-    { id: "0105", name: "Coolant Temp", unit: "°C", desc: "Engine coolant temperature" },
-    { id: "010B", name: "Intake MAP", unit: "kPa", desc: "Intake manifold absolute pressure" },
-    { id: "010C", name: "Engine RPM", unit: "RPM", desc: "Engine revolutions per minute" },
-    { id: "010D", name: "Vehicle Speed", unit: "km/h", desc: "Vehicle speed" },
-    { id: "010F", name: "Intake Temp", unit: "°C", desc: "Intake air temperature" },
-    { id: "0110", name: "MAF Rate", unit: "g/s", desc: "Mass air flow sensor rate" },
-    { id: "0111", name: "Throttle Pos", unit: "%", desc: "Absolute throttle position" },
-  ];
-
-  const REPAIR_RESOURCES = [
-    { name: "ALLDATA", url: "https://www.alldata.com", desc: "OEM Repair Info & Wiring", category: 'OEM' },
-    { name: "RepairSolutions2", url: "https://www.repairsolutions.com", desc: "Verified Parts & Fixes", category: 'Diagnostics' },
-    { name: "RockAuto", url: "https://www.rockauto.com", desc: "Global Parts Catalog", category: 'Parts' },
-    { name: "eBay Motors", url: "https://www.ebay.com/motors", desc: "Hard-to-find Components", category: 'Parts' }
-  ];
-
-  const DIAGRAM_RESOURCES = [
-    { name: "AutoZone Wiring", url: "https://www.autozone.com/repairguides", desc: "Free Wiring Diagrams" },
-    { name: "Mitchell1", url: "https://mitchell1.com", desc: "Pro-Grade Shop Software" },
-    { name: "Charley's Repair", url: "https://www.workshopservicemanual.com", desc: "Service Manuals" }
-  ];
-
-  const handleConnect = async () => {
-    if (connected) {
-      setConnected(false);
-      return;
-    }
-
-    if (mode === 'Simulated') {
-      setConnected(true);
-      onCommand("ATZ");
-      return;
-    }
-
-    try {
-      if (mode === 'Bluetooth') {
-        if (!(navigator as any).bluetooth) {
-          throw new Error("Web Bluetooth API not available in this browser/context.");
-        }
-        // Attempt to request a device
-        const device = await (navigator as any).bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: ['00001101-0000-1000-8000-00805f9b34fb']
-        });
-        setConnected(true);
-        onCommand("ATZ");
-        onCommand("ATI");
-      } else if (mode === 'USB') {
-        if (!(navigator as any).usb) {
-          throw new Error("WebUSB API not available in this browser/context.");
-        }
-        const device = await (navigator as any).usb.requestDevice({ filters: [] });
-        await device.open();
-        setConnected(true);
-        onCommand("ATZ");
+   const handleClear = () => {
+      if (!connected) return;
+      if (confirm("Are you sure you want to clear all DTCs? This will reset your emissions monitors.")) {
+         onCommand("04"); // Clear/Reset Emission-Related Diagnostic Info
+         toast.show("Clear command sent", "info");
       }
-    } catch (err: any) {
-      console.error(err);
-      const msg = err.name === 'SecurityError' 
-        ? "Hardware access requires top-level navigation. Open app in new tab."
-        : err.message || "Connection failed";
-      toast.show(msg, "error");
-    }
-  };
+   };
 
-  return (
+   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      className="flex flex-col h-full bg-[#050505] overflow-hidden"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="absolute inset-0 bg-[#0A0A0A] flex flex-col pt-8 pb-32 z-20"
     >
-      <header className="p-6 border-b border-white/5 flex items-center justify-between bg-black/50 backdrop-blur-xl sticky top-0 z-20">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-full transition-colors text-text-dim hover:text-white">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h2 className="text-xl font-black text-white tracking-widest uppercase font-display italic">Diagnostic Terminal</h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-primary shadow-[0_0_8px_rgba(245,166,35,0.8)]' : 'bg-red-500'}`} />
-              <span className="text-[9px] font-mono text-text-dim uppercase tracking-widest">
-                {connected ? `Active: ${mode} • ${protocol}` : 'Offline'}
-              </span>
-            </div>
-          </div>
+      <div className="flex items-center gap-3 px-6 mb-4">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 text-white/70 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2 text-primary">
+          <Activity className="w-5 h-5" />
+          <h2 className="text-xl font-black uppercase tracking-widest">Diagnostics</h2>
         </div>
-        <div className="flex gap-2">
-          <div className="flex items-center gap-1 bg-white/5 border border-white/5 rounded-lg pr-1">
-            <select 
-              value={protocol} 
-              onChange={(e) => setProtocol(e.target.value)}
-              className="bg-transparent text-[9px] px-2 py-1 text-text-dim outline-none font-black uppercase tracking-widest max-w-[120px]"
-            >
-              <option value="ISO 15765-4 (CAN 11/500)">CAN 11/500</option>
-              <option value="ISO 15765-4 (CAN 29/500)">CAN 29/500</option>
-              <option value="ISO 14230-4 (KWP FAST)">KWP FAST</option>
-              <option value="ISO 14230-4 (KWP 5BPS)">KWP 5BPS</option>
-              <option value="ISO 9141-2 (Asian/Euro)">ISO 9141-2</option>
-              <option value="SAE J1850 PWM (Ford)">J1850 PWM</option>
-              <option value="SAE J1850 VPW (GM)">J1850 VPW</option>
-            </select>
+      </div>
+
+      <div className="px-6 space-y-6 overflow-y-auto no-scrollbar flex-1 pb-10">
+         <div className="text-[10px] text-white/40 uppercase tracking-widest font-mono leading-relaxed mb-6">
+           Read and clear vehicle diagnostic trouble codes (DTCs). Green indicates a clean system. Red indicates faults found.
+         </div>
+
+         {/* Scan Actions */}
+         <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={handleDetect}
-              disabled={isDetecting || !connected}
-              className={`p-1 rounded hover:bg-white/10 transition-colors ${isDetecting ? 'animate-pulse text-primary' : 'text-text-dim'}`}
-              title="Auto-Detect Protocol"
+              onClick={() => handleScan('quick')}
+              disabled={isScanning}
+              className={`p-4 rounded-3xl border border-white/10 flex flex-col items-center justify-center gap-3 transition-all ${isScanning && scanType === 'Quick Scan' ? 'bg-primary/20 border-primary shadow-[0_0_20px_rgba(245,166,35,0.2)] text-primary' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
             >
-              <Search className="w-3 h-3" />
+               <Zap className={`w-8 h-8 ${isScanning && scanType === 'Quick Scan' ? 'animate-pulse' : ''}`} />
+               <div className="flex flex-col items-center text-center">
+                 <span className="text-sm font-black uppercase tracking-wider font-mono">1-Tap Quick</span>
+                 <span className="text-[9px] text-white/40 uppercase mt-1 px-2">Checks Powertrain</span>
+               </div>
             </button>
-          </div>
-          <select 
-            value={mode} 
-            onChange={(e) => setMode(e.target.value as any)}
-            className="bg-white/5 border border-white/5 rounded-lg text-[9px] px-2 py-1 text-text-dim outline-none font-black uppercase tracking-widest"
-          >
-            <option value="Simulated">Simulated</option>
-            <option value="Bluetooth">Bluetooth</option>
-            <option value="USB">USB OTG</option>
-          </select>
-          <button 
-            onClick={handleConnect}
-            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              connected ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-primary text-black'
-            }`}
-          >
-            {connected ? 'Disconnect' : 'Connect'}
-          </button>
-        </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
-        {/* Hardware Status Ribbon */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-           {[
-             { label: 'RSSI', value: connected ? '-42dBm' : 'LOG:' },
-             { label: 'V_BATT', value: connected ? '14.2V' : 'EXT:' },
-             { label: 'TEMP', value: '32°C' },
-             { label: 'BAUD', value: '38400' },
-             { label: 'PKT', value: logs.length.toString() }
-           ].map(stat => (
-             <div key={stat.label} className="flex-shrink-0 px-3 py-2 bg-card/40 border border-white/5 rounded-xl min-w-[70px]">
-                <div className="text-[7px] font-black text-primary/40 uppercase tracking-widest">{stat.label}</div>
-                <div className="text-[10px] font-mono font-bold text-text-primary">{stat.value}</div>
-             </div>
-           ))}
-        </div>
-
-        {/* Telemetry Graph Area */}
-        <AnimatePresence>
-          {isMonitoring && telemetry.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-4"
+            <button 
+              onClick={() => handleScan('deep')}
+              disabled={isScanning}
+              className={`p-4 rounded-3xl border border-white/10 flex flex-col items-center justify-center gap-3 transition-all ${isScanning && scanType === 'Deep Module Scan' ? 'bg-primary/20 border-primary shadow-[0_0_20px_rgba(245,166,35,0.2)] text-primary' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
             >
-               <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Activity className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Telemetry</span>
+               <Search className={`w-8 h-8 ${isScanning && scanType === 'Deep Module Scan' ? 'animate-pulse' : ''}`} />
+               <div className="flex flex-col items-center text-center">
+                 <span className="text-sm font-black uppercase tracking-wider font-mono">Module Scan</span>
+                 <span className="text-[9px] text-white/40 uppercase mt-1 px-2">ABS, Airbag, Trans</span>
+               </div>
+            </button>
+         </div>
+
+         {/* Scan Results */}
+         <AnimatePresence mode="wait">
+            {isScanning ? (
+               <motion.div key="scanning" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col items-center justify-center py-10 opacity-50">
+                  <Activity className="w-10 h-10 text-primary animate-pulse mb-3" />
+                  <span className="text-xs font-mono uppercase tracking-widest text-primary">{scanType}...</span>
+               </motion.div>
+            ) : dtcs.length > 0 ? (
+               <motion.div key="results" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="space-y-4">
+                  <div className="flex items-center justify-between mt-6">
+                     <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">{dtcs.length} Fault(s) Detected</span>
+                     <button onClick={handleClear} className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full text-[10px] uppercase font-black tracking-widest hover:bg-red-500 hover:text-black transition-colors">
+                        Clear Codes
+                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
-                     <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-[8px] font-mono text-text-dim">VALUE_STREAM</span>
+                  {dtcs.map((dtc) => (
+                     <div key={dtc.code} className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 flex gap-4 items-start">
+                        <div className="bg-red-500 text-black font-black text-xs px-2 py-1 rounded">{dtc.code}</div>
+                        <div className="flex-1">
+                           <p className="text-sm font-bold text-white mb-1">{dtc.description}</p>
+                           <p className="text-[10px] text-red-500/70 font-mono tracking-widest uppercase">{dtc.status}</p>
+                        </div>
                      </div>
-                  </div>
-               </div>
-               <div className="h-[180px] w-full bg-card/20 border border-white/5 rounded-3xl p-4 overflow-hidden relative group transition-colors hover:border-primary/20">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={telemetry}>
-                      <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#F5A623" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#F5A623" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="time" hide />
-                      <YAxis hide domain={['auto', 'auto']} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#151619', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
-                        itemStyle={{ color: '#F5A623' }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey={Object.keys(telemetry[telemetry.length - 1]).find(k => k !== 'time') || ''} 
-                        stroke="#F5A623" 
-                        strokeWidth={2}
-                        fillOpacity={1} 
-                        fill="url(#colorValue)" 
-                        isAnimationActive={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Terminal Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-             <div className="flex items-center gap-2 text-primary">
-                <Terminal className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Live Stream</span>
-             </div>
-             <button onClick={() => {/* clear logs */}} className="text-[9px] text-text-dim hover:text-white uppercase font-mono">Clear</button>
-          </div>
-          <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-4 font-mono text-[11px] h-[220px] overflow-y-auto no-scrollbar flex flex-col-reverse shadow-inner">
-             <div ref={logEndRef} />
-             {logs.map((log, i) => (
-                <div key={i} className={`mb-1 ${log.includes('TX:') ? 'text-primary/70' : 'text-text-primary'}`}>
-                  {log}
-                </div>
-             ))}
-             {logs.length === 0 && <div className="text-text-dim/30 italic">Awaiting sync...</div>}
-          </div>
-          <div className="flex gap-2">
-            <input 
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Send AT/OBD Command..."
-              className="flex-1 bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-primary/40 font-mono"
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-            />
-            <button 
-              onClick={handleSend}
-              className="p-3 bg-white/5 hover:bg-white/10 text-primary border border-white/10 rounded-xl transition-all"
-            >
-              <Zap className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* DTC Alerts */}
-        <AnimatePresence>
-          {dtcs.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-4"
-            >
-              <div className="flex items-center gap-2 text-red-500">
-                <Activity className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Fault Codes Detected</span>
-              </div>
-              <div className="space-y-2">
-                {dtcs.map(dtc => (
-                  <div key={dtc.code} className="bg-red-500/5 border border-red-500/20 p-4 rounded-2xl flex items-start gap-4">
-                    <div className="bg-red-500 text-black font-black text-[10px] px-2 py-1 rounded">
-                      {dtc.code}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-bold text-white mb-1">{dtc.description}</div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] uppercase tracking-widest text-red-500/60 font-bold">{dtc.status}</span>
-                        <span className="w-1 h-1 rounded-full bg-red-500/20" />
-                        <button 
-                          onClick={() => window.open(`https://www.google.com/search?q=${dtc.code}+obd2+code+meaning`, '_blank')}
-                          className="text-[9px] uppercase tracking-widest text-primary hover:underline font-bold"
-                        >
-                          Deep Research
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* PID Monitor Selection */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white/40">
-              <Activity className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">PID Monitor</span>
-            </div>
-            <button 
-              onClick={() => setIsMonitoring(!isMonitoring)}
-              disabled={!connected || selectedPidIds.length === 0}
-              className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
-                isMonitoring 
-                  ? 'bg-primary text-black shadow-[0_0_15px_rgba(245,166,35,0.4)]' 
-                  : 'bg-white/5 text-text-dim border border-white/5 opacity-50'
-              }`}
-            >
-              {isMonitoring ? 'Live Monitoring ON' : 'Start Monitoring'}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {OBD_PIDS.map(pid => {
-              const isSelected = selectedPidIds.includes(pid.id);
-              return (
-                <button
-                  key={pid.id}
-                  onClick={() => {
-                    setSelectedPidIds(prev => 
-                      isSelected ? prev.filter(id => id !== pid.id) : [...prev, pid.id]
-                    );
-                  }}
-                  className={`flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden group ${
-                    isSelected 
-                      ? 'bg-primary/10 border-primary/30' 
-                      : 'bg-white/5 border-white/5 hover:border-white/10'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-mono text-text-dim group-hover:text-primary/60 transition-colors">{pid.id}</span>
-                    <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary' : 'bg-white/10'}`} />
-                  </div>
-                  <span className={`text-[13px] font-bold tracking-tight ${isSelected ? 'text-primary' : 'text-text-primary'}`}>
-                    {pid.name}
-                  </span>
-                  <span className="text-[9px] text-text-dim uppercase tracking-wider mt-0.5">{pid.unit} • {pid.desc.split(' ')[0]}...</span>
-                  
-                  {isSelected && (
-                    <motion.div 
-                      layoutId={`active-pid-${pid.id}`}
-                      className="absolute bottom-0 left-0 h-0.5 bg-primary w-full" 
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Bi-Directional Component Activation */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-white/40">
-             <Zap className="w-4 h-4" />
-             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Actuator Controls</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {BIDIRECTIONAL_TESTS.map(test => (
-              <button
-                key={test.id}
-                onClick={() => handleRunTest(test)}
-                disabled={!connected || activeTest !== null}
-                className={`flex items-center justify-between p-4 bg-card/40 border border-white/5 rounded-2xl hover:border-primary/30 transition-all group ${activeTest === test.id ? 'border-primary shadow-[0_0_15px_rgba(245,166,35,0.2)]' : ''}`}
-              >
-                <div className="flex flex-col text-left">
-                  <span className="text-[10px] font-mono text-primary/60 mb-0.5 uppercase tracking-widest">{test.id} // SEC_CMD</span>
-                  <span className="text-[13px] font-bold text-text-primary">{test.name}</span>
-                  <span className="text-[9px] text-text-dim uppercase tracking-wider">{test.sub}</span>
-                </div>
-                {activeTest === test.id ? (
-                  <Activity className="w-5 h-5 text-primary animate-pulse" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-text-dim group-hover:text-primary transition-colors">
-                    <ArrowUp className="w-4 h-4 rotate-45" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-          <p className="text-[8px] text-text-dim/60 font-mono uppercase tracking-[0.2em] px-1 text-center">Caution: Bidirectional tests bypass PCM safety logic.</p>
-        </div>
-
-        {/* AI Analysis Integration */}
-        <div className="mt-4 p-6 bg-primary/5 border border-primary/20 rounded-[2.5rem] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <Sparkles className="w-12 h-12 text-primary" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <Bot className="w-4 h-4 text-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Forge AI Diagnostics</span>
-            </div>
-            <h3 className="text-[15px] font-bold text-text-primary mb-1">Advanced Interpretation</h3>
-            <p className="text-[10px] text-text-dim mb-4 leading-relaxed uppercase tracking-wider font-mono">Analyze live terminal logs and DTC codes for expert guidance.</p>
-            <button 
-              onClick={handleRunAI}
-              disabled={isAnalyzing}
-              className={`w-full bg-primary text-black py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(245,166,35,0.2)] hover:shadow-[0_15px_30px_rgba(245,166,35,0.4)] transition-all active:scale-95 ${isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {isAnalyzing ? (
-                <div className="flex flex-col items-center gap-3">
-                  <Activity className="w-6 h-6 animate-spin text-primary" />
-                  <div className="text-[10px] font-mono text-primary/80 uppercase tracking-[0.2em] animate-pulse">
-                    {analysisStep}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Cpu className="w-4 h-4" />
-                  Analyze with Forge AI
-                </>
-              )}
-            </button>
-
-            {aiReport && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="mt-6 pt-6 border-t border-primary/10"
-              >
-                 <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Analysis Report</span>
-                    </div>
-                    <button onClick={() => setAiReport(null)} className="text-[10px] text-text-dim hover:text-white transition-colors">Dismiss</button>
-                 </div>
-                 <div className="text-[12px] text-text-dim leading-relaxed font-mono prose-invert max-h-[300px] overflow-y-auto no-scrollbar mb-6">
-                    <Markdown>{aiReport}</Markdown>
-                 </div>
-                 
-                 <button 
-                  onClick={() => onSaveAnalysis(aiReport)}
-                  className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95"
-                 >
-                   <Layers className="w-3 h-3 text-primary" />
-                   Sync Analysis to Engineering Hub
-                 </button>
-              </motion.div>
+                  ))}
+               </motion.div>
+            ) : (
+               <motion.div key="clean" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col items-center justify-center py-20 opacity-50">
+                  <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
+                  <span className="text-xs font-mono uppercase tracking-widest text-green-500 text-center">No faults detected<br/>System OK</span>
+               </motion.div>
             )}
-          </div>
-        </div>
-
-        {/* Quick Commands */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-           {QUICK_COMMANDS.map(q => (
-             <button 
-               key={q.cmd}
-               onClick={() => onCommand(q.cmd)}
-               className="bg-card/40 border border-white/5 p-3 rounded-xl hover:border-primary/40 transition-all group text-left"
-             >
-                <div className="text-[8px] text-text-dim uppercase tracking-[0.2em] mb-1 group-hover:text-primary transition-colors">{q.cmd}</div>
-                <div className="text-[11px] font-bold text-text-primary">{q.label}</div>
-             </button>
-           ))}
-        </div>
-
-        {/* External Resources */}
-        <div className="space-y-6">
-           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white/40">
-                <Wrench className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Engineering Databases</span>
-              </div>
-              <span className="text-[8px] text-primary/40 uppercase tracking-widest font-mono">External_Link_Active</span>
-           </div>
-           
-           <div className="grid grid-cols-2 gap-3">
-              {REPAIR_RESOURCES.map(r => (
-                <a 
-                  key={r.name}
-                  href={r.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex flex-col p-4 bg-card border border-white/5 rounded-3xl hover:bg-white/5 hover:border-primary/20 transition-all group relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-100 transition-opacity">
-                     <ExternalLink className="w-3 h-3 text-primary" />
-                  </div>
-                  <div className="mb-3">
-                    <span className="text-[9px] text-primary/60 font-black uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">{r.category}</span>
-                  </div>
-                  <span className="text-[15px] font-bold text-white mb-1">{r.name}</span>
-                  <span className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider font-mono">{r.desc}</span>
-                </a>
-              ))}
-           </div>
-
-           <div className="flex items-center gap-2 text-white/40 mt-8">
-              <Layers className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Manuals & Schematics</span>
-           </div>
-
-           <div className="grid grid-cols-1 gap-2">
-              {DIAGRAM_RESOURCES.map(d => (
-                <button 
-                  key={d.name}
-                  onClick={() => window.open(d.url, '_blank')}
-                  className="w-full flex items-center justify-between p-5 bg-card/60 border border-white/5 rounded-3xl hover:bg-white/5 hover:border-primary/20 transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-surface flex items-center justify-center text-text-dim group-hover:text-primary transition-colors border border-white/5">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[15px] font-bold text-text-primary">{d.name}</span>
-                      <span className="text-[10px] text-text-dim uppercase tracking-widest font-mono">{d.desc}</span>
-                    </div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center text-text-dim/40 group-hover:text-primary group-hover:border-primary/30 transition-all">
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </button>
-              ))}
-           </div>
-        </div>
-
-        {/* App Bridge */}
-        <div className="space-y-4 pb-10">
-           <div className="flex items-center gap-2 text-white/40">
-              <Activity className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">App Bridge</span>
-           </div>
-           <div className="flex gap-2 overflow-x-auto no-scrollbar">
-              {EXTERNAL_APPS.map(app => (
-                <a 
-                  key={app.name}
-                  href={app.url}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-black transition-all"
-                >
-                   {app.icon}
-                   {app.name}
-                </a>
-              ))}
-           </div>
-        </div>
+         </AnimatePresence>
       </div>
     </motion.div>
   );
 };
   
 import { Capacitor } from '@capacitor/core';
-import { getRedirectResult, signInWithRedirect } from 'firebase/auth';
+import { getRedirectResult } from 'firebase/auth';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -2300,6 +1714,23 @@ export default function App() {
   const [obdConnected, setObdConnected] = useState(false);
   const [diagnosticLogs, setDiagnosticLogs] = useState<string[]>([]);
   const [obdMode, setObdMode] = useState<'Bluetooth' | 'USB' | 'Simulated'>('Simulated');
+  const [telemetry, setTelemetry] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Extract telemetry from logs
+    const newestLog = diagnosticLogs[0];
+    if (newestLog && newestLog.includes('RX:')) {
+      const match = newestLog.match(/\(([^:]+): ([\d.]+)/);
+      if (match) {
+        const name = match[1];
+        const value = parseFloat(match[2]);
+        setTelemetry(prev => {
+          const newData = { time: new Date().toLocaleTimeString(), [name]: value };
+          return [...prev.slice(-19), newData];
+        });
+      }
+    }
+  }, [diagnosticLogs]);
   const [detectedDtcs, setDetectedDtcs] = useState<DTC[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -2554,6 +1985,17 @@ export default function App() {
     }
   };
 
+  const handleLoginAnon = async () => {
+    try {
+      await signInAnonymously(auth);
+      toast.show("Signed in as Offline User", "info");
+      handleNext();
+    } catch (error: any) {
+      toast.show(`Offline Login failed: ${error.message}`, "error");
+      handleNext();
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -2695,6 +2137,49 @@ export default function App() {
     }
   };
 
+  const handleConnect = async () => {
+    if (obdConnected) {
+      setObdConnected(false);
+      return;
+    }
+
+    if (obdMode === 'Simulated') {
+      setObdConnected(true);
+      handleDiagnosticCommand("ATZ");
+      return;
+    }
+
+    try {
+      if (obdMode === 'Bluetooth') {
+        if (!(navigator as any).bluetooth) {
+          throw new Error("Web Bluetooth API not available in this browser/context.");
+        }
+        // Attempt to request a device
+        const device = await (navigator as any).bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['00001101-0000-1000-8000-00805f9b34fb']
+        });
+        setObdConnected(true);
+        handleDiagnosticCommand("ATZ");
+        handleDiagnosticCommand("ATI");
+      } else if (obdMode === 'USB') {
+        if (!(navigator as any).usb) {
+          throw new Error("WebUSB API not available in this browser/context.");
+        }
+        const device = await (navigator as any).usb.requestDevice({ filters: [] });
+        await device.open();
+        setObdConnected(true);
+        handleDiagnosticCommand("ATZ");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.name === 'SecurityError' 
+        ? "Hardware access requires top-level navigation. Open app in new tab."
+        : err.message || "Connection failed";
+      toast.show(msg, "error");
+    }
+  };
+
   const handleDiagnosticCommand = async (command: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setDiagnosticLogs(prev => [`[${timestamp}] TX: ${command}`, ...prev].slice(0, 50));
@@ -2793,7 +2278,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-4">
           <AnimatePresence mode="wait">
           {currentScreen === 'Welcome' && (
-            <WelcomeScreen key="welcome" onNext={handleNext} onLogin={handleLogin} />
+            <WelcomeScreen key="welcome" onNext={handleNext} onLogin={handleLogin} onLoginAnon={handleLoginAnon} />
           )}
 
           {currentScreen === 'NameAssistant' && (
@@ -2912,7 +2397,78 @@ export default function App() {
 
               <ProjectPicker />
 
-              <div className="space-y-6">
+              <div className="space-y-6 pb-24">
+                {/* Connection Settings */}
+                <div className="flex gap-2">
+                   <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
+                      <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">Hardware Interface</span>
+                      <select 
+                        value={obdMode} 
+                        onChange={(e) => setObdMode(e.target.value as any)}
+                        className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
+                      >
+                        <option value="Simulated">Simulated Demo</option>
+                        <option value="Bluetooth">Bluetooth / BLE</option>
+                        <option value="USB">USB OTG Cable</option>
+                      </select>
+                   </div>
+                   <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
+                      <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">Vehicle Protocol</span>
+                      <select 
+                        value={onboarding.vehicleProtocol} 
+                        onChange={(e) => updateData('vehicleProtocol', e.target.value)}
+                        className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
+                      >
+                        <option value="Auto">Auto Detect</option>
+                        <option value="ISO 15765-4 (CAN 11/500)">CAN 11/500</option>
+                        <option value="ISO 15765-4 (CAN 29/500)">CAN 29/500</option>
+                        <option value="ISO 14230-4 (KWP FAST)">KWP FAST</option>
+                        <option value="ISO 9141-2">ISO 9141-2</option>
+                        <option value="SAE J1850 PWM">J1850 PWM</option>
+                        <option value="SAE J1850 VPW">J1850 VPW</option>
+                      </select>
+                   </div>
+                </div>
+
+                {/* Primary OBD Hub */}
+                <div className="bg-black border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col items-center justify-center">
+                   <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+                   
+                   <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-4 font-mono">
+                      {obdConnected ? 'Link Active' : 'No Connection'}
+                   </p>
+                   
+                   <button 
+                     onClick={handleConnect}
+                     className={`w-40 h-40 rounded-full flex flex-col items-center justify-center gap-2 transition-all ${
+                       obdConnected 
+                         ? 'bg-green-500/20 text-green-500 border border-green-500/40 shadow-[0_0_40px_rgba(34,197,94,0.3)]' 
+                         : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 shadow-[0_0_30px_rgba(245,166,35,0.15)] hover:shadow-[0_0_50px_rgba(245,166,35,0.3)]'
+                     }`}
+                   >
+                     {obdConnected ? <Wifi className="w-10 h-10 mb-1" /> : <Zap className="w-10 h-10 mb-1" />}
+                     <span className="text-xl font-black uppercase tracking-widest leading-none">
+                       {obdConnected ? 'Connected' : 'Connect'}
+                     </span>
+                     <span className="text-[9px] uppercase tracking-widest opacity-60">
+                       {obdConnected ? onboarding.vehicleProtocol : 'to Vehicle'}
+                     </span>
+                   </button>
+                   
+                   {obdConnected && (
+                     <div className="flex w-full items-center justify-between mt-6 pt-4 border-t border-white/5">
+                        <div className="flex flex-col">
+                           <span className="text-[9px] text-white/40 uppercase tracking-widest">Voltage</span>
+                           <span className="text-sm font-bold text-white font-mono">13.8V</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                           <span className="text-[9px] text-white/40 uppercase tracking-widest">Protocol</span>
+                           <span className="text-sm font-bold text-white font-mono">{onboarding.vehicleProtocol || 'CAN 11-bit'}</span>
+                        </div>
+                     </div>
+                   )}
+                </div>
+
                 {/* Assistant Interaction Area */}
                 <div className="bg-gradient-to-b from-surface to-card rounded-[2.5rem] p-8 border border-border/40 relative overflow-hidden group shadow-lg">
                   <div className="absolute top-0 right-0 p-6 opacity-10 transition-opacity group-hover:opacity-30">
@@ -3390,8 +2946,24 @@ export default function App() {
             </motion.div>
           )}
 
-          {currentScreen === 'Chat' && user && (
-            activeProject ? (
+          {currentScreen === 'Chat' && (
+            !user ? (
+              <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] p-8 text-center gap-4">
+                <div className="w-12 h-12 rounded-full border border-red-500/20 bg-red-500/5 flex items-center justify-center text-red-500 mb-2">
+                  <User className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-black text-white uppercase tracking-widest">Authentication Required</h3>
+                <p className="text-sm font-mono text-white/50 leading-relaxed max-w-sm">
+                  Neural_Sync is offline. Please sign in via the Engineering Hub (Home tab) to access Forge AI and cloud synchronization.
+                </p>
+                <button 
+                  onClick={() => setCurrentScreen('Main')}
+                  className="mt-6 px-6 py-3 bg-primary text-black font-black uppercase tracking-widest text-[11px] rounded-xl hover:bg-primary/80 transition-colors"
+                >
+                  Return to Hub
+                </button>
+              </div>
+            ) : activeProject ? (
               <ChatScreen 
                 key="chat"
                 onBack={() => setCurrentScreen('Main')} 
@@ -3402,11 +2974,18 @@ export default function App() {
                 inventory={inventory}
               />
             ) : (
-              <div className="flex-1 flex items-center justify-center h-full bg-[#050505]">
-                <div className="text-primary text-sm flex items-center gap-3 font-mono border border-primary/20 p-4 rounded-full bg-primary/5">
+              <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] gap-4 p-8 text-center">
+                <div className="text-primary text-sm flex items-center gap-3 font-mono border border-primary/20 p-4 rounded-full bg-primary/5 mb-4">
                   <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
                   INITIALIZING WORKSPACE...
                 </div>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Select or create a project in the Hub first.</p>
+                <button 
+                  onClick={() => setCurrentScreen('Main')}
+                  className="mt-2 px-6 py-3 bg-white/5 border border-white/10 text-white font-black uppercase tracking-widest text-[11px] rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  Return to Hub
+                </button>
               </div>
             )
           )}
@@ -3422,36 +3001,33 @@ export default function App() {
           {currentScreen === 'Diagnostics' && (
             <DiagnosticScreen 
               onBack={() => setCurrentScreen('Main')}
-              logs={diagnosticLogs}
-              onCommand={handleDiagnosticCommand}
               connected={obdConnected}
-              setConnected={setObdConnected}
-              mode={obdMode}
-              setMode={setObdMode}
               dtcs={detectedDtcs}
-              protocol={onboarding.vehicleProtocol}
-              setProtocol={(p) => updateData('vehicleProtocol', p)}
-              onboarding={onboarding}
-              onSaveAnalysis={async (report) => {
-                if (!user || !activeProject) return;
-                try {
-                  await addDoc(collection(db, 'chats'), {
-                    role: 'model',
-                    text: `[SYSTEM_DIAGNOSTIC_REPORT]\n\n${report}`,
-                    userId: user.uid,
-                    projectId: activeProject,
-                    createdAt: Date.now()
-                  });
-                  toast.show("Analysis synced to project history", "success");
-                  setCurrentScreen('Chat');
-                } catch (e) {
-                  toast.show("Sync failed", "error");
-                }
-              }}
+              onCommand={handleDiagnosticCommand}
             />
+           )}
+
+          {currentScreen === 'LiveData' && (
+            <LiveDataScreen onBack={() => setCurrentScreen('Main')} telemetry={telemetry} />
+          )}
+
+          {currentScreen === 'Coding' && (
+            <CodingScreen onBack={() => setCurrentScreen('Main')} onCommand={handleDiagnosticCommand} />
+          )}
+
+          {currentScreen === 'Terminal' && (
+            <TerminalScreen onBack={() => setCurrentScreen('Main')} onCommand={handleDiagnosticCommand} logs={diagnosticLogs} />
           )}
         </AnimatePresence>
         </div>
+
+        {/* Bottom Navigation */}
+        {['Main', 'Diagnostics', 'LiveData', 'Coding', 'Terminal'].includes(currentScreen) && user && (
+          <BottomNavBar 
+            currentTab={currentScreen} 
+            onTabSelect={(id) => setCurrentScreen(id as Screen)} 
+          />
+        )}
       </div>
     </div>
   );
