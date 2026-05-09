@@ -5,11 +5,14 @@ import {
   BatteryMedium,
   BatteryFull,
   Activity,
+  Download
 } from "lucide-react";
+import { usePWAInstall } from "../hooks/usePWAInstall";
 
 export const TopStatusBar = () => {
   const [time, setTime] = useState("");
   const [ping, setPing] = useState(24);
+  const { isInstallable, installPWA } = usePWAInstall();
 
   useEffect(() => {
     const updateTime = () => {
@@ -45,6 +48,15 @@ export const TopStatusBar = () => {
           FORGE_OS <span className="text-white/30 text-[8px]">v1.4.2</span>
         </span>
         <span className="hidden sm:inline">SYSTEM: ONLINE</span>
+        {isInstallable && (
+          <button 
+            onClick={installPWA}
+            className="flex items-center gap-1.5 bg-primary/20 text-primary px-2 py-0.5 rounded cursor-pointer hover:bg-primary/30 transition-colors border border-primary/30"
+          >
+            <Download className="w-3 h-3" />
+            <span>INSTALL APP</span>
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
