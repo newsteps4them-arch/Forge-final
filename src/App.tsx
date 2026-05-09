@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Sparkles, Hammer, ChevronRight, User, Cpu, Key, Car, CheckCircle2, MessageSquare, Wrench, Layers, BookOpen, Bot, ArrowUp, ArrowLeft, Calculator, HardHat, Eye, EyeOff, Camera, ImageIcon, Code, Mic, Trash2, Edit2, X, Save, LogOut, Search, Plus, Calendar, Flag, Terminal, Activity, Zap, Bluetooth, Link as LinkIcon, ExternalLink, Wifi, Usb, Home, Gauge, ToggleLeft } from 'lucide-react';
+import { Sparkles, Hammer, ChevronRight, User, Cpu, Key, Car, CheckCircle2, MessageSquare, Wrench, Layers, BookOpen, Bot, ArrowUp, ArrowLeft, Calculator, HardHat, Eye, EyeOff, Camera, ImageIcon, Code, Mic, Trash2, Edit2, X, Save, LogOut, Search, Plus, Calendar, Flag, Terminal, Activity, Zap, Bluetooth, Link as LinkIcon, ExternalLink, Wifi, Usb, Home, Gauge, ToggleLeft, Database } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { NotificationContainer } from './components/NotificationContainer';
 import { BottomNavBar } from './components/BottomNavBar';
 import { LiveDataScreen } from './components/LiveDataScreen';
 import { CodingScreen } from './components/CodingScreen';
 import { TerminalScreen } from './components/TerminalScreen';
+import { IntegrationsScreen } from './components/IntegrationsScreen';
 import { toast } from './lib/notifications';
 import { 
   auth, db, googleProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, signInWithRedirect,
@@ -70,8 +71,8 @@ type OnboardingData = {
   onboardingComplete: boolean;
 };
 
-type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' | 'Inventory' | 'Vehicles' | 'Ready' | 'Main' | 'Chat' | 'Diagnostics' | 'LiveData' | 'Coding' | 'Terminal';
-type AssistantMode = 'DIY & General' | 'Mechanic' | 'Estimator' | 'Contractor' | 'Coder';
+type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' | 'Inventory' | 'Vehicles' | 'Ready' | 'Main' | 'Chat' | 'Diagnostics' | 'LiveData' | 'Coding' | 'Terminal' | 'Integrations';
+type AssistantMode = 'Operations' | 'Diagnostics Lead' | 'Performance Tuner' | 'Electrical Eng.' | 'Estimator';
 type ChatMessage = { role: 'user' | 'model', text: string, image?: string };
 
 type Task = {
@@ -725,18 +726,19 @@ const CameraView = ({ onCapture, onClose, initialMode }: { onCapture: (img: stri
                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                AR Scan Active
             </div>
-            <div className="flex gap-1.5 p-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/5 shadow-2xl">
-              {(['DIY & General', 'Mechanic', 'Estimator', 'Contractor', 'Coder'] as AssistantMode[]).map((m) => (
+            <div className="flex gap-1.5 p-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/5 shadow-2xl overflow-x-auto no-scrollbar">
+              {(['Operations', 'Diagnostics Lead', 'Performance Tuner', 'Electrical Eng.', 'Estimator'] as AssistantMode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={`p-2 rounded-full transition-all ${mode === m ? 'bg-primary text-black scale-110 shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white/60'}`}
+                  className={`p-2 whitespace-nowrap rounded-full transition-all text-[10px] font-black uppercase tracking-widest ${mode === m ? 'bg-primary text-black scale-110 shadow-lg shadow-primary/20' : 'text-white/40 hover:text-white/60'}`}
                 >
-                  {m === 'DIY & General' && <Sparkles className="w-4 h-4" />}
-                  {m === 'Mechanic' && <Wrench className="w-4 h-4" />}
-                  {m === 'Estimator' && <Calculator className="w-4 h-4" />}
-                  {m === 'Contractor' && <HardHat className="w-4 h-4" />}
-                  {m === 'Coder' && <Code className="w-4 h-4" />}
+                  {m === 'Operations' && <Sparkles className="w-4 h-4 inline mr-1" />}
+                  {m === 'Diagnostics Lead' && <Wrench className="w-4 h-4 inline mr-1" />}
+                  {m === 'Estimator' && <Calculator className="w-4 h-4 inline mr-1" />}
+                  {m === 'Performance Tuner' && <Activity className="w-4 h-4 inline mr-1" />}
+                  {m === 'Electrical Eng.' && <Zap className="w-4 h-4 inline mr-1" />}
+                  {m.split(' ')[0]}
                 </button>
               ))}
             </div>
@@ -748,7 +750,7 @@ const CameraView = ({ onCapture, onClose, initialMode }: { onCapture: (img: stri
        {/* Mode specific overlays */}
        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
           <AnimatePresence mode="wait">
-            {mode === 'Mechanic' && (
+            {mode === 'Diagnostics Lead' && (
                <motion.div 
                  key="mechanic-ar"
                  initial={{ opacity: 0, scale: 0.8 }}
@@ -844,9 +846,9 @@ const CameraView = ({ onCapture, onClose, initialMode }: { onCapture: (img: stri
                </motion.div>
             )}
 
-            {mode === 'Contractor' && (
+            {mode === 'Electrical Eng.' && (
                <motion.div 
-                 key="contractor-ar"
+                 key="electrical-ar"
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  exit={{ opacity: 0 }}
@@ -899,9 +901,9 @@ const CameraView = ({ onCapture, onClose, initialMode }: { onCapture: (img: stri
                </motion.div>
             )}
 
-            {mode === 'Coder' && (
+            {mode === 'Performance Tuner' && (
                <motion.div 
-                 key="coder-ar"
+                 key="tuner-ar"
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  exit={{ opacity: 0 }}
@@ -957,9 +959,9 @@ const CameraView = ({ onCapture, onClose, initialMode }: { onCapture: (img: stri
                </motion.div>
             )}
 
-            {mode === 'DIY & General' && (
+            {mode === 'Operations' && (
                <motion.div 
-                 key="diy-ar"
+                 key="operations-ar"
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  exit={{ opacity: 0 }}
@@ -1012,16 +1014,22 @@ const CameraView = ({ onCapture, onClose, initialMode }: { onCapture: (img: stri
   );
 }
 
-const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inventory }: { onBack: () => void, onboarding: OnboardingData, initialMode?: AssistantMode, activeProject: string, user: FirebaseUser, inventory: InventoryItem[] }) => {
+const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inventory, initialQuery }: { onBack: () => void, onboarding: OnboardingData, initialMode?: AssistantMode, activeProject: string, user: FirebaseUser, inventory: InventoryItem[], initialQuery?: string }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<AssistantMode>(initialMode || 'DIY & General');
+  const [mode, setMode] = useState<AssistantMode>(initialMode || 'Operations');
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialQuery && messages.length === 0) {
+      setInput(initialQuery);
+    }
+  }, [initialQuery, messages.length]);
 
   // Sync with Firestore
   useEffect(() => {
@@ -1168,14 +1176,26 @@ const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inve
       }
 
       switch(mode) {
-        case 'Mechanic': 
-          systemInstruction += "Expert automotive mechanic. You have access to a Diagnostic Terminal (ELM327) in the app. ";
-          systemInstruction += "Encourage the user to run OBD scans, check DTC codes, and use bidirectional controls. ";
-          systemInstruction += "Provide torque specs and diagnostic steps using resources like ALLDATA and Snap-on. ";
+        case 'Diagnostics Lead': 
+          systemInstruction += "Expert automotive diagnostic technician / shop foreman. You function like a high-end Snap-on diagnostic suite mixed with a senior Master Tech. ";
+          systemInstruction += "Analyze DTC codes, direct the user on what PIDs to look at, provide electrical testing procedures (voltage drops, resistance checks), and outline logic-based diagnostic paths. ";
+          systemInstruction += "Reference dealer-level data concepts like freeze frames and pinpoint tests.";
           break;
-        case 'Contractor': systemInstruction += "General contractor. Focus on structural integrity and codes."; break;
-        case 'Coder': systemInstruction += "Software engineer. Focus on clean code and robust architecture."; break;
-        case 'Estimator': systemInstruction += "Project estimator. Focus on material costs and labor optimization."; break;
+        case 'Performance Tuner':
+          systemInstruction += "Expert automotive calibrator / tuner. Focus on live telemetry, spark advance, fuel trims, VE tables, boost mapping, and engine efficiency. ";
+          systemInstruction += "Direct the user to generate specific logs (e.g. WOT pulls) using FORScan or Torque Pro, then analyze the theoretical data. ";
+          break;
+        case 'Electrical Eng.':
+          systemInstruction += "Automotive electrical system & CAN-bus network engineer. Focus on module configuration (As-Built coding like FORScan), network topologies, gateway modules, and CAN Hi/Lo troubleshooting. ";
+          systemInstruction += "Provide logic for proxy alignments, module resets, and wiring diagram pinouts.";
+          break;
+        case 'Estimator':
+          systemInstruction += "Automotive service writer and estimator. Focus on labor time guides (e.g., Mitchell/Alldata), parts sourcing logistics, OEM vs Aftermarket cost-benefit analysis, and shop efficiency. ";
+          break;
+        case 'Operations':
+        default:
+          systemInstruction += "General operations and team coordinator. You can answer general questions and orchestrate the tasks across the team.";
+          break;
       }
 
       // We don't update local messages state manually, the firestore listener handles it
@@ -1253,7 +1273,7 @@ const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inve
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>{autoSpeak && <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>}{autoSpeak && <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>}</svg>
            </button>
           {/* Scrollable mode toggles */}
-          {['DIY & General', 'Mechanic', 'Estimator', 'Contractor', 'Coder'].map((m) => (
+          {['Operations', 'Diagnostics Lead', 'Performance Tuner', 'Electrical Eng.', 'Estimator'].map((m) => (
              <button 
                key={m}
                onClick={() => {
@@ -1262,12 +1282,12 @@ const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inve
                }}
                className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${mode === m ? 'bg-primary text-black shadow-[0_0_10px_rgba(245,166,35,0.4)]' : 'text-text-secondary hover:text-text-primary'}`}
              >
-                {m === 'DIY & General' && <Hammer className="w-3 h-3" />}
-                {m === 'Mechanic' && <Wrench className="w-3 h-3" />}
+                {m === 'Operations' && <Sparkles className="w-3 h-3" />}
+                {m === 'Diagnostics Lead' && <Wrench className="w-3 h-3" />}
                 {m === 'Estimator' && <Calculator className="w-3 h-3" />}
-                {m === 'Contractor' && <HardHat className="w-3 h-3" />}
-                {m === 'Coder' && <Code className="w-3 h-3" />}
-                {m === 'DIY & General' ? 'DIY' : m}
+                {m === 'Performance Tuner' && <Activity className="w-3 h-3" />}
+                {m === 'Electrical Eng.' && <Zap className="w-3 h-3" />}
+                {m.split(' ')[0]}
              </button>
           ))}
         </div>
@@ -1286,32 +1306,32 @@ const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inve
             <div className="flex flex-col items-center justify-center">
               <Cpu className="w-16 h-16 text-primary mb-6 drop-shadow-[0_0_15px_rgba(245,166,35,0.5)]" />
               <p className="text-center text-text-primary font-display text-xl tracking-tight max-w-[200px]">
-                {mode === 'Mechanic' 
+                {mode === 'Diagnostics Lead' 
                   ? "What are we tearing apart today?" 
                   : mode === 'Estimator'
                   ? "Let's run some numbers."
-                  : mode === 'Contractor'
-                  ? "Let's build something solid."
-                  : mode === 'Coder'
-                  ? "What are we coding today?"
-                  : "What are we building today?"}
+                  : mode === 'Performance Tuner'
+                  ? "Let's dial in the maps."
+                  : mode === 'Electrical Eng.'
+                  ? "Tracing the CAN lines."
+                  : "How can the team assist?"}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 max-w-[280px]">
-                {mode === 'Mechanic' && ["Torque specs for...", "Interpret OBD2 code", "Step-by-step teardown"].map(suggest => (
+                {mode === 'Diagnostics Lead' && ["Code P0300 on F150", "Fuel trim data analysis", "EVAP leak procedure"].map(suggest => (
                     <button key={suggest} onClick={() => setInput(suggest)} className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors">{suggest}</button>
                 ))}
-                {mode === 'Estimator' && ["Estimate 10x10 tile", "Material cost for 50ft fence", "Labor breakdown layout"].map(suggest => (
+                {mode === 'Estimator' && ["OEM Parts pricing", "Compare aftermarket blocks", "Calculate 8 hrs labor"].map(suggest => (
                     <button key={suggest} onClick={() => setInput(suggest)} className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors">{suggest}</button>
                 ))}
-                {mode === 'Contractor' && ["Deck footing codes", "Write an estimate block", "Calculate roof pitch"].map(suggest => (
+                {mode === 'Performance Tuner' && ["Adjust target boost CFG", "Explain WOT Fuel table", "MAF scaling tutorial"].map(suggest => (
                     <button key={suggest} onClick={() => setInput(suggest)} className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors">{suggest}</button>
                 ))}
-                {mode === 'Coder' && ["Review my code", "Explain React hooks", "Write a Python script"].map(suggest => (
+                {mode === 'Electrical Eng.' && ["Calculate proxy align byte", "Locate BCM ground", "Explain HS-CAN topology"].map(suggest => (
                     <button key={suggest} onClick={() => setInput(suggest)} className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors">{suggest}</button>
                 ))}
-                {mode === 'DIY & General' && ["Build a planter box", "Which paint for cabinets?", "Angle grinder safety"].map(suggest => (
+                {mode === 'Operations' && ["Pull AS-BUILT data", "Review diagnostic logs", "Inventory check"].map(suggest => (
                     <button key={suggest} onClick={() => setInput(suggest)} className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors">{suggest}</button>
                 ))}
             </div>
@@ -1425,11 +1445,11 @@ const ChatScreen = ({ onBack, onboarding, initialMode, activeProject, user, inve
               {(() => {
                 let suggestions: string[] = [];
                 switch (mode) {
-                    case 'Mechanic': suggestions = ['Check fluid levels', 'Diagnostic codes', 'Torque specs']; break;
-                    case 'Contractor': suggestions = ['Material cost breakdown', 'Permit info', 'Code requirements']; break;
-                    case 'Estimator': suggestions = ['Calculate tile sqft', 'Labor breakdown', 'Compare materials']; break;
-                    case 'Coder': suggestions = ['Review code block', 'Optimize algorithm', 'Debug error']; break;
-                    default: suggestions = ['How does this work?', 'Give me a summary', 'Safety tips']; break;
+                    case 'Diagnostics Lead': suggestions = ['Check fluid levels', 'Diagnostic paths', 'Service Resets']; break;
+                    case 'Performance Tuner': suggestions = ['Analyze Data Log', 'Boost targets', 'Timing pull']; break;
+                    case 'Estimator': suggestions = ['Calculate Labor', 'Part # lookup', 'Compare aftermarket']; break;
+                    case 'Electrical Eng.': suggestions = ['Module config sync', 'Wiring diagram', 'CAN-bus check']; break;
+                    default: suggestions = ['Generate Report', 'Show active tasks', 'Sync integrations']; break;
                 }
                 return suggestions.map(suggest => (
                     <button 
@@ -1572,11 +1592,12 @@ const InventoryScreen = ({ onBack, inventory, user }: { onBack: () => void, inve
   );
 };
 
-const DiagnosticScreen = ({ onBack, connected, dtcs, onCommand }: { 
+const DiagnosticScreen = ({ onBack, connected, dtcs, onCommand, onDeepDive }: { 
   onBack: () => void, 
   connected: boolean, 
   dtcs: DTC[],
-  onCommand: (cmd: string) => void
+  onCommand: (cmd: string) => void,
+  onDeepDive: (dtc: DTC) => void
 }) => {
    const [isScanning, setIsScanning] = useState(false);
    const [scanType, setScanType] = useState<string>('');
@@ -1668,16 +1689,48 @@ const DiagnosticScreen = ({ onBack, connected, dtcs, onCommand }: {
                <motion.div key="results" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="space-y-4">
                   <div className="flex items-center justify-between mt-6">
                      <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">{dtcs.length} Fault(s) Detected</span>
-                     <button onClick={handleClear} className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full text-[10px] uppercase font-black tracking-widest hover:bg-red-500 hover:text-black transition-colors">
-                        Clear Codes
-                     </button>
+                     <div className="flex items-center gap-2">
+                       <button onClick={() => toast.show("Diagnostic Report generated and saved to Hub.", "success")} className="px-3 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] uppercase font-black tracking-widest hover:bg-primary hover:text-black transition-colors">
+                          Report
+                       </button>
+                       <button onClick={handleClear} className="px-3 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full text-[10px] uppercase font-black tracking-widest hover:bg-red-500 hover:text-black transition-colors">
+                          Clear
+                       </button>
+                     </div>
                   </div>
                   {dtcs.map((dtc) => (
-                     <div key={dtc.code} className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 flex gap-4 items-start">
-                        <div className="bg-red-500 text-black font-black text-xs px-2 py-1 rounded">{dtc.code}</div>
-                        <div className="flex-1">
-                           <p className="text-sm font-bold text-white mb-1">{dtc.description}</p>
-                           <p className="text-[10px] text-red-500/70 font-mono tracking-widest uppercase">{dtc.status}</p>
+                     <div key={dtc.code} className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 flex flex-col gap-3">
+                        <div className="flex gap-4 items-start">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="bg-red-500 text-black font-black text-xs px-2 py-1 rounded">{dtc.code}</div>
+                            <button onClick={() => onDeepDive && onDeepDive(dtc)} className="w-full flex items-center justify-center gap-1 py-1 rounded border border-primary/30 text-[8px] text-primary hover:bg-primary/10 transition-colors uppercase font-bold tracking-widest mt-1">
+                              <Bot className="w-2.5 h-2.5" /> Guide
+                            </button>
+                          </div>
+                          <div className="flex-1">
+                             <p className="text-sm font-bold text-white mb-1">{dtc.description}</p>
+                             <p className="text-[10px] text-red-500/70 font-mono tracking-widest uppercase mb-1">{dtc.status}</p>
+                             <div className="text-[9px] text-white/40 leading-relaxed font-mono uppercase">Module: PCM (Powertrain Control Module)</div>
+                          </div>
+                        </div>
+                        {/* Simulated Freeze Frame Data */}
+                        <div className="mt-2 pt-3 border-t border-red-500/10 grid grid-cols-2 gap-2">
+                           <div className="flex justify-between items-center bg-black/40 px-2 py-1.5 rounded">
+                             <span className="text-[8px] text-white/40 font-mono uppercase">Engine RPM</span>
+                             <span className="text-[9px] text-white font-mono">1,824 r/min</span>
+                           </div>
+                           <div className="flex justify-between items-center bg-black/40 px-2 py-1.5 rounded">
+                             <span className="text-[8px] text-white/40 font-mono uppercase">Coolant Temp</span>
+                             <span className="text-[9px] text-white font-mono">185 °F</span>
+                           </div>
+                           <div className="flex justify-between items-center bg-black/40 px-2 py-1.5 rounded">
+                             <span className="text-[8px] text-white/40 font-mono uppercase">Vehicle Speed</span>
+                             <span className="text-[9px] text-white font-mono">45 mph</span>
+                           </div>
+                           <div className="flex justify-between items-center bg-black/40 px-2 py-1.5 rounded">
+                             <span className="text-[8px] text-white/40 font-mono uppercase">Engine Load</span>
+                             <span className="text-[9px] text-white font-mono">32.4 %</span>
+                           </div>
                         </div>
                      </div>
                   ))}
@@ -1701,9 +1754,11 @@ export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentScreen, setCurrentScreen] = useState<Screen>('Welcome');
-  const [chatMode, setChatMode] = useState<AssistantMode>('DIY & General');
+  const [chatMode, setChatMode] = useState<AssistantMode>('Operations');
+  const [chatInitialQuery, setChatInitialQuery] = useState('');
   const [activeProject, setActiveProject] = useState<string>('');
   const [projects, setProjects] = useState<Project[]>([]);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
@@ -2137,6 +2192,14 @@ export default function App() {
     }
   };
 
+  const handleToggleIntegration = (id: string, isConnecting: boolean) => {
+    if (isConnecting) {
+      setConnectedIntegrations(prev => [...new Set([...prev, id])]);
+    } else {
+      setConnectedIntegrations(prev => prev.filter(i => i !== id));
+    }
+  };
+
   const handleConnect = async () => {
     if (obdConnected) {
       setObdConnected(false);
@@ -2178,6 +2241,12 @@ export default function App() {
         : err.message || "Connection failed";
       toast.show(msg, "error");
     }
+  };
+
+  const handleDeepDive = (dtc: DTC) => {
+    setChatInitialQuery(`I'm dealing with DTC ${dtc.code}: ${dtc.description}. Can you provide a diagnostic path, logic, and potential repair procedures for a ${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}?`);
+    setChatMode('Diagnostics Lead');
+    setCurrentScreen('Chat');
   };
 
   const handleDiagnosticCommand = async (command: string) => {
@@ -2469,14 +2538,13 @@ export default function App() {
                    )}
                 </div>
 
-                {/* Assistant Interaction Area */}
+                {/* Forge Expert Team Area */}
                 <div className="bg-gradient-to-b from-surface to-card rounded-[2.5rem] p-8 border border-border/40 relative overflow-hidden group shadow-lg">
                   <div className="absolute top-0 right-0 p-6 opacity-10 transition-opacity group-hover:opacity-30">
                     <Sparkles className="text-primary w-8 h-8" />
                   </div>
                   
                   <div className="flex flex-col items-center text-center py-4 relative z-10">
-                    {/* Animated Pulsing Voice Visualizer */}
                     <div className="relative mb-6">
                       <motion.div 
                         animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
@@ -2488,18 +2556,18 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <p className="text-[10px] text-text-dim uppercase tracking-[0.3em] font-mono mb-6">Neural_Sync: Listening...</p>
+                    <p className="text-[10px] text-text-dim uppercase tracking-[0.3em] font-mono mb-6">Forge Team: Synchronized</p>
                     
-                    <h3 className="font-display font-black text-4xl mb-2 text-text-primary tracking-tight">{onboarding.assistantName}</h3>
-                    <p className="text-text-secondary text-xs mb-10 tracking-widest uppercase opacity-60">Ready for Command Integration</p>
+                    <h3 className="font-display font-black text-4xl mb-2 text-text-primary tracking-tight">Expert Network</h3>
+                    <p className="text-text-secondary text-xs mb-10 tracking-widest uppercase opacity-60">Select Specialist for Consultation</p>
                     
                     <div className="flex gap-3 w-full">
                       <button 
                         onClick={() => setCurrentScreen('Chat')}
                         className="flex-1 bg-primary text-black py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(245,166,35,0.2)] hover:shadow-[0_15px_30px_rgba(245,166,35,0.4)] active:scale-95 flex-col"
                       >
-                        <div className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Open Comms</div>
-                        <span className="text-[9px] opacity-70 tracking-wider">Start AI Chat</span>
+                        <div className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Operations</div>
+                        <span className="text-[9px] opacity-70 tracking-wider">General AI Hub</span>
                       </button>
                       <button 
                         onClick={() => setCurrentScreen('Diagnostics')}
@@ -2514,10 +2582,10 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {[
-                    { mode: 'Mechanic', icon: Wrench, color: 'primary', desc: 'Auto repair diagrams & diagnostics' },
-                    { mode: 'Contractor', icon: HardHat, color: 'blue-500', desc: 'Construction & remodeling advice' },
-                    { mode: 'Estimator', icon: Calculator, color: 'emerald-500', desc: 'Cost breakdowns & pricing' },
-                    { mode: 'Coder', icon: Code, color: 'purple-500', desc: 'Software dev & scripts' }
+                    { mode: 'Diagnostics Lead', icon: Wrench, color: 'primary', desc: 'DTC Analysis & Repair Paths' },
+                    { mode: 'Performance Tuner', icon: Activity, color: 'blue-500', desc: 'Live Data & Mapping' },
+                    { mode: 'Electrical Eng.', icon: Zap, color: 'emerald-500', desc: 'Wiring & Module Coding' },
+                    { mode: 'Estimator', icon: Calculator, color: 'purple-500', desc: 'Labor & Parts Pricing' }
                   ].map(m => (
                     <button 
                       key={m.mode}
@@ -2525,7 +2593,7 @@ export default function App() {
                       className="bg-card/40 p-5 rounded-[2rem] border border-white/5 hover:border-primary/30 transition-all flex items-start flex-col gap-3 active:scale-95 group text-left"
                     >
                       <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors`}>
-                        <m.icon className={`w-5 h-5 text-primary`} />
+                        <m.icon className={`w-5 h-5 text-${m.color === 'primary' ? 'primary' : m.color}`} />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[12px] font-black text-white uppercase tracking-widest leading-none">{m.mode}</span>
@@ -2636,6 +2704,22 @@ export default function App() {
                     <h4 className="font-bold text-text-primary text-sm mb-1">Diagnostic Log</h4>
                     <p className="text-text-secondary text-xs truncate max-w-full font-mono">
                       {obdConnected ? 'OBD Dynamic Stream' : 'Offline • ELM327'}
+                    </p>
+                  </button>
+
+                  <button 
+                    onClick={() => setCurrentScreen('Integrations')}
+                    className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                       <Database className="w-8 h-8" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                       <LinkIcon className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-text-primary text-sm mb-1">3rd Party APIs</h4>
+                    <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                      {connectedIntegrations.length > 0 ? `${connectedIntegrations.length} Active Hooks` : 'Sync Offline Tools'}
                     </p>
                   </button>
                 </div>
@@ -2972,6 +3056,7 @@ export default function App() {
                 activeProject={activeProject}
                 user={user}
                 inventory={inventory}
+                initialQuery={chatInitialQuery}
               />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] gap-4 p-8 text-center">
@@ -3004,6 +3089,7 @@ export default function App() {
               connected={obdConnected}
               dtcs={detectedDtcs}
               onCommand={handleDiagnosticCommand}
+              onDeepDive={handleDeepDive}
             />
            )}
 
@@ -3017,6 +3103,14 @@ export default function App() {
 
           {currentScreen === 'Terminal' && (
             <TerminalScreen onBack={() => setCurrentScreen('Main')} onCommand={handleDiagnosticCommand} logs={diagnosticLogs} />
+          )}
+
+          {currentScreen === 'Integrations' && (
+            <IntegrationsScreen 
+              onBack={() => setCurrentScreen('Main')} 
+              connectedIds={connectedIntegrations}
+              onToggleConnection={handleToggleIntegration}
+            />
           )}
         </AnimatePresence>
         </div>
