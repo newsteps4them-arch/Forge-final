@@ -1,28 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
   --color-background: #050505;
   --color-surface: #121212;
-  --color-card: #1A1A1A;
-  --color-border: #2E2E2E;
-  --color-primary: #F5A623;
-  --color-primary-dim: #7A4F0D;
-  --color-text-primary: #EDEDED;
-  --color-text-secondary: #9A9A9A;
+  --color-card: #1a1a1a;
+  --color-border: #2e2e2e;
+  --color-primary: #f5a623;
+  --color-primary-dim: #7a4f0d;
+  --color-text-primary: #ededed;
+  --color-text-secondary: #9a9a9a;
   --color-text-dim: #555555;
-  --color-success: #4CAF50;
-  --color-error: #E53935;
-  
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --color-success: #4caf50;
+  --color-error: #e53935;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
 
   @keyframes scan {
-    0% { top: 0%; opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { top: 100%; opacity: 0; }
+    0% {
+      top: 0%;
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
   }
 }
 
@@ -41,6 +51,50 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.hardware-pattern {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-attachment: fixed;
+}
+
+.dotted-pattern {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.1) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
+}
+
+.scanlines-pattern::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  z-index: 50;
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.95; }
+  5% { opacity: 0.85; }
+  10% { opacity: 0.95; }
+  15% { opacity: 1; }
+  50% { opacity: 0.95; }
+  100% { opacity: 1; }
+}
+
+.crt-text {
+  text-shadow: 0 0 5px currentColor;
+  animation: crt-flicker 0.15s infinite;
 }
 
 /* Custom Scrollbar for a premium look */
@@ -62,8 +116,8 @@ body {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* Glassmorphism */
@@ -96,7 +150,7 @@ body {
 }
 
 .markdown-body code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   background-color: rgba(255, 255, 255, 0.1);
   padding: 0.2em 0.4em;
   border-radius: 4px;
@@ -106,7 +160,7 @@ body {
 .markdown-body pre code {
   background-color: transparent;
   padding: 0;
-  color: #E2E8F0;
+  color: #e2e8f0;
 }
 
 .markdown-body ul {
@@ -125,7 +179,10 @@ body {
   margin-bottom: 0.5em;
 }
 
-.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
   font-weight: 700;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -143,7 +200,8 @@ body {
   font-size: 0.9em;
 }
 
-.markdown-body th, .markdown-body td {
+.markdown-body th,
+.markdown-body td {
   border: 1px solid var(--color-border);
   padding: 0.75em;
   text-align: left;

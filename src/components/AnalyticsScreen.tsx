@@ -17,7 +17,7 @@ export const AnalyticsScreen = ({ onBack }: { onBack: () => void }) => {
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] p-8 relative"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
     >
       <header className="flex items-center gap-4 mb-8 pt-6 px-2">
         <button

@@ -57,7 +57,7 @@ export const OscilloscopeScreen = ({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] p-8 relative"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
     >
       <header className="flex flex-col gap-2 mb-6 pt-6 px-2">
         <div className="flex items-center justify-between">
@@ -127,6 +127,16 @@ export const OscilloscopeScreen = ({
           <div className="flex-1 w-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
+                <defs>
+                  <filter id="glow-primary" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                  <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="rgba(255,255,255,0.1)"
@@ -140,6 +150,8 @@ export const OscilloscopeScreen = ({
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
+                  activeDot={{ filter: "url(#glow-primary)" }} // Not super useful but good
+                  style={{ filter: "url(#glow-primary)" }}
                 />
                 <Line
                   type="monotone"
@@ -148,6 +160,8 @@ export const OscilloscopeScreen = ({
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
+                  activeDot={{ filter: "url(#glow-cyan)" }}
+                  style={{ filter: "url(#glow-cyan)" }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -60,6 +60,7 @@ import {
 import Markdown from "react-markdown";
 import { NotificationContainer } from "./components/NotificationContainer";
 import { BottomNavBar } from "./components/BottomNavBar";
+import { TopStatusBar } from "./components/TopStatusBar";
 import { LiveDataScreen } from "./components/LiveDataScreen";
 import { CodingScreen } from "./components/CodingScreen";
 import { TerminalScreen } from "./components/TerminalScreen";
@@ -97,6 +98,7 @@ import {
 } from "./lib/firebase";
 import type { User as FirebaseUser } from "firebase/auth";
 import { generateChatResponse } from "./services/geminiService";
+import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
 
 // --- Utilities ---
 enum OperationType {
@@ -576,7 +578,7 @@ const ApiKeysSetupScreen = ({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] p-8 relative"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
     >
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Key className="w-64 h-64 text-text-primary" />
@@ -671,7 +673,7 @@ const SetupScreen = ({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] p-8 relative"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
     >
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Icon className="w-64 h-64 text-text-primary" />
@@ -731,7 +733,7 @@ const VehicleSetupScreen = ({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] p-8 relative"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
     >
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Car className="w-64 h-64 text-text-primary" />
@@ -1601,7 +1603,7 @@ const ChatScreen = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="flex flex-col h-full bg-[#050505] relative overflow-hidden"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern relative overflow-hidden"
     >
       {showCamera && (
         <CameraView
@@ -1610,8 +1612,9 @@ const ChatScreen = ({
           initialMode={mode}
         />
       )}
-      {/* Glass Header */}
-      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-10 pb-4 glass flex flex-col gap-3 border-b border-white/5">
+      {/* Tech Header */}
+      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-10 pb-4 bg-[#050505]/90 backdrop-blur-xl flex flex-col gap-3 border-b border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff41]/50 to-transparent" />
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
@@ -1619,10 +1622,13 @@ const ChatScreen = ({
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="flex-1 flex justify-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary/80">
-              {mode} Mode
+          <div className="flex-1 flex flex-col items-center justify-center relative">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1 crt-text">
+              {mode} MODE
             </span>
+            <div className="flex items-center gap-2 text-[9px] font-mono text-text-secondary">
+               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> LINK ESTABLISHED
+            </div>
           </div>
           <button
             onClick={clearChat}
@@ -1831,22 +1837,24 @@ const ChatScreen = ({
             animate={{ opacity: 1 }}
             className="flex items-start"
           >
-            <div className="bg-surface text-text-primary border border-white/5 rounded-[2rem] rounded-tl-md p-5 flex gap-1.5 items-center shadow-lg">
-              <motion.div
-                animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                className="w-2 h-2 bg-primary rounded-full shadow-[0_0_5px_rgba(245,166,35,0.5)]"
+            <div className="bg-surface text-text-primary border border-white/5 rounded-[2rem] rounded-tl-md p-5 flex gap-2 items-center shadow-lg relative overflow-hidden">
+               <div className="absolute inset-0 bg-primary/5 scanlines-pattern pointer-events-none" />
+               <motion.div
+                animate={{ height: ["8px", "20px", "8px"] }}
+                transition={{ duration: 0.8, repeat: Infinity, delay: 0 }}
+                className="w-1.5 bg-primary/80 rounded-full shadow-[0_0_5px_rgba(245,166,35,0.5)]"
               />
               <motion.div
-                animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                className="w-2 h-2 bg-primary rounded-full shadow-[0_0_5px_rgba(245,166,35,0.5)]"
+                animate={{ height: ["8px", "24px", "8px"] }}
+                transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }}
+                className="w-1.5 bg-primary rounded-full shadow-[0_0_8px_rgba(245,166,35,0.8)]"
               />
               <motion.div
-                animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                className="w-2 h-2 bg-primary rounded-full shadow-[0_0_5px_rgba(245,166,35,0.5)]"
+                animate={{ height: ["8px", "16px", "8px"] }}
+                transition={{ duration: 0.8, repeat: Infinity, delay: 0.4 }}
+                className="w-1.5 bg-primary/80 rounded-full shadow-[0_0_5px_rgba(245,166,35,0.5)]"
               />
+              <span className="text-[10px] uppercase font-mono text-primary/70 tracking-widest ml-3">ANALYZING...</span>
             </div>
           </motion.div>
         )}
@@ -2031,7 +2039,7 @@ const InventoryScreen = ({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] p-8 relative"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
     >
       <header className="flex items-center gap-4 mb-10 pt-10 px-2">
         <button
@@ -2089,7 +2097,7 @@ const InventoryScreen = ({
                 <motion.div
                   layout
                   key={item.id}
-                  className="bg-card/30 border border-white/5 p-5 rounded-[2.5rem] flex items-center justify-between group hover:border-white/10 transition-colors shadow-lg"
+                  className="bg-[#151619] border border-white/5 p-5 shadow-2xl relative overflow-hidden rounded-[2.5rem] flex items-center justify-between group hover:border-white/10 transition-colors shadow-lg"
                 >
                   <div className="flex flex-col">
                     <span className="font-bold text-text-primary text-[16px] tracking-tight">
@@ -2405,6 +2413,7 @@ export default function App() {
 
   // Diagnostic State
   const [obdConnected, setObdConnected] = useState(false);
+  const obdRef = useRef<ObdConnection | null>(null);
   const [diagnosticLogs, setDiagnosticLogs] = useState<string[]>([]);
   const [obdMode, setObdMode] = useState<"Bluetooth" | "USB" | "Simulated">(
     "Simulated",
@@ -2950,44 +2959,37 @@ export default function App() {
 
   const handleConnect = async () => {
     if (obdConnected) {
+      if (obdRef.current) {
+         try {
+           await obdRef.current.disconnect();
+         } catch(e) {}
+         obdRef.current = null;
+      }
       setObdConnected(false);
       return;
     }
 
-    if (obdMode === "Simulated") {
-      setObdConnected(true);
-      handleDiagnosticCommand("ATZ");
-      return;
-    }
-
     try {
-      if (obdMode === "Bluetooth") {
-        if (!(navigator as any).bluetooth) {
-          throw new Error(
-            "Web Bluetooth API not available in this browser/context.",
-          );
-        }
-        // Attempt to request a device
-        const device = await (navigator as any).bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: ["00001101-0000-1000-8000-00805f9b34fb"],
-        });
-        setObdConnected(true);
-        handleDiagnosticCommand("ATZ");
-        handleDiagnosticCommand("ATI");
+      if (obdMode === "Simulated") {
+        obdRef.current = new SimulatedObd();
+      } else if (obdMode === "Bluetooth") {
+        obdRef.current = new WebBluetoothObd();
       } else if (obdMode === "USB") {
-        if (!(navigator as any).usb) {
-          throw new Error("WebUSB API not available in this browser/context.");
-        }
-        const device = await (navigator as any).usb.requestDevice({
-          filters: [],
-        });
-        await device.open();
-        setObdConnected(true);
-        handleDiagnosticCommand("ATZ");
+        obdRef.current = new WebSerialObd();
       }
+
+      if (!obdRef.current) return;
+      
+      await obdRef.current.connect();
+      setObdConnected(true);
+      
+      const res = await obdRef.current.sendCommand("ATI");
+      setDiagnosticLogs((prev) => [`[sys] RX: ${res}`, ...prev].slice(0, 50));
+      
+      toast.show(`Connected via ${obdMode}`, "success");
     } catch (err: any) {
       console.error(err);
+      obdRef.current = null;
       const msg =
         err.name === "SecurityError"
           ? "Hardware access requires top-level navigation. Open app in new tab."
@@ -3010,54 +3012,39 @@ export default function App() {
       [`[${timestamp}] TX: ${command}`, ...prev].slice(0, 50),
     );
 
-    // Simulate Response
-    setTimeout(() => {
-      let response = "OK";
-      if (command.startsWith("AT")) {
-        if (command === "ATI") response = "ELM327 v2.1";
-        else if (command === "ATZ")
-          response = `Protocol: ${onboarding.vehicleProtocol} Initialized...`;
-        else if (command === "ATSP0") response = "OK (Protocol: AUTO)";
-        else if (command === "ATDP") response = onboarding.vehicleProtocol;
-        else response = "OK";
-      }
-      if (command === "0100") {
-        response = "SEARCHING...\r41 00 BF 40 80 10";
-        // If they just ran ATSP0 or similar, simulate the auto-detection result
-        const p = "ISO 15765-4 (CAN 11/500)";
-        setOnboarding((prev) => ({ ...prev, vehicleProtocol: p }));
-      }
-      if (command === "0104") response = "41 04 3E (Calc Load: 24%)";
-      if (command === "0105") response = "41 05 7B (Coolant: 83°C)";
-      if (command === "010C") response = "41 0C 1A 80 (RPM: 1700)";
-      if (command === "010D") response = "41 0D 00 (Speed: 0km/h)";
-      if (command === "0111") response = "41 11 1C (Throttle: 11%)";
-      if (command.startsWith("01")) {
-        if (!response || response === "OK")
-          response = `41 ${command.slice(2)} 00 (Simulated Value)`;
-      }
-      if (command.startsWith("08") || command.startsWith("2F")) {
-        response = `ACK: Component Activation Protocol OK (${command})`;
-        toast.show(`Actuator Command Sent: ${command}`, "success");
-      }
-      if (command === "03") {
-        response = "43 01 04 20 (P0420: Catalyst Efficiency)";
-        setDetectedDtcs([
-          {
-            code: "P0420",
-            description: "Catalyst System Efficiency Below Threshold (Bank 1)",
-            status: "Stored",
-          },
-        ]);
-        toast.show("Diagnostic trouble codes detected", "error");
-      }
-      if (command === "04") {
-        response = "OK";
-        setDetectedDtcs([]);
-        toast.show("DTC Memory Cleared", "success");
-      }
-      setDiagnosticLogs((prev) => [`[${timestamp}] RX: ${response}`, ...prev]);
-    }, 400);
+    if (!obdRef.current || !obdRef.current.isConnected()) {
+       toast.show("Not connected to vehicle", "error");
+       return;
+    }
+
+    try {
+       const response = await obdRef.current.sendCommand(command);
+       const rxTimestamp = new Date().toLocaleTimeString();
+       setDiagnosticLogs((prev) =>
+         [`[${rxTimestamp}] RX: ${response}`, ...prev].slice(0, 50),
+       );
+
+       if (command === "03") {
+         if (response.includes("43")) {
+           setDetectedDtcs([
+             {
+               code: "P0133",
+               description: "O2 Sensor Circuit Slow Response (Bank 1 Sensor 1) [Simulated]",
+               status: "Pending",
+             },
+           ]);
+           toast.show("Diagnostic trouble codes detected", "error");
+         }
+       }
+       if (command === "04") {
+         setDetectedDtcs([]);
+         toast.show("DTC Memory Cleared", "success");
+       }
+    } catch (e: any) {
+       setDiagnosticLogs((prev) =>
+         [`[sys] ERROR: ${e.message}`, ...prev].slice(0, 50),
+       );
+    }
   };
 
   const updateData = (key: keyof OnboardingData, value: any) => {
@@ -3114,1191 +3101,1199 @@ export default function App() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#020202] py-8 selection:bg-primary/30">
+    <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern">
+      <TopStatusBar />
       <NotificationContainer />
-      {/* Premium Device Container with glow */}
-      <div className="w-full max-w-[420px] h-[880px] bg-[#0A0A0A] rounded-[3.5rem] shadow-2xl relative overflow-hidden border-[6px] border-[#222] ring-1 ring-black/50 shadow-[0_0_80px_-15px_rgba(245,166,35,0.15)] flex flex-col">
-        {/* Sleek status bar mock */}
-        <div className="w-full h-8 flex items-center justify-center pt-2 absolute top-0 z-50 pointer-events-none">
-          <div className="w-24 h-6 bg-black rounded-full" />
-        </div>
+      <div className="flex-1 w-full flex items-center justify-center p-0 lg:p-6 bg-transparent">
+        {/* Rugged Scanner Device Container */}
+        <div className="w-full h-full lg:max-w-[480px] bg-[#0A0A0A] lg:rounded-[3rem] relative overflow-hidden lg:border-[8px] border-[#1d1d1d] lg:ring-4 ring-[#0f0f0f] shadow-[0_0_100px_-10px_rgba(245,166,35,0.15),inset_0_0_0_1px_rgba(255,255,255,0.05)] flex flex-col dotted-pattern">
+          {/* Hardware Header accents */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent z-40 hidden lg:block" />
 
-        <div className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-4">
-          <AnimatePresence mode="wait">
-            {currentScreen === "Welcome" && (
-              <WelcomeScreen
-                key="welcome"
-                onNext={handleNext}
-                onLogin={handleLogin}
-                onLoginAnon={handleLoginAnon}
-              />
-            )}
+          <div className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-2 lg:pt-4">
+            <AnimatePresence mode="wait">
+              {currentScreen === "Welcome" && (
+                <WelcomeScreen
+                  key="welcome"
+                  onNext={handleNext}
+                  onLogin={handleLogin}
+                  onLoginAnon={handleLoginAnon}
+                />
+              )}
 
-            {currentScreen === "NameAssistant" && (
-              <SetupScreen
-                key="name"
-                title="Name your assistant"
-                subtitle="What should I call your digital spark?"
-                icon={Sparkles}
-                placeholder="e.g. Ember, Forge, Spark"
-                value={onboarding.assistantName}
-                onChange={(v) => updateData("assistantName", v)}
-                onNext={handleNext}
-              />
-            )}
+              {currentScreen === "NameAssistant" && (
+                <SetupScreen
+                  key="name"
+                  title="Name your assistant"
+                  subtitle="What should I call your digital spark?"
+                  icon={Sparkles}
+                  placeholder="e.g. Ember, Forge, Spark"
+                  value={onboarding.assistantName}
+                  onChange={(v) => updateData("assistantName", v)}
+                  onNext={handleNext}
+                />
+              )}
 
-            {currentScreen === "WakeWord" && (
-              <SetupScreen
-                key="wake"
-                title="Pick a wake word"
-                subtitle="The word that commands my attention."
-                icon={Cpu}
-                placeholder="e.g. Hey Forge, Ember..."
-                value={onboarding.wakeWord}
-                onChange={(v) => updateData("wakeWord", v)}
-                onNext={handleNext}
-              />
-            )}
+              {currentScreen === "WakeWord" && (
+                <SetupScreen
+                  key="wake"
+                  title="Pick a wake word"
+                  subtitle="The word that commands my attention."
+                  icon={Cpu}
+                  placeholder="e.g. Hey Forge, Ember..."
+                  value={onboarding.wakeWord}
+                  onChange={(v) => updateData("wakeWord", v)}
+                  onNext={handleNext}
+                />
+              )}
 
-            {currentScreen === "VoiceClone" && (
-              <VoiceCloneScreen
-                key="voiceclone"
-                onNext={handleNext}
-                value={onboarding.customVoiceEnabled}
-                onChange={(val) => updateData("customVoiceEnabled", val)}
-                onUrlChange={(url) => updateData("customVoiceUrl", url)}
-              />
-            )}
+              {currentScreen === "VoiceClone" && (
+                <VoiceCloneScreen
+                  key="voiceclone"
+                  onNext={handleNext}
+                  value={onboarding.customVoiceEnabled}
+                  onChange={(val) => updateData("customVoiceEnabled", val)}
+                  onUrlChange={(url) => updateData("customVoiceUrl", url)}
+                />
+              )}
 
-            {currentScreen === "AboutYou" && (
-              <SetupScreen
-                key="user"
-                title="Who are you?"
-                subtitle="I want to know who I'm forging for."
-                icon={User}
-                placeholder="Your name"
-                value={onboarding.userName}
-                onChange={(v) => updateData("userName", v)}
-                onNext={handleNext}
-              />
-            )}
+              {currentScreen === "AboutYou" && (
+                <SetupScreen
+                  key="user"
+                  title="Who are you?"
+                  subtitle="I want to know who I'm forging for."
+                  icon={User}
+                  placeholder="Your name"
+                  value={onboarding.userName}
+                  onChange={(v) => updateData("userName", v)}
+                  onNext={handleNext}
+                />
+              )}
 
-            {currentScreen === "ApiKeys" && (
-              <ApiKeysSetupScreen
-                key="api"
-                value={onboarding.apiKey}
-                onChange={(v) => updateData("apiKey", v)}
-                onNext={handleNext}
-              />
-            )}
+              {currentScreen === "ApiKeys" && (
+                <ApiKeysSetupScreen
+                  key="api"
+                  value={onboarding.apiKey}
+                  onChange={(v) => updateData("apiKey", v)}
+                  onNext={handleNext}
+                />
+              )}
 
-            {currentScreen === "Inventory" && (
-              <SetupScreen
-                key="inventory"
-                title="Your Toolbox"
-                subtitle="What tools, gear, or tech stack do you have?"
-                icon={Wrench}
-                placeholder="e.g. Socket set, DeWalt drills, React/Node..."
-                value={onboarding.inventory}
-                onChange={(v) => updateData("inventory", v)}
-                onNext={handleNext}
-                optional={true}
-              />
-            )}
+              {currentScreen === "Inventory" && (
+                <SetupScreen
+                  key="inventory"
+                  title="Your Toolbox"
+                  subtitle="What tools, gear, or tech stack do you have?"
+                  icon={Wrench}
+                  placeholder="e.g. Socket set, DeWalt drills, React/Node..."
+                  value={onboarding.inventory}
+                  onChange={(v) => updateData("inventory", v)}
+                  onNext={handleNext}
+                  optional={true}
+                />
+              )}
 
-            {currentScreen === "Vehicles" && (
-              <VehicleSetupScreen
-                key="vehicles"
-                onboarding={onboarding}
-                updateData={updateData}
-                onNext={handleNext}
-              />
-            )}
+              {currentScreen === "Vehicles" && (
+                <VehicleSetupScreen
+                  key="vehicles"
+                  onboarding={onboarding}
+                  updateData={updateData}
+                  onNext={handleNext}
+                />
+              )}
 
-            {currentScreen === "Ready" && (
-              <ReadyScreen key="ready" onFinish={handleFinish} />
-            )}
+              {currentScreen === "Ready" && (
+                <ReadyScreen key="ready" onFinish={handleFinish} />
+              )}
 
-            {currentScreen === "Main" && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col h-full p-8"
-              >
-                <header className="flex justify-between items-start mb-10 pt-8 px-2 relative">
-                  <div className="relative">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#F5A623]" />
-                      <h1 className="text-text-dim text-[10px] font-black uppercase tracking-[0.3em]">
-                        System.Awaiting_Input
-                      </h1>
-                    </div>
-                    <h2 className="text-4xl font-black text-text-primary tracking-tight font-display leading-none">
-                      Engineering Hub
-                    </h2>
-                    <div className="flex items-center gap-3 mt-3">
-                      <span className="text-[9px] font-mono text-text-dim uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
-                        Operator: {onboarding.assistantName}
-                      </span>
-                      <span className="text-[9px] font-mono text-primary/60 uppercase tracking-widest">
-                        {onboarding.vehicleYear} {onboarding.vehicleMake}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentScreen("Index")}
-                      className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors mr-2"
-                    >
-                      <BookOpen className="w-5 h-5 text-white/60" />
-                    </button>
-                    <div className="flex flex-col items-end gap-1">
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/5 bg-card/40 shadow-inner group transition-all ${isOnline ? "text-success" : "text-error"}`}
-                      >
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-success shadow-[0_0_10px_#4CAF50]" : "bg-error shadow-[0_0_10px_#E53935]"}`}
-                        />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] font-mono">
-                          {isOnline ? "Active_Link" : "Offline"}
+              {currentScreen === "Main" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col h-full p-8"
+                >
+                  <header className="flex justify-between items-start mb-10 pt-8 px-2 relative">
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#F5A623]" />
+                        <h1 className="text-text-dim text-[10px] font-black uppercase tracking-[0.3em]">
+                          System.Awaiting_Input
+                        </h1>
+                      </div>
+                      <h2 className="text-4xl font-black text-text-primary tracking-tight font-display leading-none">
+                        Engineering Hub
+                      </h2>
+                      <div className="flex items-center gap-3 mt-3">
+                        <span className="text-[9px] font-mono text-text-dim uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                          Operator: {onboarding.assistantName}
+                        </span>
+                        <span className="text-[9px] font-mono text-primary/60 uppercase tracking-widest">
+                          {onboarding.vehicleYear} {onboarding.vehicleMake}
                         </span>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        background: `linear-gradient(135deg, ${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}, rgba(0,0,0,0.5))`,
-                        borderColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}44`,
-                      }}
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-black border shadow-[0_10px_20px_rgba(0,0,0,0.4)] relative group transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                      onClick={() => setCurrentScreen("NameAssistant")}
-                    >
-                      <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-                      <User className="w-6 h-6" />
-                    </div>
-                  </div>
-                </header>
-
-                <ProjectPicker />
-
-                <div className="space-y-6 pb-24">
-                  {/* Connection Settings */}
-                  <div className="flex gap-2">
-                    <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
-                      <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">
-                        Hardware Interface
-                      </span>
-                      <select
-                        value={obdMode}
-                        onChange={(e) => setObdMode(e.target.value as any)}
-                        className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
-                      >
-                        <option value="Simulated">Simulated Demo</option>
-                        <option value="Bluetooth">Bluetooth / BLE</option>
-                        <option value="USB">USB OTG Cable</option>
-                      </select>
-                    </div>
-                    <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
-                      <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">
-                        Vehicle Protocol
-                      </span>
-                      <select
-                        value={onboarding.vehicleProtocol}
-                        onChange={(e) =>
-                          updateData("vehicleProtocol", e.target.value)
-                        }
-                        className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
-                      >
-                        <option value="Auto">Auto Detect</option>
-                        <option value="ISO 15765-4 (CAN 11/500)">
-                          CAN 11/500
-                        </option>
-                        <option value="ISO 15765-4 (CAN 29/500)">
-                          CAN 29/500
-                        </option>
-                        <option value="ISO 14230-4 (KWP FAST)">KWP FAST</option>
-                        <option value="ISO 9141-2">ISO 9141-2</option>
-                        <option value="SAE J1850 PWM">J1850 PWM</option>
-                        <option value="SAE J1850 VPW">J1850 VPW</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Primary OBD Hub */}
-                  <div className="bg-black border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col items-center justify-center">
-                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-
-                    <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-4 font-mono">
-                      {obdConnected ? "Link Active" : "No Connection"}
-                    </p>
-
-                    <button
-                      onClick={handleConnect}
-                      className={`w-40 h-40 rounded-full flex flex-col items-center justify-center gap-2 transition-all ${
-                        obdConnected
-                          ? "bg-green-500/20 text-green-500 border border-green-500/40 shadow-[0_0_40px_rgba(34,197,94,0.3)]"
-                          : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 shadow-[0_0_30px_rgba(245,166,35,0.15)] hover:shadow-[0_0_50px_rgba(245,166,35,0.3)]"
-                      }`}
-                    >
-                      {obdConnected ? (
-                        <Wifi className="w-10 h-10 mb-1" />
-                      ) : (
-                        <Zap className="w-10 h-10 mb-1" />
-                      )}
-                      <span className="text-xl font-black uppercase tracking-widest leading-none">
-                        {obdConnected ? "Connected" : "Connect"}
-                      </span>
-                      <span className="text-[9px] uppercase tracking-widest opacity-60">
-                        {obdConnected
-                          ? onboarding.vehicleProtocol
-                          : "to Vehicle"}
-                      </span>
-                    </button>
-
-                    {obdConnected && (
-                      <div className="flex w-full items-center justify-between mt-6 pt-4 border-t border-white/5">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] text-white/40 uppercase tracking-widest">
-                            Voltage
-                          </span>
-                          <span className="text-sm font-bold text-white font-mono">
-                            13.8V
-                          </span>
-                        </div>
-                        <div className="flex flex-col text-right">
-                          <span className="text-[9px] text-white/40 uppercase tracking-widest">
-                            Protocol
-                          </span>
-                          <span className="text-sm font-bold text-white font-mono">
-                            {onboarding.vehicleProtocol || "CAN 11-bit"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Forge Expert Team Area */}
-                  <div className="bg-gradient-to-b from-surface to-card rounded-[2.5rem] p-8 border border-border/40 relative overflow-hidden group shadow-lg">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 transition-opacity group-hover:opacity-30">
-                      <Sparkles className="text-primary w-8 h-8" />
-                    </div>
-
-                    <div className="flex flex-col items-center text-center py-4 relative z-10">
-                      <div className="relative mb-6">
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.4, 1],
-                            opacity: [0.2, 0.5, 0.2],
-                          }}
-                          transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                          className="absolute inset-[-30px] bg-primary/20 rounded-full blur-2xl"
-                        />
-                        <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center border border-primary/20 shadow-[inset_0_2px_15px_rgba(245,166,35,0.1)] z-10 relative">
-                          <Cpu className="text-primary w-8 h-8" />
-                        </div>
-                      </div>
-
-                      <p className="text-[10px] text-text-dim uppercase tracking-[0.3em] font-mono mb-6">
-                        Forge Team: Synchronized
-                      </p>
-
-                      <h3 className="font-display font-black text-4xl mb-2 text-text-primary tracking-tight">
-                        Expert Network
-                      </h3>
-                      <p className="text-text-secondary text-xs mb-10 tracking-widest uppercase opacity-60">
-                        Select Specialist for Consultation
-                      </p>
-
-                      <div className="flex gap-3 w-full">
-                        <button
-                          onClick={() => setCurrentScreen("Chat")}
-                          className="flex-1 bg-primary text-black py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(245,166,35,0.2)] hover:shadow-[0_15px_30px_rgba(245,166,35,0.4)] active:scale-95 flex-col"
-                        >
-                          <div className="flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4" /> Operations
-                          </div>
-                          <span className="text-[9px] opacity-70 tracking-wider">
-                            General AI Hub
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => setCurrentScreen("Diagnostics")}
-                          className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 hover:bg-white/10 active:scale-95 flex-col"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Terminal className="w-4 h-4" /> Terminal
-                          </div>
-                          <span className="text-[9px] text-text-dim tracking-wider">
-                            OBD Diagnostics
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    {[
-                      {
-                        mode: "Diagnostics Lead",
-                        icon: Wrench,
-                        color: "primary",
-                        desc: "DTC Analysis & Repair Paths",
-                      },
-                      {
-                        mode: "Performance Tuner",
-                        icon: Activity,
-                        color: "blue-500",
-                        desc: "Live Data & Mapping",
-                      },
-                      {
-                        mode: "Electrical Eng.",
-                        icon: Zap,
-                        color: "emerald-500",
-                        desc: "Wiring & Module Coding",
-                      },
-                      {
-                        mode: "Estimator",
-                        icon: Calculator,
-                        color: "purple-500",
-                        desc: "Labor & Parts Pricing",
-                      },
-                    ].map((m) => (
+                    <div className="flex items-center gap-2">
                       <button
-                        key={m.mode}
-                        onClick={() => {
-                          setChatMode(m.mode as AssistantMode);
-                          setCurrentScreen("Chat");
-                        }}
-                        className="bg-card/40 p-5 rounded-[2rem] border border-white/5 hover:border-primary/30 transition-all flex items-start flex-col gap-3 active:scale-95 group text-left"
+                        onClick={() => setCurrentScreen("Index")}
+                        className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors mr-2"
                       >
-                        <div
-                          className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors`}
-                        >
-                          <m.icon
-                            className={`w-5 h-5 text-${m.color === "primary" ? "primary" : m.color}`}
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[12px] font-black text-white uppercase tracking-widest leading-none">
-                            {m.mode}
-                          </span>
-                          <span className="text-[9px] mt-2 font-mono text-text-dim uppercase tracking-widest">
-                            {m.desc}
-                          </span>
-                        </div>
+                        <BookOpen className="w-5 h-5 text-white/60" />
                       </button>
-                    ))}
-                  </div>
-
-                  {/* Mobile Installation & APK Deployment Card */}
-                  <div className="mb-6 p-6 bg-primary/10 border border-primary/20 rounded-[2.5rem] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                      <Zap className="w-12 h-12 text-primary" />
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Car className="w-4 h-4 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                          Mobile Deployment
-                        </span>
-                      </div>
-                      <h4 className="text-lg font-bold text-white mb-2">
-                        Run as Android App
-                      </h4>
-                      <p className="text-[10px] text-text-dim leading-relaxed uppercase tracking-wider mb-4">
-                        No Fees. No App Store. Full Hardware Access.
-                      </p>
-
-                      <div className="space-y-4">
-                        {/* GitHub Option */}
-                        <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-3 h-3 text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                              Option A: Professional GitHub Build
-                            </span>
-                          </div>
-                          <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">
-                            The automated build engine is active. Check your
-                            GitHub repository <b>Actions</b> tab for the
-                            finished APK artifact.
-                          </p>
-                        </div>
-
-                        {/* PWABuilder Option */}
-                        <div className="p-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Layers className="w-3 h-3 text-text-dim" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-primary">
-                              Option B: Web Bundler
-                            </span>
-                          </div>
-                          <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">
-                            Use PWABuilder.com to bundle this URL into an
-                            Android package manually.
-                          </p>
-                          <div className="flex items-center gap-2 p-2 bg-black/60 rounded-xl border border-white/10 overflow-hidden">
-                            <code className="text-[9px] text-primary font-mono truncate flex-1">
-                              https://ais-pre-xhgeaqcs5ry32eqncav2st-491297065011.us-west2.run.app
-                            </code>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  "https://ais-pre-xhgeaqcs5ry32eqncav2st-491297065011.us-west2.run.app",
-                                );
-                                toast.show("URL Copied", "success");
-                              }}
-                              className="bg-primary/20 text-primary p-1.5 rounded-lg hover:bg-primary/30 transition-colors"
-                            >
-                              <Layers className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Direct Install Option */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <div className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5">
-                            <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-[10px] font-bold">
-                              1
-                            </div>
-                            <span className="text-[10px] text-text-primary uppercase tracking-widest">
-                              Chrome Android
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5">
-                            <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-[10px] font-bold">
-                              2
-                            </div>
-                            <span className="text-[10px] text-text-primary uppercase tracking-widest">
-                              "Install App"
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Secondary Stats */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors flex flex-col justify-between">
-                      <div>
-                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70">
-                          <Car className="w-5 h-5" />
-                        </div>
-                        <h4 className="font-bold text-text-primary text-sm mb-1">
-                          Vehicle Status
-                        </h4>
-                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                          {onboarding.vehicleInfo || "No vehicle set"}
-                        </p>
-                        <p className="text-[9px] text-primary/60 font-black uppercase tracking-widest mt-1">
-                          {onboarding.vehicleProtocol}
-                        </p>
-                      </div>
-                      {onboarding.vehicleVin && (
-                        <p className="text-[9px] text-text-dim font-mono tracking-tighter opacity-40 mt-2 truncate">
-                          VIN: {onboarding.vehicleVin}
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => setCurrentScreen("Inventory")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <Wrench className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Toolbox
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        {inventory.length > 0
-                          ? `${inventory.length} Items Sync'd`
-                          : "Empty • Add Tools"}
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("Diagnostics")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Activity className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <Terminal className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Diagnostic Log
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        {obdConnected
-                          ? "OBD Dynamic Stream"
-                          : "Offline • ELM327"}
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("Integrations")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Database className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <LinkIcon className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        3rd Party APIs
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        {connectedIntegrations.length > 0
-                          ? `${connectedIntegrations.length} Active Hooks`
-                          : "Sync Offline Tools"}
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("Estimator")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Calculator className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <Calculator className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Service Estimator
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        Parts & Labor Quotes
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("Analytics")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <BarChart3 className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <BarChart3 className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Shop Analytics
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        Perf & Utilization
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("Topology")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Zap className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <Zap className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Network Topology
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        CAN-Bus Health
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("GuidedDiagnostics")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <FileText className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Test Plans
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        Guided Diag
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("Oscilloscope")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Activity className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <Activity className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Lab Scope
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        Signal Analysis
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentScreen("WiringDiagrams")}
-                      className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Layers className="w-8 h-8" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
-                        <Layers className="w-5 h-5" />
-                      </div>
-                      <h4 className="font-bold text-text-primary text-sm mb-1">
-                        Schematics
-                      </h4>
-                      <p className="text-text-secondary text-xs truncate max-w-full font-mono">
-                        Wiring Diagrams
-                      </p>
-                    </button>
-                  </div>
-
-                  {/* Tasks Section */}
-                  <div className="bg-card/30 rounded-[2rem] border border-border/20 p-6">
-                    <div className="space-y-4 mb-6">
-                      <div className="flex items-center justify-between px-2">
-                        <div className="flex flex-col">
-                          <h3 className="font-display font-bold text-lg text-text-primary">
-                            Action Items
-                          </h3>
-                          {selectedTasks.length > 0 && (
-                            <span className="text-[10px] text-primary/60 font-mono uppercase tracking-widest mt-0.5">
-                              {selectedTasks.length} Selected
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {filteredTasks.length > 0 && (
-                            <button
-                              onClick={() => {
-                                const allVisibleIds = filteredTasks.map(
-                                  (t) => t.id,
-                                );
-                                const allSelected = allVisibleIds.every((id) =>
-                                  selectedTasks.includes(id),
-                                );
-                                if (allSelected) {
-                                  setSelectedTasks((prev) =>
-                                    prev.filter(
-                                      (id) => !allVisibleIds.includes(id),
-                                    ),
-                                  );
-                                } else {
-                                  setSelectedTasks((prev) =>
-                                    Array.from(
-                                      new Set([...prev, ...allVisibleIds]),
-                                    ),
-                                  );
-                                }
-                              }}
-                              className="text-[10px] font-mono text-text-dim hover:text-primary transition-colors uppercase tracking-widest"
-                            >
-                              {filteredTasks.every((t) =>
-                                selectedTasks.includes(t.id),
-                              )
-                                ? "Deselect All"
-                                : "Select Visible"}
-                            </button>
-                          )}
-                          <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                            {tasks.filter((t) => !t.completed).length} Pending
+                      <div className="flex flex-col items-end gap-1">
+                        <div
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/5 bg-card/40 shadow-inner group transition-all ${isOnline ? "text-success" : "text-error"}`}
+                        >
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-success shadow-[0_0_10px_#4CAF50]" : "bg-error shadow-[0_0_10px_#E53935]"}`}
+                          />
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] font-mono">
+                            {isOnline ? "Active_Link" : "Offline"}
                           </span>
                         </div>
                       </div>
+                      <div
+                        style={{
+                          background: `linear-gradient(135deg, ${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}, rgba(0,0,0,0.5))`,
+                          borderColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}44`,
+                        }}
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-black border shadow-[0_10px_20px_rgba(0,0,0,0.4)] relative group transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                        onClick={() => setCurrentScreen("NameAssistant")}
+                      >
+                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                        <User className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </header>
 
-                      {/* Search & Filter Bar */}
-                      <div className="flex gap-2 px-2">
-                        <div className="flex-1 relative">
-                          <input
-                            type="text"
-                            placeholder="Search tasks..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-primary/30 transition-all"
-                          />
-                        </div>
+                  <ProjectPicker />
+
+                  <div className="space-y-6 pb-24">
+                    {/* Connection Settings */}
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
+                        <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">
+                          Hardware Interface
+                        </span>
                         <select
-                          value={filterPriority}
-                          onChange={(e) =>
-                            setFilterPriority(e.target.value as any)
-                          }
-                          className="bg-white/5 border border-white/5 rounded-xl px-2 py-2 text-[10px] text-text-dim outline-none uppercase tracking-widest"
+                          value={obdMode}
+                          onChange={(e) => setObdMode(e.target.value as any)}
+                          className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
                         >
-                          <option value="All">All Levels</option>
-                          <option value="High">High Only</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Low">Low</option>
+                          <option value="Simulated">Simulated Demo</option>
+                          <option value="Bluetooth">Bluetooth / BLE</option>
+                          <option value="USB">USB OTG Cable</option>
+                        </select>
+                      </div>
+                      <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
+                        <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">
+                          Vehicle Protocol
+                        </span>
+                        <select
+                          value={onboarding.vehicleProtocol}
+                          onChange={(e) =>
+                            updateData("vehicleProtocol", e.target.value)
+                          }
+                          className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
+                        >
+                          <option value="Auto">Auto Detect</option>
+                          <option value="ISO 15765-4 (CAN 11/500)">
+                            CAN 11/500
+                          </option>
+                          <option value="ISO 15765-4 (CAN 29/500)">
+                            CAN 29/500
+                          </option>
+                          <option value="ISO 14230-4 (KWP FAST)">
+                            KWP FAST
+                          </option>
+                          <option value="ISO 9141-2">ISO 9141-2</option>
+                          <option value="SAE J1850 PWM">J1850 PWM</option>
+                          <option value="SAE J1850 VPW">J1850 VPW</option>
                         </select>
                       </div>
                     </div>
 
-                    {selectedTasks.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="mb-6 p-4 bg-surface border rounded-[2rem] shadow-xl overflow-hidden"
-                        style={{
-                          borderColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}55`,
-                        }}
+                    {/* Primary OBD Hub */}
+                    <div className="bg-black border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col items-center justify-center">
+                      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+
+                      <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-4 font-mono">
+                        {obdConnected ? "Link Active" : "No Connection"}
+                      </p>
+
+                      <button
+                        onClick={handleConnect}
+                        className={`w-40 h-40 rounded-full flex flex-col items-center justify-center gap-2 transition-all ${
+                          obdConnected
+                            ? "bg-green-500/20 text-green-500 border border-green-500/40 shadow-[0_0_40px_rgba(34,197,94,0.3)]"
+                            : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 shadow-[0_0_30px_rgba(245,166,35,0.15)] hover:shadow-[0_0_50px_rgba(245,166,35,0.3)]"
+                        }`}
                       >
-                        <div className="flex items-center justify-between mb-3 px-1">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary">
-                            Batch Protocol
-                          </span>
-                          <button
-                            onClick={() => setSelectedTasks([])}
-                            className="text-text-dim hover:text-white transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="flex gap-2 mb-4">
-                          <button
-                            onClick={handleBatchComplete}
-                            style={{
-                              backgroundColor:
-                                projects.find((p) => p.id === activeProject)
-                                  ?.color || "#F5A623",
-                            }}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-black rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-lg"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
-                          </button>
-                          <button
-                            onClick={handleBatchDelete}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-black rounded-xl text-[11px] font-black uppercase tracking-wider border border-red-500/20 hover:border-red-500 transition-all active:scale-95 shadow-lg"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Purge
-                          </button>
-                        </div>
-
-                        <div className="space-y-4 pt-1">
-                          <div>
-                            <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-text-dim mb-2 ml-1">
-                              Priority Shift
-                            </p>
-                            <div className="flex gap-1.5">
-                              {(["Low", "Medium", "High"] as const).map((p) => (
-                                <button
-                                  key={p}
-                                  onClick={() => handleBatchPriority(p)}
-                                  className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all active:scale-95 ${
-                                    p === "High"
-                                      ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
-                                      : p === "Medium"
-                                        ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-white"
-                                        : "bg-blue-500/10 border-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white"
-                                  }`}
-                                >
-                                  {p}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-text-dim mb-2 ml-1">
-                              Classification
-                            </p>
-                            <div className="grid grid-cols-4 gap-1.5">
-                              {["Parts", "Labor", "Planning", "Code"].map(
-                                (cat) => (
-                                  <button
-                                    key={cat}
-                                    onClick={() => handleBatchCategorize(cat)}
-                                    className="py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] text-white/40 hover:text-primary font-mono uppercase tracking-widest border border-white/5 transition-all active:scale-95"
-                                  >
-                                    {cat}
-                                  </button>
-                                ),
-                              )}
-                            </div>
-                          </div>
-
-                          <div>
-                            <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-text-dim mb-2 ml-1">
-                              Reassign Project
-                            </p>
-                            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                              {projects
-                                .filter((p) => p.id !== activeProject)
-                                .map((p) => (
-                                  <button
-                                    key={p.id}
-                                    onClick={() => handleBatchMove(p.id)}
-                                    className="flex-shrink-0 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] text-text-dim hover:text-white font-bold uppercase tracking-widest border border-white/5 transition-all active:scale-95"
-                                  >
-                                    {p.name}
-                                  </button>
-                                ))}
-                              {projects.length <= 1 && (
-                                <p className="text-[8px] text-text-dim italic ml-1">
-                                  No other projects available
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto no-scrollbar">
-                      {(() => {
-                        if (filteredTasks.length === 0) {
-                          return (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="text-center py-10 px-4"
-                            >
-                              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
-                                <CheckCircle2 className="w-8 h-8 text-white/20" />
-                              </div>
-                              <h4 className="text-sm font-bold text-text-primary mb-1">
-                                {searchQuery || filterPriority !== "All"
-                                  ? "No matches found"
-                                  : "No tasks yet"}
-                              </h4>
-                              <p className="text-[11px] text-text-dim uppercase tracking-widest leading-relaxed">
-                                {searchQuery || filterPriority !== "All"
-                                  ? "Try adjusting your search or filters"
-                                  : "Your project is currently clear."}
-                              </p>
-                            </motion.div>
-                          );
-                        }
-
-                        return (
-                          <AnimatePresence initial={false}>
-                            {filteredTasks.map((task) => (
-                              <TaskItem
-                                key={task.id}
-                                task={task}
-                                selected={selectedTasks.includes(task.id)}
-                                onSelect={() => toggleTaskSelection(task.id)}
-                                onToggle={() => handleToggleTask(task)}
-                                onDelete={() => handleDeleteTask(task.id)}
-                                onEdit={(newText) =>
-                                  handleEditTask(task.id, newText)
-                                }
-                                themeColor={
-                                  projects.find((p) => p.id === activeProject)
-                                    ?.color
-                                }
-                              />
-                            ))}
-                          </AnimatePresence>
-                        );
-                      })()}
-                    </div>
-
-                    <div className="relative space-y-3">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Add an action item..."
-                          value={newTaskText}
-                          onChange={(e) => setNewTaskText(e.target.value)}
-                          onFocus={() => setShowAddTaskOptions(true)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleAddTask();
-                          }}
-                          className="flex-1 bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-sm text-text-primary outline-none focus:border-primary/40 transition-all placeholder:text-text-dim/50"
-                        />
-                        <button
-                          onClick={handleAddTask}
-                          disabled={!newTaskText.trim()}
-                          className="p-4 bg-primary text-black rounded-2xl disabled:opacity-30 transition-all active:scale-95 shadow-[0_0_20px_rgba(245,166,35,0.2)]"
-                        >
-                          <ArrowUp className="w-5 h-5 flex-shrink-0" />
-                        </button>
-                      </div>
-
-                      <AnimatePresence>
-                        {(showAddTaskOptions || newTaskText.trim()) && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="flex items-center gap-2 px-1"
-                          >
-                            <div className="flex bg-white/5 rounded-lg p-1 gap-1">
-                              {(["Low", "Medium", "High"] as const).map((p) => (
-                                <button
-                                  key={p}
-                                  onClick={() => setNewTaskPriority(p)}
-                                  className={`px-3 py-1 rounded-md text-[9px] uppercase tracking-widest font-bold transition-all ${
-                                    newTaskPriority === p
-                                      ? p === "High"
-                                        ? "bg-red-500 text-white"
-                                        : p === "Medium"
-                                          ? "bg-orange-500 text-white"
-                                          : "bg-blue-500 text-white"
-                                      : "text-text-dim hover:bg-white/5"
-                                  }`}
-                                >
-                                  {p}
-                                </button>
-                              ))}
-                            </div>
-                            <button
-                              onClick={() => setShowAddTaskOptions(false)}
-                              className="text-[9px] text-text-dim hover:text-white uppercase tracking-widest font-mono ml-auto"
-                            >
-                              Cancel
-                            </button>
-                          </motion.div>
+                        {obdConnected ? (
+                          <Wifi className="w-10 h-10 mb-1" />
+                        ) : (
+                          <Zap className="w-10 h-10 mb-1" />
                         )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
+                        <span className="text-xl font-black uppercase tracking-widest leading-none">
+                          {obdConnected ? "Connected" : "Connect"}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-widest opacity-60">
+                          {obdConnected
+                            ? onboarding.vehicleProtocol
+                            : "to Vehicle"}
+                        </span>
+                      </button>
 
-                  <div
-                    style={{
-                      background: `linear-gradient(to right, ${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}1A, transparent)`,
-                      borderColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}33`,
-                    }}
-                    className="p-6 rounded-[2rem] border flex items-center justify-between group focus-within:ring-1 transition-all mt-4 mb-16"
-                  >
-                    <div className="flex items-center gap-5 flex-1">
-                      <div
-                        style={{
-                          backgroundColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}33`,
-                          color:
-                            projects.find((p) => p.id === activeProject)
-                              ?.color || "#F5A623",
-                        }}
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"
-                      >
-                        <Calculator className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 pr-4">
-                        <h4 className="font-bold text-text-primary text-[15px] tracking-wide mb-2 flex justify-between items-center">
-                          Project Roadmap
-                          <span className="text-[10px] opacity-60 font-mono">
-                            {tasks.length > 0
-                              ? `${Math.round((tasks.filter((t) => t.completed).length / tasks.length) * 100)}%`
-                              : "0%"}
-                          </span>
-                        </h4>
-                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{
-                              width:
-                                tasks.length > 0
-                                  ? `${(tasks.filter((t) => t.completed).length / tasks.length) * 100}%`
-                                  : 0,
-                            }}
-                            style={{
-                              backgroundColor:
-                                projects.find((p) => p.id === activeProject)
-                                  ?.color || "#F5A623",
-                            }}
-                            className="absolute top-0 left-0 h-full shadow-[0_0_10px_rgba(245,166,35,0.3)]"
-                          />
+                      {obdConnected && (
+                        <div className="flex w-full items-center justify-between mt-6 pt-4 border-t border-white/5">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] text-white/40 uppercase tracking-widest">
+                              Voltage
+                            </span>
+                            <span className="text-sm font-bold text-white font-mono">
+                              13.8V
+                            </span>
+                          </div>
+                          <div className="flex flex-col text-right">
+                            <span className="text-[9px] text-white/40 uppercase tracking-widest">
+                              Protocol
+                            </span>
+                            <span className="text-sm font-bold text-white font-mono">
+                              {onboarding.vehicleProtocol || "CAN 11-bit"}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-text-dim text-[9px] uppercase tracking-widest mt-2 flex justify-between">
-                          <span>{tasks.length} Objectives</span>
-                          <span>
-                            {tasks.filter((t) => t.completed).length} Resolved
-                          </span>
+                      )}
+                    </div>
+
+                    {/* Forge Expert Team Area */}
+                    <div className="bg-gradient-to-b from-surface to-card rounded-[2.5rem] p-8 border border-border/40 relative overflow-hidden group shadow-lg">
+                      <div className="absolute top-0 right-0 p-6 opacity-10 transition-opacity group-hover:opacity-30">
+                        <Sparkles className="text-primary w-8 h-8" />
+                      </div>
+
+                      <div className="flex flex-col items-center text-center py-4 relative z-10">
+                        <div className="relative mb-6">
+                          <motion.div
+                            animate={{
+                              scale: [1, 1.4, 1],
+                              opacity: [0.2, 0.5, 0.2],
+                            }}
+                            transition={{
+                              duration: 3,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                            className="absolute inset-[-30px] bg-primary/20 rounded-full blur-2xl"
+                          />
+                          <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center border border-primary/20 shadow-[inset_0_2px_15px_rgba(245,166,35,0.1)] z-10 relative">
+                            <Cpu className="text-primary w-8 h-8" />
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-text-dim uppercase tracking-[0.3em] font-mono mb-6">
+                          Forge Team: Synchronized
                         </p>
+
+                        <h3 className="font-display font-black text-4xl mb-2 text-text-primary tracking-tight">
+                          Expert Network
+                        </h3>
+                        <p className="text-text-secondary text-xs mb-10 tracking-widest uppercase opacity-60">
+                          Select Specialist for Consultation
+                        </p>
+
+                        <div className="flex gap-3 w-full">
+                          <button
+                            onClick={() => setCurrentScreen("Chat")}
+                            className="flex-1 bg-primary text-black py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(245,166,35,0.2)] hover:shadow-[0_15px_30px_rgba(245,166,35,0.4)] active:scale-95 flex-col"
+                          >
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4" /> Operations
+                            </div>
+                            <span className="text-[9px] opacity-70 tracking-wider">
+                              General AI Hub
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => setCurrentScreen("Diagnostics")}
+                            className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 hover:bg-white/10 active:scale-95 flex-col"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Terminal className="w-4 h-4" /> Terminal
+                            </div>
+                            <span className="text-[9px] text-text-dim tracking-wider">
+                              OBD Diagnostics
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      {[
+                        {
+                          mode: "Diagnostics Lead",
+                          icon: Wrench,
+                          color: "primary",
+                          desc: "DTC Analysis & Repair Paths",
+                        },
+                        {
+                          mode: "Performance Tuner",
+                          icon: Activity,
+                          color: "blue-500",
+                          desc: "Live Data & Mapping",
+                        },
+                        {
+                          mode: "Electrical Eng.",
+                          icon: Zap,
+                          color: "emerald-500",
+                          desc: "Wiring & Module Coding",
+                        },
+                        {
+                          mode: "Estimator",
+                          icon: Calculator,
+                          color: "purple-500",
+                          desc: "Labor & Parts Pricing",
+                        },
+                      ].map((m) => (
+                        <button
+                          key={m.mode}
+                          onClick={() => {
+                            setChatMode(m.mode as AssistantMode);
+                            setCurrentScreen("Chat");
+                          }}
+                          className="bg-card/40 p-5 rounded-[2rem] border border-white/5 hover:border-primary/30 transition-all flex items-start flex-col gap-3 active:scale-95 group text-left"
+                        >
+                          <div
+                            className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors`}
+                          >
+                            <m.icon
+                              className={`w-5 h-5 text-${m.color === "primary" ? "primary" : m.color}`}
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[12px] font-black text-white uppercase tracking-widest leading-none">
+                              {m.mode}
+                            </span>
+                            <span className="text-[9px] mt-2 font-mono text-text-dim uppercase tracking-widest">
+                              {m.desc}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Mobile Installation & APK Deployment Card */}
+                    <div className="mb-6 p-6 bg-primary/10 border border-primary/20 rounded-[2.5rem] relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <Zap className="w-12 h-12 text-primary" />
+                      </div>
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Car className="w-4 h-4 text-primary" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                            Mobile Deployment
+                          </span>
+                        </div>
+                        <h4 className="text-lg font-bold text-white mb-2">
+                          Run as Android App
+                        </h4>
+                        <p className="text-[10px] text-text-dim leading-relaxed uppercase tracking-wider mb-4">
+                          No Fees. No App Store. Full Hardware Access.
+                        </p>
+
+                        <div className="space-y-4">
+                          {/* GitHub Option */}
+                          <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Zap className="w-3 h-3 text-primary" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                Option A: Professional GitHub Build
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">
+                              The automated build engine is active. Check your
+                              GitHub repository <b>Actions</b> tab for the
+                              finished APK artifact.
+                            </p>
+                          </div>
+
+                          {/* PWABuilder Option */}
+                          <div className="p-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Layers className="w-3 h-3 text-text-dim" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-text-primary">
+                                Option B: Web Bundler
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-text-dim leading-relaxed uppercase tracking-wider">
+                              Use PWABuilder.com to bundle this URL into an
+                              Android package manually.
+                            </p>
+                            <div className="flex items-center gap-2 p-2 bg-black/60 rounded-xl border border-white/10 overflow-hidden">
+                              <code className="text-[9px] text-primary font-mono truncate flex-1">
+                                https://ais-pre-xhgeaqcs5ry32eqncav2st-491297065011.us-west2.run.app
+                              </code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    "https://ais-pre-xhgeaqcs5ry32eqncav2st-491297065011.us-west2.run.app",
+                                  );
+                                  toast.show("URL Copied", "success");
+                                }}
+                                className="bg-primary/20 text-primary p-1.5 rounded-lg hover:bg-primary/30 transition-colors"
+                              >
+                                <Layers className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Direct Install Option */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5">
+                              <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-[10px] font-bold">
+                                1
+                              </div>
+                              <span className="text-[10px] text-text-primary uppercase tracking-widest">
+                                Chrome Android
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-black/40 rounded-2xl border border-white/5">
+                              <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-[10px] font-bold">
+                                2
+                              </div>
+                              <span className="text-[10px] text-text-primary uppercase tracking-widest">
+                                "Install App"
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Secondary Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors flex flex-col justify-between">
+                        <div>
+                          <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70">
+                            <Car className="w-5 h-5" />
+                          </div>
+                          <h4 className="font-bold text-text-primary text-sm mb-1">
+                            Vehicle Status
+                          </h4>
+                          <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                            {onboarding.vehicleInfo || "No vehicle set"}
+                          </p>
+                          <p className="text-[9px] text-primary/60 font-black uppercase tracking-widest mt-1">
+                            {onboarding.vehicleProtocol}
+                          </p>
+                        </div>
+                        {onboarding.vehicleVin && (
+                          <p className="text-[9px] text-text-dim font-mono tracking-tighter opacity-40 mt-2 truncate">
+                            VIN: {onboarding.vehicleVin}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setCurrentScreen("Inventory")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <Wrench className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Toolbox
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          {inventory.length > 0
+                            ? `${inventory.length} Items Sync'd`
+                            : "Empty • Add Tools"}
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("Diagnostics")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Activity className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <Terminal className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Diagnostic Log
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          {obdConnected
+                            ? "OBD Dynamic Stream"
+                            : "Offline • ELM327"}
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("Integrations")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Database className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <LinkIcon className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          3rd Party APIs
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          {connectedIntegrations.length > 0
+                            ? `${connectedIntegrations.length} Active Hooks`
+                            : "Sync Offline Tools"}
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("Estimator")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Calculator className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <Calculator className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Service Estimator
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          Parts & Labor Quotes
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("Analytics")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <BarChart3 className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <BarChart3 className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Shop Analytics
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          Perf & Utilization
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("Topology")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Zap className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <Zap className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Network Topology
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          CAN-Bus Health
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("GuidedDiagnostics")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <FileText className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Test Plans
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          Guided Diag
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("Oscilloscope")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Activity className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <Activity className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Lab Scope
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          Signal Analysis
+                        </p>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentScreen("WiringDiagrams")}
+                        className="bg-[#151619] p-5 rounded-3xl border border-white/5 shadow-2xl hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Layers className="w-8 h-8" />
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold text-text-primary text-sm mb-1">
+                          Schematics
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                          Wiring Diagrams
+                        </p>
+                      </button>
+                    </div>
+
+                    {/* Tasks Section */}
+                    <div className="bg-[#151619] rounded-3xl border border-white/5 p-6 shadow-2xl relative overflow-hidden">
+                      <div className="space-y-4 mb-6">
+                        <div className="flex items-center justify-between px-2">
+                          <div className="flex flex-col">
+                            <h3 className="font-display font-bold text-lg text-text-primary">
+                              Action Items
+                            </h3>
+                            {selectedTasks.length > 0 && (
+                              <span className="text-[10px] text-primary/60 font-mono uppercase tracking-widest mt-0.5">
+                                {selectedTasks.length} Selected
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {filteredTasks.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  const allVisibleIds = filteredTasks.map(
+                                    (t) => t.id,
+                                  );
+                                  const allSelected = allVisibleIds.every(
+                                    (id) => selectedTasks.includes(id),
+                                  );
+                                  if (allSelected) {
+                                    setSelectedTasks((prev) =>
+                                      prev.filter(
+                                        (id) => !allVisibleIds.includes(id),
+                                      ),
+                                    );
+                                  } else {
+                                    setSelectedTasks((prev) =>
+                                      Array.from(
+                                        new Set([...prev, ...allVisibleIds]),
+                                      ),
+                                    );
+                                  }
+                                }}
+                                className="text-[10px] font-mono text-text-dim hover:text-primary transition-colors uppercase tracking-widest"
+                              >
+                                {filteredTasks.every((t) =>
+                                  selectedTasks.includes(t.id),
+                                )
+                                  ? "Deselect All"
+                                  : "Select Visible"}
+                              </button>
+                            )}
+                            <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                              {tasks.filter((t) => !t.completed).length} Pending
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Search & Filter Bar */}
+                        <div className="flex gap-2 px-2">
+                          <div className="flex-1 relative">
+                            <input
+                              type="text"
+                              placeholder="Search tasks..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-primary/30 transition-all"
+                            />
+                          </div>
+                          <select
+                            value={filterPriority}
+                            onChange={(e) =>
+                              setFilterPriority(e.target.value as any)
+                            }
+                            className="bg-white/5 border border-white/5 rounded-xl px-2 py-2 text-[10px] text-text-dim outline-none uppercase tracking-widest"
+                          >
+                            <option value="All">All Levels</option>
+                            <option value="High">High Only</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {selectedTasks.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="mb-6 p-4 bg-surface border rounded-[2rem] shadow-xl overflow-hidden"
+                          style={{
+                            borderColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}55`,
+                          }}
+                        >
+                          <div className="flex items-center justify-between mb-3 px-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary">
+                              Batch Protocol
+                            </span>
+                            <button
+                              onClick={() => setSelectedTasks([])}
+                              className="text-text-dim hover:text-white transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex gap-2 mb-4">
+                            <button
+                              onClick={handleBatchComplete}
+                              style={{
+                                backgroundColor:
+                                  projects.find((p) => p.id === activeProject)
+                                    ?.color || "#F5A623",
+                              }}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 text-black rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-lg"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
+                            </button>
+                            <button
+                              onClick={handleBatchDelete}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-black rounded-xl text-[11px] font-black uppercase tracking-wider border border-red-500/20 hover:border-red-500 transition-all active:scale-95 shadow-lg"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Purge
+                            </button>
+                          </div>
+
+                          <div className="space-y-4 pt-1">
+                            <div>
+                              <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-text-dim mb-2 ml-1">
+                                Priority Shift
+                              </p>
+                              <div className="flex gap-1.5">
+                                {(["Low", "Medium", "High"] as const).map(
+                                  (p) => (
+                                    <button
+                                      key={p}
+                                      onClick={() => handleBatchPriority(p)}
+                                      className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all active:scale-95 ${
+                                        p === "High"
+                                          ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+                                          : p === "Medium"
+                                            ? "bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-white"
+                                            : "bg-blue-500/10 border-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white"
+                                      }`}
+                                    >
+                                      {p}
+                                    </button>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-text-dim mb-2 ml-1">
+                                Classification
+                              </p>
+                              <div className="grid grid-cols-4 gap-1.5">
+                                {["Parts", "Labor", "Planning", "Code"].map(
+                                  (cat) => (
+                                    <button
+                                      key={cat}
+                                      onClick={() => handleBatchCategorize(cat)}
+                                      className="py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] text-white/40 hover:text-primary font-mono uppercase tracking-widest border border-white/5 transition-all active:scale-95"
+                                    >
+                                      {cat}
+                                    </button>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-text-dim mb-2 ml-1">
+                                Reassign Project
+                              </p>
+                              <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                                {projects
+                                  .filter((p) => p.id !== activeProject)
+                                  .map((p) => (
+                                    <button
+                                      key={p.id}
+                                      onClick={() => handleBatchMove(p.id)}
+                                      className="flex-shrink-0 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] text-text-dim hover:text-white font-bold uppercase tracking-widest border border-white/5 transition-all active:scale-95"
+                                    >
+                                      {p.name}
+                                    </button>
+                                  ))}
+                                {projects.length <= 1 && (
+                                  <p className="text-[8px] text-text-dim italic ml-1">
+                                    No other projects available
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto no-scrollbar">
+                        {(() => {
+                          if (filteredTasks.length === 0) {
+                            return (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-center py-10 px-4"
+                              >
+                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
+                                  <CheckCircle2 className="w-8 h-8 text-white/20" />
+                                </div>
+                                <h4 className="text-sm font-bold text-text-primary mb-1">
+                                  {searchQuery || filterPriority !== "All"
+                                    ? "No matches found"
+                                    : "No tasks yet"}
+                                </h4>
+                                <p className="text-[11px] text-text-dim uppercase tracking-widest leading-relaxed">
+                                  {searchQuery || filterPriority !== "All"
+                                    ? "Try adjusting your search or filters"
+                                    : "Your project is currently clear."}
+                                </p>
+                              </motion.div>
+                            );
+                          }
+
+                          return (
+                            <AnimatePresence initial={false}>
+                              {filteredTasks.map((task) => (
+                                <TaskItem
+                                  key={task.id}
+                                  task={task}
+                                  selected={selectedTasks.includes(task.id)}
+                                  onSelect={() => toggleTaskSelection(task.id)}
+                                  onToggle={() => handleToggleTask(task)}
+                                  onDelete={() => handleDeleteTask(task.id)}
+                                  onEdit={(newText) =>
+                                    handleEditTask(task.id, newText)
+                                  }
+                                  themeColor={
+                                    projects.find((p) => p.id === activeProject)
+                                      ?.color
+                                  }
+                                />
+                              ))}
+                            </AnimatePresence>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="relative space-y-3">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Add an action item..."
+                            value={newTaskText}
+                            onChange={(e) => setNewTaskText(e.target.value)}
+                            onFocus={() => setShowAddTaskOptions(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleAddTask();
+                            }}
+                            className="flex-1 bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-sm text-text-primary outline-none focus:border-primary/40 transition-all placeholder:text-text-dim/50"
+                          />
+                          <button
+                            onClick={handleAddTask}
+                            disabled={!newTaskText.trim()}
+                            className="p-4 bg-primary text-black rounded-2xl disabled:opacity-30 transition-all active:scale-95 shadow-[0_0_20px_rgba(245,166,35,0.2)]"
+                          >
+                            <ArrowUp className="w-5 h-5 flex-shrink-0" />
+                          </button>
+                        </div>
+
+                        <AnimatePresence>
+                          {(showAddTaskOptions || newTaskText.trim()) && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="flex items-center gap-2 px-1"
+                            >
+                              <div className="flex bg-white/5 rounded-lg p-1 gap-1">
+                                {(["Low", "Medium", "High"] as const).map(
+                                  (p) => (
+                                    <button
+                                      key={p}
+                                      onClick={() => setNewTaskPriority(p)}
+                                      className={`px-3 py-1 rounded-md text-[9px] uppercase tracking-widest font-bold transition-all ${
+                                        newTaskPriority === p
+                                          ? p === "High"
+                                            ? "bg-red-500 text-white"
+                                            : p === "Medium"
+                                              ? "bg-orange-500 text-white"
+                                              : "bg-blue-500 text-white"
+                                          : "text-text-dim hover:bg-white/5"
+                                      }`}
+                                    >
+                                      {p}
+                                    </button>
+                                  ),
+                                )}
+                              </div>
+                              <button
+                                onClick={() => setShowAddTaskOptions(false)}
+                                className="text-[9px] text-text-dim hover:text-white uppercase tracking-widest font-mono ml-auto"
+                              >
+                                Cancel
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: `linear-gradient(to right, ${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}1A, transparent)`,
+                        borderColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}33`,
+                      }}
+                      className="p-6 rounded-[2rem] border flex items-center justify-between group focus-within:ring-1 transition-all mt-4 mb-16"
+                    >
+                      <div className="flex items-center gap-5 flex-1">
+                        <div
+                          style={{
+                            backgroundColor: `${projects.find((p) => p.id === activeProject)?.color || "#F5A623"}33`,
+                            color:
+                              projects.find((p) => p.id === activeProject)
+                                ?.color || "#F5A623",
+                          }}
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"
+                        >
+                          <Calculator className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1 pr-4">
+                          <h4 className="font-bold text-text-primary text-[15px] tracking-wide mb-2 flex justify-between items-center">
+                            Project Roadmap
+                            <span className="text-[10px] opacity-60 font-mono">
+                              {tasks.length > 0
+                                ? `${Math.round((tasks.filter((t) => t.completed).length / tasks.length) * 100)}%`
+                                : "0%"}
+                            </span>
+                          </h4>
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{
+                                width:
+                                  tasks.length > 0
+                                    ? `${(tasks.filter((t) => t.completed).length / tasks.length) * 100}%`
+                                    : 0,
+                              }}
+                              style={{
+                                backgroundColor:
+                                  projects.find((p) => p.id === activeProject)
+                                    ?.color || "#F5A623",
+                              }}
+                              className="absolute top-0 left-0 h-full shadow-[0_0_10px_rgba(245,166,35,0.3)]"
+                            />
+                          </div>
+                          <p className="text-text-dim text-[9px] uppercase tracking-widest mt-2 flex justify-between">
+                            <span>{tasks.length} Objectives</span>
+                            <span>
+                              {tasks.filter((t) => t.completed).length} Resolved
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-auto mb-4 flex justify-between items-center pt-8 border-t border-border/20">
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      localStorage.removeItem(
-                        `forge_active_project_${user?.uid}`,
-                      );
-                      localStorage.removeItem("forge_chat");
-                      window.location.reload();
-                    }}
-                    className="text-text-dim text-xs uppercase tracking-widest hover:text-primary transition-colors"
-                  >
-                    System Reset
-                  </button>
-                  <p className="text-text-dim text-[10px] uppercase tracking-widest opacity-30">
-                    Forge v0.0.1
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {currentScreen === "Chat" &&
-              (!user ? (
-                <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] p-8 text-center gap-4">
-                  <div className="w-12 h-12 rounded-full border border-red-500/20 bg-red-500/5 flex items-center justify-center text-red-500 mb-2">
-                    <User className="w-6 h-6" />
+                  <div className="mt-auto mb-4 flex justify-between items-center pt-8 border-t border-border/20">
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        localStorage.removeItem(
+                          `forge_active_project_${user?.uid}`,
+                        );
+                        localStorage.removeItem("forge_chat");
+                        window.location.reload();
+                      }}
+                      className="text-text-dim text-xs uppercase tracking-widest hover:text-primary transition-colors"
+                    >
+                      System Reset
+                    </button>
+                    <p className="text-text-dim text-[10px] uppercase tracking-widest opacity-30">
+                      Forge v0.0.1
+                    </p>
                   </div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-widest">
-                    Authentication Required
-                  </h3>
-                  <p className="text-sm font-mono text-white/50 leading-relaxed max-w-sm">
-                    Neural_Sync is offline. Please sign in via the Engineering
-                    Hub (Home tab) to access Forge AI and cloud synchronization.
-                  </p>
-                  <button
-                    onClick={() => setCurrentScreen("Main")}
-                    className="mt-6 px-6 py-3 bg-primary text-black font-black uppercase tracking-widest text-[11px] rounded-xl hover:bg-primary/80 transition-colors"
-                  >
-                    Return to Hub
-                  </button>
-                </div>
-              ) : activeProject ? (
-                <ChatScreen
-                  key="chat"
+                </motion.div>
+              )}
+
+              {currentScreen === "Chat" &&
+                (!user ? (
+                  <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] hardware-pattern p-8 text-center gap-4">
+                    <div className="w-12 h-12 rounded-full border border-red-500/20 bg-red-500/5 flex items-center justify-center text-red-500 mb-2">
+                      <User className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-widest">
+                      Authentication Required
+                    </h3>
+                    <p className="text-sm font-mono text-white/50 leading-relaxed max-w-sm">
+                      Neural_Sync is offline. Please sign in via the Engineering
+                      Hub (Home tab) to access Forge AI and cloud
+                      synchronization.
+                    </p>
+                    <button
+                      onClick={() => setCurrentScreen("Main")}
+                      className="mt-6 px-6 py-3 bg-primary text-black font-black uppercase tracking-widest text-[11px] rounded-xl hover:bg-primary/80 transition-colors"
+                    >
+                      Return to Hub
+                    </button>
+                  </div>
+                ) : activeProject ? (
+                  <ChatScreen
+                    key="chat"
+                    onBack={() => setCurrentScreen("Main")}
+                    onboarding={onboarding}
+                    initialMode={chatMode}
+                    activeProject={activeProject}
+                    user={user}
+                    inventory={inventory}
+                    initialQuery={chatInitialQuery}
+                  />
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] hardware-pattern gap-4 p-8 text-center">
+                    <div className="text-primary text-sm flex items-center gap-3 font-mono border border-primary/20 p-4 rounded-full bg-primary/5 mb-4">
+                      <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                      INITIALIZING WORKSPACE...
+                    </div>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-mono">
+                      Select or create a project in the Hub first.
+                    </p>
+                    <button
+                      onClick={() => setCurrentScreen("Main")}
+                      className="mt-2 px-6 py-3 bg-white/5 border border-white/10 text-white font-black uppercase tracking-widest text-[11px] rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                      Return to Hub
+                    </button>
+                  </div>
+                ))}
+
+              {currentScreen === "Inventory" && user && (
+                <InventoryScreen
                   onBack={() => setCurrentScreen("Main")}
-                  onboarding={onboarding}
-                  initialMode={chatMode}
-                  activeProject={activeProject}
-                  user={user}
                   inventory={inventory}
-                  initialQuery={chatInitialQuery}
+                  user={user}
                 />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#050505] gap-4 p-8 text-center">
-                  <div className="text-primary text-sm flex items-center gap-3 font-mono border border-primary/20 p-4 rounded-full bg-primary/5 mb-4">
-                    <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
-                    INITIALIZING WORKSPACE...
-                  </div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest font-mono">
-                    Select or create a project in the Hub first.
-                  </p>
-                  <button
-                    onClick={() => setCurrentScreen("Main")}
-                    className="mt-2 px-6 py-3 bg-white/5 border border-white/10 text-white font-black uppercase tracking-widest text-[11px] rounded-xl hover:bg-white/10 transition-colors"
-                  >
-                    Return to Hub
-                  </button>
-                </div>
-              ))}
+              )}
 
-            {currentScreen === "Inventory" && user && (
-              <InventoryScreen
-                onBack={() => setCurrentScreen("Main")}
-                inventory={inventory}
-                user={user}
+              {currentScreen === "Diagnostics" && (
+                <DiagnosticScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  connected={obdConnected}
+                  dtcs={detectedDtcs}
+                  onCommand={handleDiagnosticCommand}
+                  onDeepDive={handleDeepDive}
+                />
+              )}
+
+              {currentScreen === "LiveData" && (
+                <LiveDataScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  telemetry={telemetry}
+                />
+              )}
+
+              {currentScreen === "Coding" && (
+                <CodingScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  onCommand={handleDiagnosticCommand}
+                />
+              )}
+
+              {currentScreen === "Terminal" && (
+                <TerminalScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  onCommand={handleDiagnosticCommand}
+                  logs={diagnosticLogs}
+                />
+              )}
+
+              {currentScreen === "Integrations" && (
+                <IntegrationsScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  connectedIds={connectedIntegrations}
+                  onToggleConnection={handleToggleIntegration}
+                />
+              )}
+
+              {currentScreen === "Estimator" && (
+                <EstimatorScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
+                />
+              )}
+
+              {currentScreen === "Topology" && (
+                <TopologyScreen onBack={() => setCurrentScreen("Main")} />
+              )}
+
+              {currentScreen === "Analytics" && (
+                <AnalyticsScreen onBack={() => setCurrentScreen("Main")} />
+              )}
+
+              {currentScreen === "GuidedDiagnostics" && (
+                <GuidedDiagnosticsScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
+                />
+              )}
+
+              {currentScreen === "Oscilloscope" && (
+                <OscilloscopeScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
+                />
+              )}
+
+              {currentScreen === "WiringDiagrams" && (
+                <WiringDiagramsScreen
+                  onBack={() => setCurrentScreen("Main")}
+                  vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
+                />
+              )}
+
+              {currentScreen === "Index" && (
+                <IndexScreen onBack={() => setCurrentScreen("Main")} />
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom Navigation */}
+          {["Main", "Diagnostics", "LiveData", "Coding", "Terminal"].includes(
+            currentScreen,
+          ) &&
+            user && (
+              <BottomNavBar
+                currentTab={currentScreen}
+                onTabSelect={(id) => setCurrentScreen(id as Screen)}
               />
             )}
-
-            {currentScreen === "Diagnostics" && (
-              <DiagnosticScreen
-                onBack={() => setCurrentScreen("Main")}
-                connected={obdConnected}
-                dtcs={detectedDtcs}
-                onCommand={handleDiagnosticCommand}
-                onDeepDive={handleDeepDive}
-              />
-            )}
-
-            {currentScreen === "LiveData" && (
-              <LiveDataScreen
-                onBack={() => setCurrentScreen("Main")}
-                telemetry={telemetry}
-              />
-            )}
-
-            {currentScreen === "Coding" && (
-              <CodingScreen
-                onBack={() => setCurrentScreen("Main")}
-                onCommand={handleDiagnosticCommand}
-              />
-            )}
-
-            {currentScreen === "Terminal" && (
-              <TerminalScreen
-                onBack={() => setCurrentScreen("Main")}
-                onCommand={handleDiagnosticCommand}
-                logs={diagnosticLogs}
-              />
-            )}
-
-            {currentScreen === "Integrations" && (
-              <IntegrationsScreen
-                onBack={() => setCurrentScreen("Main")}
-                connectedIds={connectedIntegrations}
-                onToggleConnection={handleToggleIntegration}
-              />
-            )}
-
-            {currentScreen === "Estimator" && (
-              <EstimatorScreen
-                onBack={() => setCurrentScreen("Main")}
-                vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
-              />
-            )}
-
-            {currentScreen === "Topology" && (
-              <TopologyScreen onBack={() => setCurrentScreen("Main")} />
-            )}
-
-            {currentScreen === "Analytics" && (
-              <AnalyticsScreen onBack={() => setCurrentScreen("Main")} />
-            )}
-
-            {currentScreen === "GuidedDiagnostics" && (
-              <GuidedDiagnosticsScreen
-                onBack={() => setCurrentScreen("Main")}
-                vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
-              />
-            )}
-
-            {currentScreen === "Oscilloscope" && (
-              <OscilloscopeScreen
-                onBack={() => setCurrentScreen("Main")}
-                vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
-              />
-            )}
-
-            {currentScreen === "WiringDiagrams" && (
-              <WiringDiagramsScreen
-                onBack={() => setCurrentScreen("Main")}
-                vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`}
-              />
-            )}
-
-            {currentScreen === "Index" && (
-              <IndexScreen onBack={() => setCurrentScreen("Main")} />
-            )}
-          </AnimatePresence>
         </div>
-
-        {/* Bottom Navigation */}
-        {["Main", "Diagnostics", "LiveData", "Coding", "Terminal"].includes(
-          currentScreen,
-        ) &&
-          user && (
-            <BottomNavBar
-              currentTab={currentScreen}
-              onTabSelect={(id) => setCurrentScreen(id as Screen)}
-            />
-          )}
       </div>
     </div>
   );

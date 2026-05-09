@@ -161,7 +161,7 @@ export const EstimatorScreen = ({
         ))}
       </div>
 
-      <div className="px-6 pt-4 pb-6 bg-[#050505] border-t border-white/10 mt-auto">
+      <div className="px-6 pt-4 pb-6 bg-[#050505] hardware-pattern border-t border-white/10 mt-auto">
         <div className="space-y-1 mb-4">
           <div className="flex justify-between text-xs text-white/60">
             <span>Labor</span>

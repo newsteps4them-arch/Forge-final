@@ -78,7 +78,7 @@ export const VoiceCloneScreen = ({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col h-full bg-[#050505] p-8 overflow-y-auto no-scrollbar"
+      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 overflow-y-auto no-scrollbar"
     >
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Mic className="w-64 h-64 text-text-primary" />
