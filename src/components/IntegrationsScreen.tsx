@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Link as LinkIcon, Database, CheckCircle2, AlertCircle, Activity, Zap, HardHat, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Database, CheckCircle2, AlertCircle, Activity, Zap, HardHat, RefreshCw, BookOpen } from 'lucide-react';
 import { toast } from '../lib/notifications';
 
 const INTERGRATIONS = [
-  { id: 'snapon', name: 'Snap-on Connect', type: 'Professional', desc: 'Secure diagnostics sync & cloud backup', icon: HardHat, dev: 'Snap-on Inc.' },
+  { id: 'alldata', name: 'ALLDATA', type: 'Repair Info', desc: 'OEM repair information and schematics', icon: BookOpen, dev: 'ALLDATA LLC' },
+  { id: 'mitchell1', name: 'Mitchell 1 (ProDemand)', type: 'Service Manuals', desc: 'Wiring diagrams and service procedures', icon: HardHat, dev: 'Mitchell Repair Info' },
+  { id: 'identifix', name: 'Identifix (Direct-Hit)', type: 'Diagnostics', desc: 'Confirmed fixes and diagnostic hotline data', icon: CheckCircle2, dev: 'Identifix' },
+  { id: 'snapon', name: 'Snap-on Connect', type: 'Professional', desc: 'Secure diagnostics sync & cloud backup', icon: Zap, dev: 'Snap-on Inc.' },
   { id: 'forscan', name: 'FORScan', type: 'OEM Ford/Mazda', desc: 'Advanced module configuration logs', icon: Database, dev: 'FORScan Team' },
-  { id: 'torque', name: 'Torque Pro', type: 'Telemetry', desc: 'Real-time CSV log consumption', icon: Zap, dev: 'Ian Hawkins' },
-  { id: 'alfaobd', name: 'AlfaOBD', type: 'FCA Group', desc: 'Body computer & proxy alignment logs', icon: Activity, dev: 'AlfaOBD Apps' },
-  { id: 'repair2', name: 'RepairSolutions2', type: 'Consumer Data', desc: 'Fix assist reports & part numbers', icon: LinkIcon, dev: 'Innova Electronics' }
+  { id: 'torque', name: 'Torque Pro', type: 'Telemetry', desc: 'Real-time CSV log consumption', icon: Activity, dev: 'Ian Hawkins' },
+  { id: 'alfaobd', name: 'AlfaOBD', type: 'FCA Group', desc: 'Body computer & proxy alignment logs', icon: Database, dev: 'AlfaOBD Apps' },
+  { id: 'repair2', name: 'RepairSolutions2', type: 'Consumer Data', desc: 'Fix assist reports & part numbers', icon: LinkIcon, dev: 'Innova Electronics' },
+  { id: 'nexpart', name: 'Nexpart B2B', type: 'Parts Ordering', desc: 'Wholesale parts catalog and ordering', icon: LinkIcon, dev: 'WHI Solutions' },
+  { id: 'carfax', name: 'CARFAX', type: 'Vehicle History', desc: 'Service records and VIN decoding', icon: LinkIcon, dev: 'CARFAX Inc.' }
 ];
 
 export const IntegrationsScreen = ({ onBack, connectedIds, onToggleConnection }: { 

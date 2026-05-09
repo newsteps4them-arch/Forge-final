@@ -9,6 +9,9 @@ import { LiveDataScreen } from './components/LiveDataScreen';
 import { CodingScreen } from './components/CodingScreen';
 import { TerminalScreen } from './components/TerminalScreen';
 import { IntegrationsScreen } from './components/IntegrationsScreen';
+import { EstimatorScreen } from './components/EstimatorScreen';
+import { TopologyScreen } from './components/TopologyScreen';
+import { IndexScreen } from './components/IndexScreen';
 import { toast } from './lib/notifications';
 import { 
   auth, db, googleProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, signInWithRedirect,
@@ -71,7 +74,7 @@ type OnboardingData = {
   onboardingComplete: boolean;
 };
 
-type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' | 'Inventory' | 'Vehicles' | 'Ready' | 'Main' | 'Chat' | 'Diagnostics' | 'LiveData' | 'Coding' | 'Terminal' | 'Integrations';
+type Screen = 'Welcome' | 'NameAssistant' | 'WakeWord' | 'AboutYou' | 'ApiKeys' | 'Inventory' | 'Vehicles' | 'Ready' | 'Main' | 'Chat' | 'Diagnostics' | 'LiveData' | 'Coding' | 'Terminal' | 'Integrations' | 'Estimator' | 'Topology' | 'Index';
 type AssistantMode = 'Operations' | 'Diagnostics Lead' | 'Performance Tuner' | 'Electrical Eng.' | 'Estimator';
 type ChatMessage = { role: 'user' | 'model', text: string, image?: string };
 
@@ -656,8 +659,8 @@ const ReadyScreen = ({ onFinish }: { onFinish: () => void }) => {
           <CheckCircle2 className="text-primary w-16 h-16 drop-shadow-[0_0_15px_rgba(245,166,35,0.5)]" />
         </motion.div>
         
-        <h2 className="text-4xl font-display font-black text-text-primary mb-4 tracking-tight">You're all set.</h2>
-        <p className="text-text-secondary text-lg max-w-xs mx-auto tracking-wide">Forge is ready to help you build what you imagine.</p>
+        <h2 className="text-4xl font-display font-black text-text-primary mb-4 tracking-tight">System Initialization Complete.</h2>
+        <p className="text-text-secondary text-lg max-w-xs mx-auto tracking-wide">Team Forge has synced with your parameters. The Engineering Hub is ready.</p>
       </div>
 
       <div className="mb-8 relative z-10">
@@ -2443,7 +2446,13 @@ export default function App() {
                      <span className="text-[9px] font-mono text-primary/60 uppercase tracking-widest">{onboarding.vehicleYear} {onboarding.vehicleMake}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentScreen('Index')} 
+                    className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors mr-2"
+                  >
+                     <BookOpen className="w-5 h-5 text-white/60" />
+                  </button>
                   <div className="flex flex-col items-end gap-1">
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/5 bg-card/40 shadow-inner group transition-all ${isOnline ? 'text-success' : 'text-error'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-success shadow-[0_0_10px_#4CAF50]' : 'bg-error shadow-[0_0_10px_#E53935]'}`} />
@@ -2720,6 +2729,38 @@ export default function App() {
                     <h4 className="font-bold text-text-primary text-sm mb-1">3rd Party APIs</h4>
                     <p className="text-text-secondary text-xs truncate max-w-full font-mono">
                       {connectedIntegrations.length > 0 ? `${connectedIntegrations.length} Active Hooks` : 'Sync Offline Tools'}
+                    </p>
+                  </button>
+
+                  <button 
+                    onClick={() => setCurrentScreen('Estimator')}
+                    className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                       <Calculator className="w-8 h-8" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                       <Calculator className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-text-primary text-sm mb-1">Service Estimator</h4>
+                    <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                      Parts & Labor Quotes
+                    </p>
+                  </button>
+
+                  <button 
+                    onClick={() => setCurrentScreen('Topology')}
+                    className="bg-card/30 p-5 rounded-[2rem] border border-border/20 hover:border-primary/30 transition-colors text-left group relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                       <Zap className="w-8 h-8" />
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-3 text-primary/70 group-hover:bg-primary/10 transition-colors">
+                       <Zap className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-text-primary text-sm mb-1">Network Topology</h4>
+                    <p className="text-text-secondary text-xs truncate max-w-full font-mono">
+                      CAN-Bus Health
                     </p>
                   </button>
                 </div>
@@ -3111,6 +3152,23 @@ export default function App() {
               connectedIds={connectedIntegrations}
               onToggleConnection={handleToggleIntegration}
             />
+          )}
+
+          {currentScreen === 'Estimator' && (
+            <EstimatorScreen 
+              onBack={() => setCurrentScreen('Main')} 
+              vehicle={`${onboarding.vehicleYear} ${onboarding.vehicleMake} ${onboarding.vehicleModel}`} 
+            />
+          )}
+
+          {currentScreen === 'Topology' && (
+            <TopologyScreen 
+              onBack={() => setCurrentScreen('Main')} 
+            />
+          )}
+
+          {currentScreen === 'Index' && (
+            <IndexScreen onBack={() => setCurrentScreen('Main')} />
           )}
         </AnimatePresence>
         </div>
