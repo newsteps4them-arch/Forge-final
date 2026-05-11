@@ -5,11 +5,12 @@ import {
   BatteryMedium,
   BatteryFull,
   Activity,
-  Download
+  Download,
+  Settings
 } from "lucide-react";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
-export const TopStatusBar = () => {
+export const TopStatusBar = ({ onSettingsClick }: { onSettingsClick?: () => void }) => {
   const [time, setTime] = useState("");
   const [ping, setPing] = useState(24);
   const { isInstallable, installPWA } = usePWAInstall();
@@ -60,6 +61,14 @@ export const TopStatusBar = () => {
       </div>
 
       <div className="flex items-center gap-4">
+        {onSettingsClick && (
+          <button 
+            onClick={onSettingsClick} 
+            className="hover:text-primary transition-colors cursor-pointer mr-2"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
         <div className="flex items-center gap-1.5">
           <Activity className="w-3 h-3 text-success animate-pulse relative top-[-0.5px]" />
           <span className="w-12 text-right">{ping.toFixed(0)}MS</span>

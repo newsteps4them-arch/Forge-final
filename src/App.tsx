@@ -56,6 +56,7 @@ import {
   Database,
   BarChart3,
   FileText,
+  ShieldAlert,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { NotificationContainer } from "./components/NotificationContainer";
@@ -74,6 +75,7 @@ import { GuidedDiagnosticsScreen } from "./components/GuidedDiagnosticsScreen";
 import { OscilloscopeScreen } from "./components/OscilloscopeScreen";
 import { WiringDiagramsScreen } from "./components/WiringDiagramsScreen";
 import { CameraCapture } from "./components/CameraCapture";
+import { SettingsScreen } from "./components/SettingsScreen";
 import { toast } from "./lib/notifications";
 import {
   auth,
@@ -162,6 +164,10 @@ type OnboardingData = {
   vehicleProtocol: string;
   vehicleInfo: string;
   inventory: string;
+  meliApiKey: string;
+  alldataKey: string;
+  obdKey: string;
+  openAiKey: string;
   onboardingComplete: boolean;
 };
 
@@ -171,10 +177,10 @@ type Screen =
   | "WakeWord"
   | "VoiceClone"
   | "AboutYou"
-  | "ApiKeys"
   | "Inventory"
   | "Vehicles"
   | "Ready"
+  | "Settings"
   | "Main"
   | "Chat"
   | "Diagnostics"
@@ -563,92 +569,6 @@ const WelcomeScreen = ({
   );
 };
 
-const ApiKeysSetupScreen = ({
-  value,
-  onChange,
-  onNext,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  onNext: () => void;
-}) => {
-  const [showKey, setShowKey] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="flex flex-col h-full bg-[#050505] hardware-pattern p-8 relative"
-    >
-      <div className="absolute top-0 right-0 p-8 opacity-5">
-        <Key className="w-64 h-64 text-text-primary" />
-      </div>
-      <div className="flex-1 mt-20 relative z-10">
-        <div className="bg-surface w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-10 border border-white/5 shadow-lg">
-          <Key className="text-primary w-8 h-8 drop-shadow-[0_0_10px_rgba(245,166,35,0.5)]" />
-        </div>
-
-        <h2 className="text-4xl font-display font-bold text-text-primary mb-3 leading-tight tracking-tight">
-          API Keys
-        </h2>
-        <p className="text-text-secondary text-lg mb-8 tracking-wide">
-          Powering Forge with your own tech stack.
-        </p>
-
-        <div className="mb-8 p-5 bg-surface/50 border border-border/50 rounded-2xl shadow-inner">
-          <p className="text-[15px] leading-relaxed text-text-secondary mb-3">
-            You can obtain a Gemini API key from{" "}
-            <a
-              href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary hover:underline font-medium"
-            >
-              Google AI Studio
-            </a>
-            .
-          </p>
-          <p className="text-xs text-primary/60 uppercase tracking-widest font-bold mt-4">
-            Leave blank to use system key.
-          </p>
-        </div>
-
-        <div className="relative group">
-          <input
-            type={showKey ? "text" : "password"}
-            autoFocus
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Gemini API Key (optional)"
-            className="w-full bg-surface/50 border border-border/50 rounded-2xl py-6 pl-6 pr-14 text-xl text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
-            onKeyDown={(e) => e.key === "Enter" && onNext()}
-          />
-          <button
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-text-dim hover:text-primary transition-colors p-2"
-          >
-            {showKey ? (
-              <EyeOff className="w-6 h-6" />
-            ) : (
-              <Eye className="w-6 h-6" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-8 relative z-10">
-        <button
-          onClick={onNext}
-          className="w-full bg-primary py-5 rounded-full text-black font-extrabold text-[15px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_20px_rgba(245,166,35,0.2)]"
-        >
-          {value.trim() ? "Continue" : "Skip"}
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
-    </motion.div>
-  );
-};
 
 const SetupScreen = ({
   title,
@@ -1152,6 +1072,10 @@ const ChatScreen = ({
           systemInstruction +=
             "General operations and team coordinator. You can answer general questions and orchestrate the tasks across the team.";
           break;
+      }
+
+      if (onboarding.meliApiKey) {
+        systemInstruction += " You are integrated with MeliNet, powered by Meli (Chief of Staff API). Act as a highly autonomous 'Chief of Staff' for the user. Proactively mention coordinating with other agents, checking calendars, and taking initiative on logistics whenever relevant. ";
       }
 
       // We don't update local messages state manually, the firestore listener handles it
@@ -2068,6 +1992,10 @@ export default function App() {
     vehicleProtocol: "ISO 15765-4 (CAN 11/500)",
     vehicleInfo: "",
     inventory: "",
+    meliApiKey: "",
+    alldataKey: "",
+    obdKey: "",
+    openAiKey: "",
     onboardingComplete: false,
   });
 
@@ -2681,7 +2609,6 @@ export default function App() {
       "WakeWord",
       "VoiceClone",
       "AboutYou",
-      "ApiKeys",
       "Inventory",
       "Vehicles",
       "Ready",
@@ -2715,7 +2642,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern">
-      <TopStatusBar />
+      <TopStatusBar onSettingsClick={onboarding.onboardingComplete ? () => setCurrentScreen("Settings") : undefined} />
       <NotificationContainer />
       <div className="flex-1 w-full flex items-center justify-center p-0 lg:p-6 bg-transparent">
         {/* Rugged Scanner Device Container */}
@@ -2783,12 +2710,23 @@ export default function App() {
                 />
               )}
 
-              {currentScreen === "ApiKeys" && (
-                <ApiKeysSetupScreen
-                  key="api"
-                  value={onboarding.apiKey}
-                  onChange={(v) => updateData("apiKey", v)}
-                  onNext={handleNext}
+              {currentScreen === "Settings" && (
+                <SettingsScreen
+                  key="settings"
+                  apiKey={onboarding.apiKey}
+                  meliApiKey={onboarding.meliApiKey}
+                  alldataKey={onboarding.alldataKey}
+                  obdKey={onboarding.obdKey}
+                  openAiKey={onboarding.openAiKey}
+                  onSave={(api, meli, alldata, obd, openai) => {
+                    updateData("apiKey", api);
+                    updateData("meliApiKey", meli);
+                    updateData("alldataKey", alldata);
+                    updateData("obdKey", obd);
+                    updateData("openAiKey", openai);
+                    setCurrentScreen("Main");
+                  }}
+                  onBack={() => setCurrentScreen("Main")}
                 />
               )}
 

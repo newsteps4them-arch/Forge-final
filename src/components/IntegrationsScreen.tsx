@@ -16,6 +16,14 @@ import { toast } from "../lib/notifications";
 
 const INTERGRATIONS = [
   {
+    id: "meli",
+    name: "Meli (Chief of Staff)",
+    type: "AI Coordination",
+    desc: "Autonomous infrastructure that connects and orchestrates your context across apps.",
+    icon: Zap,
+    dev: "Full Rank",
+  },
+  {
     id: "alldata",
     name: "ALLDATA",
     type: "Repair Info",

@@ -18,6 +18,10 @@ export class WebBluetoothObd implements ObdConnection {
   private resolver: ((value: string) => void) | null = null;
 
   async connect(): Promise<void> {
+    if (!('bluetooth' in navigator)) {
+      throw new Error("Web Bluetooth API not supported in this environment. Please use Chrome or a compatible browser. For Android apps, specific plugins are required.");
+    }
+    
     try {
       // Prompt user for BLE device
       this.device = await (navigator as any).bluetooth.requestDevice({
