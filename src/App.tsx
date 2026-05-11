@@ -3280,9 +3280,13 @@ export default function App() {
                           className="w-full bg-white/5 border border-white/5 rounded-lg text-xs px-3 py-2 text-white outline-none font-bold uppercase tracking-wider"
                         >
                           <option value="Simulated">Simulated Demo</option>
-                          <option value="Bluetooth">Bluetooth / BLE</option>
+                          <option value="Bluetooth">Bluetooth / BLE (ELM327/vLinker/Veepeak)</option>
                           <option value="USB">USB OTG Cable</option>
                         </select>
+                        <p className="text-[10px] text-white/40 mt-3 font-mono leading-relaxed">
+                          Bluetooth Classic (Standard ELM327) and BLE devices are supported in-browser. 
+                          You can also run <strong className="text-primary/70">Torque Pro</strong> or <strong className="text-primary/70">RepairSolutions2</strong> natively and sync data via the Integrations screen or by exporting CSV logs from the Terminal.
+                        </p>
                       </div>
                       <div className="flex-1 bg-black border border-white/10 rounded-2xl p-4 shadow-xl">
                         <span className="block text-[9px] text-white/40 uppercase tracking-widest mb-2 font-mono">

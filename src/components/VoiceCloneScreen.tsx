@@ -42,6 +42,12 @@ export const VoiceCloneScreen = ({
             onChange(true);
             onUrlChange("https://example.com/custom_voice_print.mp3");
             toast.show("Voice print mapped successfully.", "success");
+            
+            // Auto-advance after recording
+            setTimeout(() => {
+              onNext();
+            }, 1500);
+            
             return 100;
           }
           return p + 2; // Takes about 5 seconds
@@ -49,7 +55,7 @@ export const VoiceCloneScreen = ({
       }, 100);
     }
     return () => clearInterval(interval);
-  }, [isRecording, onChange, onUrlChange]);
+  }, [isRecording, onChange, onUrlChange, onNext]);
 
   const handleRecord = () => {
     if (recorded) {
@@ -72,6 +78,11 @@ export const VoiceCloneScreen = ({
     onChange(false);
     onUrlChange(id);
     toast.show(`Voice core updated to preset.`, "success");
+    
+    // Auto-advance after preset selection
+    setTimeout(() => {
+      onNext();
+    }, 1000);
   };
 
   return (
@@ -191,15 +202,15 @@ export const VoiceCloneScreen = ({
         </div>
       </div>
 
-      <div className="mb-4 relative z-10 space-y-4">
-        <button
-          onClick={onNext}
-          className="w-full bg-primary disabled:bg-surface disabled:text-text-dim py-5 rounded-full text-black font-extrabold text-[15px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_20px_rgba(245,166,35,0.2)] disabled:shadow-none"
-        >
-          {recorded || activePreset ? "Continue" : "Skip Vocal Core"}
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
+        <div className="mb-4 mt-auto sticky bottom-0 bg-[#050505] pt-4 z-20 shadow-[0_-20px_20px_-10px_#050505]">
+          <button
+            onClick={onNext}
+            className="w-full bg-primary disabled:bg-surface disabled:text-text-dim py-5 rounded-full text-black font-extrabold text-[15px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_20px_rgba(245,166,35,0.2)] disabled:shadow-none"
+          >
+            {recorded || activePreset ? "Continue" : "Skip Vocal Core"}
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
     </motion.div>
   );
 };

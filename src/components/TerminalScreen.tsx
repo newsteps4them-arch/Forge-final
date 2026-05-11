@@ -25,6 +25,32 @@ export const TerminalScreen = ({
     setInput("");
   };
 
+  const handleExport = () => {
+    if (logs.length === 0) {
+      toast.show("No logs to export", "info");
+      return;
+    }
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Timestamp,Type,Data\n"
+      + logs.map(e => {
+        const type = e.includes("TX:") ? "TX" : "RX";
+        // Attempt to extract timestamp if present
+        const match = e.match(/\[(.*?)\]/);
+        const tstamp = match ? match[1] : new Date().toLocaleTimeString();
+        const raw = e.replace(/\[.*?\]\s*(TX|RX):\s*/, "").replace(/"/g, '""');
+        return `"${tstamp}","${type}","${raw}"`;
+      }).join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `TorquePro_Log_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.show("Logs exported as CSV for Torque Pro", "success");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -47,14 +73,16 @@ export const TerminalScreen = ({
         </div>
         <div className="ml-auto flex gap-2">
           <button
-            onClick={() => toast.show("Export not implemented", "info")}
+            onClick={handleExport}
             className="p-2 border border-[#00ff41]/30 rounded-md text-[#00ff41]/70 hover:bg-[#00ff41]/10 transition-colors"
+            title="Export CSV for Torque Pro"
           >
             <Download className="w-4 h-4" />
           </button>
           <button
             onClick={() => toast.show("Scripts not implemented", "info")}
             className="p-2 border border-[#00ff41]/30 rounded-md text-[#00ff41]/70 hover:bg-[#00ff41]/10 transition-colors"
+            title="Save Command Script"
           >
             <Save className="w-4 h-4" />
           </button>
