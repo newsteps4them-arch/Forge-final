@@ -73,6 +73,7 @@ import { AnalyticsScreen } from "./components/AnalyticsScreen";
 import { GuidedDiagnosticsScreen } from "./components/GuidedDiagnosticsScreen";
 import { OscilloscopeScreen } from "./components/OscilloscopeScreen";
 import { WiringDiagramsScreen } from "./components/WiringDiagramsScreen";
+import { CameraCapture } from "./components/CameraCapture";
 import { toast } from "./lib/notifications";
 import {
   auth,
@@ -902,407 +903,7 @@ const ReadyScreen = ({ onFinish }: { onFinish: () => void }) => {
   );
 };
 
-const CameraView = ({
-  onCapture,
-  onClose,
-  initialMode,
-}: {
-  onCapture: (img: string) => void;
-  onClose: () => void;
-  initialMode: AssistantMode;
-}) => {
-  const [mode, setMode] = useState<AssistantMode>(initialMode);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    const startCamera = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (e) {
-        console.error("Camera access denied", e);
-        toast.show(
-          "Camera access denied or not available. Please ensure permissions are granted.",
-          "error",
-        );
-        onClose();
-      }
-    };
-    startCamera();
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, [onClose]);
-
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-        onCapture(dataUrl);
-      }
-    }
-  };
-
-  return (
-    <div className="absolute inset-0 bg-black z-[200] flex flex-col items-center justify-center overflow-hidden">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-
-      <div className="absolute top-0 inset-x-0 p-4 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent z-10">
-        <button
-          onClick={onClose}
-          className="p-3 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-black/70 transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <div className="flex flex-col items-center">
-          <div className="px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/10 text-white font-mono text-[10px] uppercase tracking-widest flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            AR Scan Active
-          </div>
-          <div className="flex gap-1.5 p-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/5 shadow-2xl overflow-x-auto no-scrollbar">
-            {(
-              [
-                "Operations",
-                "Diagnostics Lead",
-                "Performance Tuner",
-                "Electrical Eng.",
-                "Estimator",
-              ] as AssistantMode[]
-            ).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`p-2 whitespace-nowrap rounded-full transition-all text-[10px] font-black uppercase tracking-widest ${mode === m ? "bg-primary text-black scale-110 shadow-lg shadow-primary/20" : "text-white/40 hover:text-white/60"}`}
-              >
-                {m === "Operations" && (
-                  <Sparkles className="w-4 h-4 inline mr-1" />
-                )}
-                {m === "Diagnostics Lead" && (
-                  <Wrench className="w-4 h-4 inline mr-1" />
-                )}
-                {m === "Estimator" && (
-                  <Calculator className="w-4 h-4 inline mr-1" />
-                )}
-                {m === "Performance Tuner" && (
-                  <Activity className="w-4 h-4 inline mr-1" />
-                )}
-                {m === "Electrical Eng." && (
-                  <Zap className="w-4 h-4 inline mr-1" />
-                )}
-                {m.split(" ")[0]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="w-12 h-12" /> {/* Spacer */}
-      </div>
-
-      {/* Mode specific overlays */}
-      <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center overflow-hidden">
-        <AnimatePresence mode="wait">
-          {mode === "Diagnostics Lead" && (
-            <motion.div
-              key="mechanic-ar"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.2 }}
-              className="w-72 h-72 border-2 border-primary/40 relative rounded-3xl"
-            >
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-2xl -translate-x-1 -translate-y-1" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-2xl translate-x-1 -translate-y-1" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-2xl -translate-x-1 translate-y-1" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-2xl translate-x-1 translate-y-1" />
-
-              <div className="absolute inset-0 bg-primary/5 flex items-center justify-center">
-                <div className="w-full h-0.5 bg-primary/30 animate-scan" />
-              </div>
-
-              {/* Detected Parts Highlights */}
-              <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.8, type: "spring" }}
-                  className="absolute top-12 left-8 w-24 h-16 border border-orange-500/60 bg-orange-500/10 rounded shadow-[0_0_15px_rgba(249,115,22,0.2)]"
-                >
-                  <div className="absolute -top-5 left-0 bg-orange-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded uppercase whitespace-nowrap shadow-lg">
-                    Alternator [94% Match]
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.2, type: "spring" }}
-                  className="absolute bottom-16 right-10 w-28 h-20 border border-orange-500/60 bg-orange-500/10 rounded shadow-[0_0_15px_rgba(249,115,22,0.2)]"
-                >
-                  <div className="absolute -top-5 right-0 bg-orange-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded uppercase whitespace-nowrap shadow-lg">
-                    Fluid Reservoir [OK]
-                  </div>
-                </motion.div>
-              </div>
-
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-primary/20 backdrop-blur-md rounded-lg border border-primary/30 flex items-center gap-2 whitespace-nowrap">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                <span className="text-primary font-mono text-[10px] font-bold tracking-widest">
-                  PART RECOGNITION ACTIVE
-                </span>
-              </div>
-
-              <p className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-primary font-mono text-[10px] tracking-widest flex items-center gap-2 whitespace-nowrap">
-                <Sparkles className="w-3 h-3" /> ANALYZING VIN & BLOCK
-              </p>
-            </motion.div>
-          )}
-
-          {mode === "Estimator" && (
-            <motion.div
-              key="estimator-ar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full h-full relative"
-            >
-              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-primary/40 flex items-center justify-between px-10">
-                <div className="w-1.5 h-1.5 bg-primary rotate-45" />
-                <div className="bg-primary/20 backdrop-blur-md border border-primary/50 text-primary px-3 py-1 rounded text-[10px] font-mono">
-                  {Math.floor(Math.random() * 50 + 10)}'{" "}
-                  {Math.floor(Math.random() * 11)}" EXT
-                </div>
-                <div className="w-1.5 h-1.5 bg-primary rotate-45" />
-              </div>
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-primary/40 flex flex-col items-center justify-between py-24">
-                <div className="w-1.5 h-1.5 bg-primary rotate-45" />
-                <div className="bg-primary/20 backdrop-blur-md border border-primary/50 text-primary px-3 py-1 rounded text-[10px] font-mono rotate-90 origin-center">
-                  {Math.floor(Math.random() * 10 + 5)}'{" "}
-                  {Math.floor(Math.random() * 11)}" H
-                </div>
-                <div className="w-1.5 h-1.5 bg-primary rotate-45" />
-              </div>
-
-              {/* Scatter dots */}
-              <div className="absolute inset-0 opacity-40">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-1 h-1 bg-primary rounded-full animate-pulse"
-                    style={{
-                      top: `${20 + i * 10}%`,
-                      left: `${30 + ((i * 7) % 40)}%`,
-                    }}
-                  />
-                ))}
-              </div>
-
-              <div className="absolute bottom-40 left-10 flex flex-col gap-2">
-                <div className="bg-black/60 backdrop-blur-md border border-white/10 p-3 rounded-2xl flex flex-col gap-1">
-                  <span className="text-[9px] text-white/40 font-mono uppercase tracking-widest">
-                    Volume Estimate
-                  </span>
-                  <span className="text-primary font-display font-bold text-lg">
-                    {Math.floor(Math.random() * 200 + 50)} cu. ft
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {mode === "Electrical Eng." && (
-            <motion.div
-              key="electrical-ar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden font-mono"
-            >
-              {/* Blueprint Grid */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.15)_1px,transparent_1px)] bg-[size:5vw_5vw]" />
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.4)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.4)_1px,transparent_1px)] bg-[size:25vw_25vw]" />
-
-              {/* Center Crosshair */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 opacity-80">
-                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-blue-400" />
-                <div className="absolute left-0 right-0 top-1/2 h-px bg-blue-400" />
-                <div className="absolute top-1/2 left-1/2 w-4 h-4 border border-blue-400 rounded-full -translate-x-1/2 -translate-y-1/2" />
-              </div>
-
-              {/* Corner Brackets */}
-              <div className="absolute top-28 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-400 opacity-60" />
-              <div className="absolute top-28 right-8 w-16 h-16 border-t-2 border-r-2 border-blue-400 opacity-60" />
-              <div className="absolute bottom-40 left-8 w-16 h-16 border-b-2 border-l-2 border-blue-400 opacity-60" />
-              <div className="absolute bottom-40 right-8 w-16 h-16 border-b-2 border-r-2 border-blue-400 opacity-60" />
-
-              {/* Simulated Measurements */}
-              <div className="absolute top-[45%] left-10 bg-blue-900/60 text-blue-200 text-[10px] px-1.5 py-0.5 rounded border border-blue-400/40 backdrop-blur shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-                H: 8'4"
-              </div>
-              <div className="absolute top-[30%] right-[25%] bg-blue-900/60 text-blue-200 text-[10px] px-1.5 py-0.5 rounded border border-blue-400/40 backdrop-blur shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-                W: 12'6"
-              </div>
-              <div className="absolute bottom-48 right-10 flex flex-col items-end gap-1.5 border border-transparent">
-                <div className="bg-blue-900/80 text-blue-100 text-[9px] px-2 py-1 rounded border border-blue-400/50 backdrop-blur font-semibold">
-                  PITCH: 4/12
-                </div>
-                <div className="bg-blue-900/80 text-blue-100 text-[9px] px-2 py-1 rounded border border-blue-400/50 backdrop-blur flex items-center gap-1.5 font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_5px_#60a5fa]" />
-                  STRUCTURAL DETECTED
-                </div>
-              </div>
-
-              {/* Laser scan line overlay */}
-              <motion.div
-                className="absolute left-0 right-0 h-[1px] bg-blue-400 shadow-[0_0_20px_4px_rgba(59,130,246,0.6)] z-10"
-                animate={{ top: ["15%", "80%", "15%"] }}
-                transition={{ duration: 3.5, ease: "linear", repeat: Infinity }}
-              />
-
-              <div className="absolute top-44 left-1/2 -translate-x-1/2 text-center text-blue-100 text-[11px] tracking-[0.25em] font-bold bg-blue-950/70 px-4 py-1.5 rounded backdrop-blur-md border border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.4)] z-20 whitespace-nowrap">
-                BLUEPRINT MAPPING ACTIVE
-              </div>
-            </motion.div>
-          )}
-
-          {mode === "Performance Tuner" && (
-            <motion.div
-              key="tuner-ar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            >
-              <div className="absolute inset-0 bg-green-500/5 overflow-hidden">
-                <div className="absolute inset-0 opacity-20 font-mono text-[8px] text-green-500 leading-none break-all p-2">
-                  {Array.from({ length: 50 }).map((_, i) => (
-                    <div key={i} className="mb-1">
-                      {Math.random().toString(36).substring(2, 100)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="w-64 h-80 border border-green-500/30 rounded-lg relative overflow-hidden backdrop-blur-[1px]">
-                <div className="absolute top-0 inset-x-0 h-6 bg-green-500/20 flex items-center px-3 border-b border-green-500/30">
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-500/60" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/60" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500/60" />
-                  </div>
-                  <span className="text-[8px] text-green-500/80 font-mono ml-3">
-                    LOGIC_DEBUGGER.EXE
-                  </span>
-                </div>
-
-                <div className="p-4 font-mono text-[9px] text-green-400 flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <span className="text-green-600">[0.42ms]</span>
-                    <span>DECRYPTING HARDWARE...</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-green-600">[1.15ms]</span>
-                    <span className="bg-green-500/20 px-1 italic">
-                      IDENTIFYING COMPONENTS
-                    </span>
-                  </div>
-                  <div className="mt-4 flex flex-col gap-1">
-                    <div className="w-3/4 h-1 bg-green-500/20 rounded" />
-                    <div className="w-1/2 h-1 bg-green-500/20 rounded" />
-                    <div className="w-5/6 h-1 bg-green-500/20 rounded" />
-                  </div>
-
-                  <div className="mt-8 border border-green-500/40 p-2 rounded bg-black/40">
-                    <div className="text-green-500/60 mb-1">
-                      PROMPT_INJECTION_SCAN:
-                    </div>
-                    <div className="text-xs font-bold animate-pulse">
-                      CLEAN / NO THREATS
-                    </div>
-                  </div>
-                </div>
-
-                <motion.div
-                  className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-green-500/20 to-transparent"
-                  animate={{ opacity: [0.2, 0.4, 0.2] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {mode === "Operations" && (
-            <motion.div
-              key="operations-ar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            >
-              <div className="w-full h-full flex flex-col items-center justify-center p-12">
-                <div className="grid grid-cols-2 gap-4 w-full h-full opacity-30">
-                  <div className="border-t border-l border-white/20" />
-                  <div className="border-t border-r border-white/20" />
-                  <div className="border-b border-l border-white/20" />
-                  <div className="border-b border-r border-white/20" />
-                </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                  <div className="w-16 h-16 border border-white/30 rounded-full flex items-center justify-center">
-                    <div className="w-1 h-1 bg-white rounded-full" />
-                  </div>
-                  <p className="text-white/40 text-[9px] uppercase tracking-[0.4em] mt-4 font-bold">
-                    Center Focus
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="absolute bottom-0 inset-x-0 p-8 flex flex-col items-center gap-6 bg-gradient-to-t from-black/90 to-transparent z-10">
-        <p className="text-white/60 text-[10px] font-mono tracking-widest bg-black/40 px-4 py-1.5 rounded-full backdrop-blur-md border border-white/5 uppercase">
-          Current Tool: <span className="text-primary font-bold">{mode}</span>
-        </p>
-
-        <div className="flex items-center gap-10">
-          <button className="p-4 bg-white/10 text-white rounded-full backdrop-blur-md hover:bg-white/20 transition-all active:scale-90">
-            <ImageIcon className="w-6 h-6" />
-          </button>
-
-          <button
-            onClick={capturePhoto}
-            className="w-24 h-24 rounded-full border-4 border-white/30 p-1 bg-transparent flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl group"
-          >
-            <div className="w-full h-full bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.4)] group-hover:scale-95 transition-transform" />
-          </button>
-
-          <button className="p-4 bg-white/10 text-white rounded-full backdrop-blur-md hover:bg-white/20 transition-all active:scale-90">
-            <Sparkles className="w-6 h-6" />
-          </button>
-        </div>
-
-        <p className="text-white/30 text-[9px] uppercase tracking-widest mt-2">
-          Tap to analyze & capture
-        </p>
-      </div>
-    </div>
-  );
-};
 
 const ChatScreen = ({
   onBack,
@@ -1606,10 +1207,11 @@ const ChatScreen = ({
       className="flex flex-col h-full bg-[#050505] hardware-pattern relative overflow-hidden"
     >
       {showCamera && (
-        <CameraView
+        <CameraCapture
           onCapture={handleARCapture}
           onClose={() => setShowCamera(false)}
-          initialMode={mode}
+          title="AR Scanner"
+          assistantMode={mode}
         />
       )}
       {/* Tech Header */}
@@ -2754,13 +2356,24 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      if (Capacitor.isNativePlatform()) {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || ('standalone' in navigator && (navigator as any).standalone);
+      const isWebView = navigator.userAgent.includes('wv') || navigator.userAgent.includes('WebView');
+      const isCapacitor = Capacitor.isNativePlatform();
+
+      if (isCapacitor || isMobileDevice || isStandalone || isWebView) {
         await signInWithRedirect(auth, googleProvider);
       } else {
+        // Desktop browsers generally handle popups well
         await signInWithPopup(auth, googleProvider);
       }
     } catch (error: any) {
-      toast.show(`Login failed: ${error.message}`, "error");
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request' || error.message.includes('popup')) {
+        // Fallback to redirect if popup fails
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        toast.show(`Login failed: ${error.message}`, "error");
+      }
     }
   };
 
