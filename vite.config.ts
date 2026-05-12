@@ -17,11 +17,13 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        strategies: 'injectManifest',
-        srcDir: 'src',
-        filename: 'sw.js',
-        injectManifest: {
-          maximumFileSizeToCacheInBytes: 5000000 // 5 MB
+        devOptions: {
+          enabled: true,
+          type: 'module',
+        },
+        workbox: {
+          maximumFileSizeToCacheInBytes: 5000000,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,jpg,jpeg}']
         },
         manifest: {
           id: '/?source=pwa',
