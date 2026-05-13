@@ -1,22 +1,34 @@
 import React, { useState } from "react";
-import { ArrowLeft, Key, Bot, ShieldAlert, EyeOff, Eye } from "lucide-react";
+import { ArrowLeft, Key, Bot, ShieldAlert, EyeOff, Eye, Database, Car, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const SettingsScreen = ({
   apiKey,
   meliApiKey,
+  alldataKey,
+  obdKey,
+  openAiKey,
   onSave,
   onBack,
 }: {
   apiKey: string;
   meliApiKey: string;
-  onSave: (apiKey: string, meliApiKey: string) => void;
+  alldataKey: string;
+  obdKey: string;
+  openAiKey: string;
+  onSave: (api: string, meli: string, alldata: string, obd: string, openai: string) => void;
   onBack: () => void;
 }) => {
   const [geminiKey, setGeminiKey] = useState(apiKey);
   const [meliKey, setMeliKey] = useState(meliApiKey);
+  const [alldataK, setAlldataK] = useState(alldataKey);
+  const [obdK, setObdK] = useState(obdKey);
+  const [openaiKey, setOpenaiKey] = useState(openAiKey);
   const [showGemini, setShowGemini] = useState(false);
   const [showMeli, setShowMeli] = useState(false);
+  const [showAlldata, setShowAlldata] = useState(false);
+  const [showObd, setShowObd] = useState(false);
+  const [showOpenai, setShowOpenai] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = () => {
@@ -27,7 +39,7 @@ export const SettingsScreen = ({
       }
     }
     setError(null);
-    onSave(geminiKey, meliKey);
+    onSave(geminiKey, meliKey, alldataK, obdK, openaiKey);
   };
 
   return (
@@ -141,6 +153,96 @@ export const SettingsScreen = ({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-primary transition-colors p-2"
               >
                 {showMeli ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* AllData API Key */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-surface w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 shadow-lg">
+              <Database className="text-primary w-5 h-5 drop-shadow-[0_0_10px_rgba(245,166,35,0.5)]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">AllData API Key</h3>
+              <p className="text-xs text-text-secondary">Access to professional repair information.</p>
+            </div>
+          </div>
+          <div className="p-4 bg-surface/50 border border-border/50 rounded-xl shadow-inner">
+            <div className="relative group">
+              <input
+                type={showAlldata ? "text" : "password"}
+                value={alldataK}
+                onChange={(e) => setAlldataK(e.target.value)}
+                placeholder="AllData API Key"
+                className="w-full bg-surface/50 border border-border/50 rounded-xl py-4 pl-4 pr-12 text-sm text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
+              />
+              <button
+                onClick={() => setShowAlldata(!showAlldata)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-primary transition-colors p-2"
+              >
+                {showAlldata ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* OBDII API Key */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-surface w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 shadow-lg">
+              <Car className="text-primary w-5 h-5 drop-shadow-[0_0_10px_rgba(245,166,35,0.5)]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">OBDII API Key</h3>
+              <p className="text-xs text-text-secondary">Vehicle diagnostics and live data.</p>
+            </div>
+          </div>
+          <div className="p-4 bg-surface/50 border border-border/50 rounded-xl shadow-inner">
+            <div className="relative group">
+              <input
+                type={showObd ? "text" : "password"}
+                value={obdK}
+                onChange={(e) => setObdK(e.target.value)}
+                placeholder="OBDII API Key"
+                className="w-full bg-surface/50 border border-border/50 rounded-xl py-4 pl-4 pr-12 text-sm text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
+              />
+              <button
+                onClick={() => setShowObd(!showObd)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-primary transition-colors p-2"
+              >
+                {showObd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* OpenAI API Key */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-surface w-10 h-10 rounded-lg flex items-center justify-center border border-white/5 shadow-lg">
+              <Sparkles className="text-primary w-5 h-5 drop-shadow-[0_0_10px_rgba(245,166,35,0.5)]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">OpenAI API Key</h3>
+              <p className="text-xs text-text-secondary">GPT-4o and specialized AI models.</p>
+            </div>
+          </div>
+          <div className="p-4 bg-surface/50 border border-border/50 rounded-xl shadow-inner">
+            <div className="relative group">
+              <input
+                type={showOpenai ? "text" : "password"}
+                value={openaiKey}
+                onChange={(e) => setOpenaiKey(e.target.value)}
+                placeholder="OpenAI API Key"
+                className="w-full bg-surface/50 border border-border/50 rounded-xl py-4 pl-4 pr-12 text-sm text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
+              />
+              <button
+                onClick={() => setShowOpenai(!showOpenai)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-primary transition-colors p-2"
+              >
+                {showOpenai ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
