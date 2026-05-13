@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+gradle-8.13/
+*.gradle-*.zip
+android/gradle/wrapper/*.zip

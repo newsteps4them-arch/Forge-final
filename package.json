@@ -18,6 +18,7 @@
     "@capacitor/android": "^8.3.1",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
+    "@emotion/is-prop-valid": "^1.4.0",
     "@google/genai": "^1.51.0",
     "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.1.14",
