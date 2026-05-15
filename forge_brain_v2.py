@@ -22,6 +22,37 @@ def detect_project():
         print("✓ Detected: Node.js"); return "node"
     return "python"
 
+def heal_workflows():
+    """Auto-fix deprecated GitHub Actions"""
+    workflow_dir = Path(".github/workflows")
+    if not workflow_dir.exists():
+        return False
+    
+    fixes = [
+        ("upload-artifact@v3", "upload-artifact@v4"),
+        ("download-artifact@v3", "download-artifact@v4"),
+        ("checkout@v3", "checkout@v4"),
+        ("setup-python@v3", "setup-python@v4"),
+        ("cache@v3", "cache@v4"),
+        ("setup-node@v3", "setup-node@v4"),
+    ]
+    
+    changed = False
+    for workflow_file in workflow_dir.glob("*.yml"):
+        content = workflow_file.read_text()
+        original = content
+        
+        for old, new in fixes:
+            if old in content:
+                content = content.replace(old, new)
+                print(f"  🔧 Fixed: {old} → {new}")
+                changed = True
+        
+        if content != original:
+            workflow_file.write_text(content)
+    
+    return changed
+
 def run_tests(ptype):
     try:
         if ptype == "python":
@@ -52,6 +83,11 @@ def log_it(loop, error, resp):
 
 def main():
     print("\n🔧 Forge Guardian v2 Starting...\n")
+    
+    print("🔍 Scanning GitHub Actions workflows...")
+    if heal_workflows():
+        print("✅ Fixed deprecated GitHub Actions\n")
+    
     model = setup_gemini()
     ptype = detect_project()
     print()
