@@ -1,0 +1,43 @@
+name: Forge Autonomous Guardian v2
+on:
+  push:
+    branches: [main, develop, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto-heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - run: pip install google-generativeai requests --quiet
+      
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python forge_brain_v2.py
+      
+      - run: |
+          git config --global user.name "Forge Guardian"
+          git config --global user.email "guardian@forge.local"
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m "🔧 Forge: Auto-Healed via Gemini" --no-verify
+            git push origin HEAD
+          fi
+      
+      - if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: forge-healing-logs
+          path: FORGE_HEALING_LOG.md
+          retention-days: 30
