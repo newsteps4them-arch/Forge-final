@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mic, CheckCircle2, ChevronRight, Waves, Volume2 } from "lucide-react";
-import { toast } from "../lib/notifications";
+import { toast } from "../../lib/notifications";
 
 const PRESETS = [
   {

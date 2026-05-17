@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Terminal, Send, Save, Download } from "lucide-react";
-import { toast } from "../lib/notifications";
+import { toast } from "../../lib/notifications";
 
 export const TerminalScreen = ({
   onBack,

@@ -13,7 +13,7 @@ import {
   Key,
   Database,
 } from "lucide-react";
-import { toast } from "../lib/notifications";
+import { toast } from "../../lib/notifications";
 
 const BIDIRECTIONAL_TESTS = [
   { id: "0801", name: "Cooling Fan", sub: "High Speed", cmd: "08 01 01" },

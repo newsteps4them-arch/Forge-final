@@ -10,7 +10,7 @@ import {
   Database,
   Search,
 } from "lucide-react";
-import { toast } from "../lib/notifications";
+import { toast } from "../../lib/notifications";
 
 export const EstimatorScreen = ({
   onBack,

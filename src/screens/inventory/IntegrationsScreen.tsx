@@ -12,7 +12,7 @@ import {
   RefreshCw,
   BookOpen,
 } from "lucide-react";
-import { toast } from "../lib/notifications";
+import { toast } from "../../lib/notifications";
 
 const INTERGRATIONS = [
   {
