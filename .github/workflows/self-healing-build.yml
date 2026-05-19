@@ -1,0 +1,269 @@
+name: Self-Healing APK Build
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '22'
+  JAVA_VERSION: '21'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        id: install
+        run: npm install
+        continue-on-error: true
+
+      - name: Self-Heal Dependencies
+        if: steps.install.outcome != 'success'
+        run: |
+          echo "::warning::npm install failed, attempting self-heal..."
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
+          npm install --legacy-peer-deps
+          echo "HEALED_DEPS=true" >> $GITHUB_ENV
+
+      - name: Build Web App
+        id: web_build
+        run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_FIRESTORE_DATABASE_ID: ${{ secrets.VITE_FIREBASE_FIRESTORE_DATABASE_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        continue-on-error: true
+
+      - name: Capacitor Sync
+        if: steps.web_build.outcome == 'success'
+        id: cap_sync
+        run: npx cap sync android
+        continue-on-error: true
+
+      - name: Setup Gradle
+        if: steps.cap_sync.outcome == 'success'
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build APK (Attempt 1)
+        if: steps.cap_sync.outcome == 'success'
+        id: apk_build_1
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease 2>&1 | tee /tmp/build_log_1.txt
+        continue-on-error: true
+
+      - name: Self-Heal Build (Attempt 2)
+        if: steps.apk_build_1.outcome != 'success'
+        id: heal_attempt_2
+        run: |
+          echo "::warning::APK build failed, applying self-healing..."
+          # Clear Gradle caches
+          rm -rf ~/.gradle/caches ~/.gradle/daemon
+          rm -rf android/.gradle android/app/build
+          # Re-sync Capacitor
+          npx cap sync android
+          # Retry build
+          cd android
+          chmod +x gradlew
+          ./gradlew clean assembleRelease 2>&1 | tee /tmp/build_log_2.txt
+        continue-on-error: true
+
+      - name: AI-Powered Self-Heal (Attempt 3)
+        if: steps.apk_build_1.outcome != 'success' && steps.heal_attempt_2.outcome != 'success'
+        id: ai_heal
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "::warning::Conventional healing failed, invoking Gemini AI analysis..."
+          pip install google-genai --quiet
+
+          python3 << 'EOF'
+          import os
+          import json
+          from google import genai
+          from google.genai import types
+          from pathlib import Path
+
+          api_key = os.environ.get("GEMINI_API_KEY")
+          if not api_key:
+              print("No GEMINI_API_KEY, skipping AI heal")
+              exit(1)
+
+          client = genai.Client(api_key=api_key)
+
+          # Read build logs
+          log_content = ""
+          for log_file in ["/tmp/build_log_1.txt", "/tmp/build_log_2.txt"]:
+              if Path(log_file).exists():
+                  log_content += Path(log_file).read_text()[-3000:]
+
+          # Read key config files
+          build_gradle = ""
+          if Path("android/app/build.gradle").exists():
+              build_gradle = Path("android/app/build.gradle").read_text()
+
+          package_json = ""
+          if Path("package.json").exists():
+              package_json = Path("package.json").read_text()
+
+          prompt = f"""You are a CI/CD self-healing agent for an Android/Capacitor app.
+          The APK build has failed twice. Analyze the errors and provide fixes.
+
+          BUILD LOGS:
+          {log_content}
+
+          android/app/build.gradle:
+          {build_gradle}
+
+          package.json:
+          {package_json}
+
+          Respond with a JSON object containing:
+          1. "diagnosis": brief explanation of the root cause
+          2. "fixes": array of objects with "file", "find", "replace" for each fix
+          3. "commands": array of shell commands to run before retrying
+          4. "confidence": 0-100 how confident you are this will fix it
+
+          ONLY output valid JSON, no markdown."""
+
+          try:
+              response = client.models.generate_content(
+                  model="gemini-2.5-flash",
+                  contents=prompt,
+                  config=types.GenerateContentConfig(
+                      response_mime_type="application/json"
+                  )
+              )
+
+              result = json.loads(response.text)
+              print(f"Diagnosis: {result.get('diagnosis', 'Unknown')}")
+              print(f"Confidence: {result.get('confidence', 0)}%")
+
+              # Apply file fixes
+              for fix in result.get("fixes", []):
+                  filepath = fix.get("file", "")
+                  if Path(filepath).exists():
+                      content = Path(filepath).read_text()
+                      find_str = fix.get("find", "")
+                      replace_str = fix.get("replace", "")
+                      if find_str and find_str in content:
+                          content = content.replace(find_str, replace_str)
+                          Path(filepath).write_text(content)
+                          print(f"  Fixed: {filepath}")
+
+              # Run suggested commands
+              for cmd in result.get("commands", [])[:5]:
+                  if not any(dangerous in cmd for dangerous in ["rm -rf /", "sudo", "curl |", "wget |"]):
+                      print(f"  Running: {cmd}")
+                      os.system(cmd)
+
+              # Save diagnosis for issue creation
+              Path("/tmp/ai_diagnosis.json").write_text(json.dumps(result, indent=2))
+
+          except Exception as e:
+              print(f"AI healing failed: {e}")
+              exit(1)
+          EOF
+
+          # Retry build after AI fixes
+          cd android
+          chmod +x gradlew
+          ./gradlew clean assembleRelease 2>&1 | tee /tmp/build_log_3.txt
+        continue-on-error: true
+
+      - name: Determine Final Build Status
+        id: final_status
+        run: |
+          APK_PATH="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_PATH2="android/app/build/outputs/apk/release/app-release.apk"
+          if [ -f "$APK_PATH" ] || [ -f "$APK_PATH2" ]; then
+            echo "build_success=true" >> $GITHUB_OUTPUT
+            echo "✅ APK build successful!"
+          else
+            echo "build_success=false" >> $GITHUB_OUTPUT
+            echo "❌ All build attempts failed"
+          fi
+
+      - name: Commit AI Fixes (if any)
+        if: steps.ai_heal.outcome == 'success' && steps.final_status.outputs.build_success == 'true'
+        run: |
+          git config --global user.name "Forge Self-Healer"
+          git config --global user.email "forge-healer@team.forge"
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m "🔧 Auto-heal: AI-applied fix for build failure
+
+            Applied by Gemini AI analysis after build failure.
+            See workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            git push origin HEAD
+          fi
+
+      - name: Create Failure Issue
+        if: steps.final_status.outputs.build_success == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let diagnosis = "AI analysis unavailable";
+            try {
+              const data = fs.readFileSync('/tmp/ai_diagnosis.json', 'utf8');
+              const parsed = JSON.parse(data);
+              diagnosis = parsed.diagnosis || diagnosis;
+            } catch(e) {}
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 APK Build Failed - Self-Healing Exhausted [${new Date().toISOString().split('T')[0]}]`,
+              body: `## Build Failure Report\n\n**Branch:** ${context.ref}\n**Commit:** ${context.sha}\n**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n### AI Diagnosis\n${diagnosis}\n\n### Recovery Attempts\n1. ❌ Standard build failed\n2. ❌ Cache clear + clean build failed\n3. ❌ AI-powered fix attempt failed\n\n### Next Steps\n- Review the [workflow logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n- Check recent commits for breaking changes\n- Manual intervention required\n\n---\n*Auto-generated by Forge Self-Healing CI/CD*`,
+              labels: ['bug', 'ci-failure', 'needs-attention']
+            });
+
+      - name: Upload APK
+        if: steps.final_status.outputs.build_success == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-forge-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: /tmp/build_log_*.txt
+          retention-days: 7

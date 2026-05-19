@@ -1,0 +1,95 @@
+name: Forge Guardian v3 - Autonomous Self-Healer
+
+on:
+  push:
+    branches: [main, develop, master]
+  workflow_run:
+    workflows: ["Self-Healing APK Build"]
+    types: [completed]
+    branches: [main, develop, master]
+  workflow_dispatch:
+  schedule:
+    # Run daily at 6 AM UTC to proactively check health
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  guardian-heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Run if triggered manually, on push, on schedule, or if the build workflow failed
+    if: |
+      github.event_name != 'workflow_run' || 
+      github.event.workflow_run.conclusion == 'failure'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Install Python Dependencies
+        run: pip install google-genai --quiet
+
+      - name: Run Forge Brain v3
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_FIRESTORE_DATABASE_ID: ${{ secrets.VITE_FIREBASE_FIRESTORE_DATABASE_ID }}
+        run: python forge_brain_v3.py
+        continue-on-error: true
+
+      - name: Commit Healing Changes
+        run: |
+          git config --global user.name "Forge Guardian"
+          git config --global user.email "guardian@forge.local"
+          if ! git diff --quiet; then
+            git add -A
+            CHANGES=$(git diff --cached --stat | tail -1)
+            git commit -m "🧠 Forge Brain v3: Auto-healed
+
+            $CHANGES
+            
+            Triggered by: ${{ github.event_name }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --no-verify
+            git push origin HEAD
+            echo "CHANGES_PUSHED=true" >> $GITHUB_ENV
+          else
+            echo "No changes to commit"
+            echo "CHANGES_PUSHED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Upload Healing Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-healing-logs
+          path: |
+            FORGE_HEALING_LOG.md
+            .gemini-sync/healing_knowledge.json
+          retention-days: 30
