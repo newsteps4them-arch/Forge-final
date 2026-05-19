@@ -106,9 +106,10 @@ jobs:
         id: ai_heal
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          echo "::warning::Conventional healing failed, invoking Gemini AI analysis..."
-          pip install google-genai --quiet
+          echo "::warning::Conventional healing failed, invoking dual AI analysis (Gemini + Claude)..."
+          pip install google-genai anthropic --quiet
 
           python3 << 'EOF'
           import os
