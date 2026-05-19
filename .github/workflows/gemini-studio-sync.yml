@@ -1,0 +1,223 @@
+name: Gemini AI Studio Sync
+
+on:
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Force full sync regardless of changes'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  SYNC_MANIFEST: '.gemini-sync/manifest.json'
+  SYNC_LOG: '.gemini-sync/sync.log'
+
+jobs:
+  sync-to-gemini:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install google-genai --quiet
+
+      - name: Detect Changes & Sync
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FORCE_SYNC: ${{ github.event.inputs.force_sync || 'false' }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          import hashlib
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from google import genai
+          from google.genai import types
+
+          SYNC_DIR = Path(".gemini-sync")
+          SYNC_DIR.mkdir(exist_ok=True)
+          MANIFEST_FILE = SYNC_DIR / "manifest.json"
+          SYNC_LOG = SYNC_DIR / "sync.log"
+
+          # File patterns to sync
+          INCLUDE_PATTERNS = [
+              "src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx",
+              "app/**/*.ts", "app/**/*.tsx",
+              "*.json", "*.ts", "*.md",
+              ".github/workflows/*.yml",
+              "android/app/build.gradle",
+              "scripts/*.sh",
+              "firestore.rules"
+          ]
+
+          EXCLUDE_PATTERNS = [
+              "node_modules/**", ".git/**", "*.lock",
+              "grep_out.txt", ".gemini-sync/**"
+          ]
+
+          def log(msg):
+              timestamp = datetime.now(timezone.utc).isoformat()
+              entry = f"[{timestamp}] {msg}"
+              print(entry)
+              with open(SYNC_LOG, "a") as f:
+                  f.write(entry + "\n")
+
+          def get_file_hash(filepath):
+              return hashlib.sha256(Path(filepath).read_bytes()).hexdigest()[:16]
+
+          def get_tracked_files():
+              """Get all git-tracked files matching our patterns"""
+              result = subprocess.run(
+                  ["git", "ls-files"],
+                  capture_output=True, text=True
+              )
+              all_files = result.stdout.strip().split("\n")
+
+              # Filter by include/exclude
+              synced = []
+              for f in all_files:
+                  if any(excl.replace("**", "") in f for excl in EXCLUDE_PATTERNS):
+                      continue
+                  # Include source code, configs, workflows
+                  ext = Path(f).suffix
+                  if ext in ['.ts', '.tsx', '.js', '.jsx', '.json', '.yml', '.yaml',
+                             '.md', '.sh', '.gradle', '.rules', '.html', '.css']:
+                      synced.append(f)
+              return synced
+
+          def load_manifest():
+              if MANIFEST_FILE.exists():
+                  return json.loads(MANIFEST_FILE.read_text())
+              return {"last_sync": None, "files": {}, "sync_count": 0}
+
+          def save_manifest(manifest):
+              MANIFEST_FILE.write_text(json.dumps(manifest, indent=2))
+
+          def get_changed_files(manifest):
+              """Detect which files changed since last sync"""
+              tracked = get_tracked_files()
+              changed = []
+              for f in tracked:
+                  if not Path(f).exists():
+                      continue
+                  current_hash = get_file_hash(f)
+                  if manifest["files"].get(f) != current_hash:
+                      changed.append(f)
+              return changed, tracked
+
+          def sync_to_gemini(changed_files, all_files):
+              """Send changed files context to Gemini for AI Studio awareness"""
+              api_key = os.environ.get("GEMINI_API_KEY")
+              if not api_key:
+                  log("ERROR: No GEMINI_API_KEY set")
+                  return False
+
+              client = genai.Client(api_key=api_key)
+
+              # Build a summary of changes for Gemini context
+              changes_summary = []
+              total_content = ""
+              for f in changed_files[:20]:  # Limit to 20 files per sync
+                  if Path(f).exists():
+                      content = Path(f).read_text(errors='ignore')[:5000]
+                      changes_summary.append({"file": f, "content_preview": content[:500]})
+                      total_content += f"\n--- {f} ---\n{content}\n"
+
+              # Send to Gemini for analysis and context building
+              prompt = f"""You are the AI brain for Team Forge, an automotive tech app.
+              The following files were just updated in the repository.
+              Analyze them and provide:
+              1. A brief summary of what changed
+              2. Any potential issues or improvements you notice
+              3. Whether these changes might affect the APK build
+
+              Changed files ({len(changed_files)} total):
+              {json.dumps([f for f in changed_files[:20]], indent=2)}
+
+              File contents:
+              {total_content[:15000]}
+
+              Respond with JSON: {{"summary": "...", "issues": [...], "build_impact": "none|low|high", "suggestions": [...]}}"""
+
+              try:
+                  response = client.models.generate_content(
+                      model="gemini-2.5-flash",
+                      contents=prompt,
+                      config=types.GenerateContentConfig(
+                          response_mime_type="application/json"
+                      )
+                  )
+
+                  analysis = json.loads(response.text)
+                  log(f"Gemini Analysis: {analysis.get('summary', 'No summary')}")
+                  log(f"Build Impact: {analysis.get('build_impact', 'unknown')}")
+
+                  # Save analysis
+                  analysis_file = SYNC_DIR / "last_analysis.json"
+                  analysis_file.write_text(json.dumps(analysis, indent=2))
+
+                  return True
+              except Exception as e:
+                  log(f"ERROR: Gemini sync failed: {e}")
+                  return False
+
+          # Main sync logic
+          log("Starting Gemini AI Studio sync...")
+          manifest = load_manifest()
+          force = os.environ.get("FORCE_SYNC", "false") == "true"
+
+          changed_files, all_files = get_changed_files(manifest)
+
+          if not changed_files and not force:
+              log("No changes detected since last sync. Skipping.")
+          else:
+              if force:
+                  log(f"Force sync: processing all {len(all_files)} tracked files")
+                  changed_files = all_files
+
+              log(f"Syncing {len(changed_files)} changed files to Gemini AI Studio...")
+              success = sync_to_gemini(changed_files, all_files)
+
+              if success:
+                  # Update manifest with current hashes
+                  for f in all_files:
+                      if Path(f).exists():
+                          manifest["files"][f] = get_file_hash(f)
+                  manifest["last_sync"] = datetime.now(timezone.utc).isoformat()
+                  manifest["sync_count"] = manifest.get("sync_count", 0) + 1
+                  save_manifest(manifest)
+                  log(f"Sync #{manifest['sync_count']} completed successfully")
+              else:
+                  log("Sync failed - will retry on next push")
+
+          EOF
+
+      - name: Commit Sync Manifest
+        run: |
+          git config --global user.name "Forge Sync Bot"
+          git config --global user.email "sync@team.forge"
+          git add .gemini-sync/ || true
+          if ! git diff --cached --quiet; then
+            git commit -m "🔄 Sync: Update Gemini AI Studio manifest
+
+            Automated sync of project state to Gemini AI Studio.
+            Run: ${{ github.run_id }}"
+            git push origin HEAD
+          fi
