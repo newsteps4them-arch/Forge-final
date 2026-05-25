@@ -30,7 +30,7 @@ export const VoiceCloneScreen = ({
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number | ReturnType<typeof setTimeout>;
     if (isRecording) {
       interval = setInterval(() => {
         setProgress((p) => {

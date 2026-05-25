@@ -10,7 +10,13 @@ import {
 } from "lucide-react";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
-export const TopStatusBar = ({ onSettingsClick }: { onSettingsClick?: () => void }) => {
+export const TopStatusBar = ({ 
+  onSettingsClick,
+  onMenuClick 
+}: { 
+  onSettingsClick?: () => void;
+  onMenuClick?: () => void;
+}) => {
   const [time, setTime] = useState("");
   const [ping, setPing] = useState(24);
   const { isInstallable, installPWA } = usePWAInstall();
@@ -45,6 +51,18 @@ export const TopStatusBar = ({ onSettingsClick }: { onSettingsClick?: () => void
   return (
     <div className="flex items-center justify-between px-4 py-1.5 bg-[#0A0A0A] border-b border-white/5 text-[10px] font-mono tracking-widest text-text-dim z-50 relative selection:bg-transparent cursor-default">
       <div className="flex items-center gap-4">
+        {onMenuClick && (
+          <button 
+            onClick={onMenuClick}
+            className="flex items-center justify-center p-1.5 -ml-2 rounded text-text-dim hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <div className="w-5 h-4 flex flex-col justify-between items-center">
+              <div className="w-full h-0.5 bg-current rounded" />
+              <div className="w-full h-0.5 bg-current rounded" />
+              <div className="w-full h-0.5 bg-current rounded" />
+            </div>
+          </button>
+        )}
         <span className="text-primary font-bold">
           FORGE_OS <span className="text-white/30 text-[8px]">v1.4.2</span>
         </span>

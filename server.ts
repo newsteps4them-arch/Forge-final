@@ -2,13 +2,9 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -27,7 +23,11 @@ async function startServer() {
     try {
       const { message, image, history, systemInstruction, customApiKey } = req.body;
       
-      const apiKey = customApiKey || process.env.GEMINI_API_KEY;
+      let apiKey = customApiKey;
+      if (!apiKey || apiKey === "AIzaSy_SYSTEM_DEFAULT") {
+        apiKey = process.env.GEMINI_API_KEY;
+      }
+      
       if (!apiKey) {
         return res.status(400).json({ error: "Gemini API Key is missing. Provide it in the API Keys screen or set GEMINI_API_KEY in the environment." });
       }
@@ -92,7 +92,7 @@ async function startServer() {
     // Serve static files in production
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

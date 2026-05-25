@@ -11,68 +11,174 @@ import {
   Network,
   Database,
   Terminal,
+  Car,
+  FileText,
+  ShoppingCart,
+  Users,
+  Camera,
+  Clock,
+  Target
 } from "lucide-react";
 
 const INDEX_ITEMS = [
+  // --- Service & Repairs ---
   {
-    icon: MessageSquare,
-    title: "Expert Network (AI)",
-    desc: "Consult specialized AI agents (Diagnostics Lead, Performance Tuner, Electrical Engineer, Estimator) for specific tasks. Ask for diagnostic paths, wiring pinouts, or labor calculations.",
-    color: "text-primary",
-    bg: "bg-primary/10",
-  },
-  {
+    category: "Service & Repairs",
     icon: Terminal,
-    title: "Diagnostic Log",
-    desc: "Perform quick or deep module scans using your connected OBD interface. View DTCs, simulate freeze frame data, and clear emission monitors.",
+    title: "Diagnostics & Scans",
+    team: "Team Diagnostics",
+    desc: "Perform quick or deep vehicle scans. View error codes and clear emission monitors.",
     color: "text-red-500",
     bg: "bg-red-500/10",
+    target: "Diagnostics"
   },
   {
+    category: "Service & Repairs",
     icon: Activity,
-    title: "Tuner Hub (Live Data)",
-    desc: "Monitor live telemetry like engine RPM, boost pressure, and coolant temp. The ECU Maps tab allows for simulated 3D volumetric efficiency mapping.",
+    title: "Live Vehicle Data",
+    team: "Team Powertrain",
+    desc: "Monitor live engine data like RPM, boost pressure, and temperatures in real-time.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
+    target: "LiveData"
   },
   {
+    category: "Service & Repairs",
     icon: Hexagon,
-    title: "Service & Coding",
-    desc: "Perform maintenance resets (Oil, DPF, BMS) or modify As-Built hexadecimal module configurations (e.g., enabling window roll-down via keyfob).",
+    title: "Maintenance & Resets",
+    team: "Team Systems",
+    desc: "Perform routine resets (e.g., Oil, Battery) and customize vehicle module settings.",
     color: "text-purple-500",
     bg: "bg-purple-500/10",
+    target: "Coding"
   },
   {
+    category: "Service & Repairs",
+    icon: Target,
+    title: "Sensor Calibration",
+    team: "Team Chassis",
+    desc: "Run calibration routines for safety features like lane departure and blind-spot sensors.",
+    color: "text-cyan-500",
+    bg: "bg-cyan-500/10",
+    target: "AdasCalibration"
+  },
+  {
+    category: "Service & Repairs",
     icon: Network,
     title: "Network Topology",
-    desc: "Visualize your vehicle's CAN-Bus networks (HS-CAN, MS-CAN). Ping individual modules to check health and see which modules are reporting DTCs.",
+    team: "Team Electrical",
+    desc: "Visualize your vehicle's computer networks and see which modules are talking.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
+    target: "Topology"
   },
+  // --- Shop Management ---
   {
+    category: "Shop Management",
     icon: Calculator,
-    title: "Service Estimator",
-    desc: "Draft repair orders. Add parts and labor lines, calculate totals, and send professional PDFs directly to your clients.",
+    title: "Estimates & Invoices",
+    team: "Team Operations",
+    desc: "Draft repair orders, calculate labor totals, and send professional estimates to clients.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
+    target: "Estimator"
   },
   {
+    category: "Shop Management",
+    icon: Camera,
+    title: "Digital Inspections",
+    team: "Team Service",
+    desc: "Perform multi-point inspections with photo and video uploads to share with clients.",
+    color: "text-cyan-500",
+    bg: "bg-cyan-500/10",
+    target: "DviModule"
+  },
+  {
+    category: "Shop Management",
+    icon: Clock,
+    title: "Time Clock & Labor",
+    team: "Team HR / Ops",
+    desc: "Clock in on jobs, track mechanic efficiency, and log your daily hours.",
+    color: "text-fuchsia-500",
+    bg: "bg-fuchsia-500/10",
+    target: "TimeClock"
+  },
+  {
+    category: "Shop Management",
+    icon: Users,
+    title: "Client Management",
+    team: "Team CX",
+    desc: "Manage customer approvals, send automated SMS reminders, and track shop revenue.",
+    color: "text-indigo-500",
+    bg: "bg-indigo-500/10",
+    target: "CrmDashboard"
+  },
+  {
+    category: "Shop Management",
+    icon: ShoppingCart,
+    title: "Parts Catalog",
+    team: "Team Inventory",
+    desc: "Order OEM and aftermarket parts directly from your integrated suppliers.",
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    target: "PartsCatalog"
+  },
+  // --- Research & Tools ---
+  {
+    category: "Research & Tools",
+    icon: MessageSquare,
+    title: "Ask AI Assistants",
+    team: "Team Intelligence",
+    desc: "Chat with specialized AI for help with diagnostic paths, wiring, or labor calculations.",
+    color: "text-primary",
+    bg: "bg-primary/10",
+    target: "Chat"
+  },
+  {
+    category: "Research & Tools",
+    icon: FileText,
+    title: "Repair Manuals",
+    team: "Team Research",
+    desc: "Search Service Bulletins (TSBs), recalls, and step-by-step manufacturer procedures.",
+    color: "text-yellow-500",
+    bg: "bg-yellow-500/10",
+    target: "KnowledgeBase"
+  },
+  {
+    category: "Research & Tools",
+    icon: Car,
+    title: "Garage & Vehicles",
+    team: "Team Operations",
+    desc: "Manage client vehicles, view service histories, and set the active target vehicle.",
+    color: "text-pink-500",
+    bg: "bg-pink-500/10",
+    target: "Garage"
+  },
+  {
+    category: "Research & Tools",
     icon: Database,
-    title: "3rd Party APIs",
-    desc: "Link external platform accounts (like Snap-on Connect or FORScan) to pull in autonomous data logs and repair databases.",
+    title: "Connect Services",
+    team: "Team Infrastructure",
+    desc: "Link external tool accounts to sync your repair data and logs automatically.",
     color: "text-teal-500",
     bg: "bg-teal-500/10",
+    target: "Integrations"
   },
   {
+    category: "Research & Tools",
     icon: Wrench,
-    title: "Toolbox (Inventory)",
-    desc: "Keep track of your physical tools. The AI incorporates your available tools into its repair strategies.",
+    title: "Equipment Inventory",
+    team: "Team Inventory",
+    desc: "Keep track of physical shop tools and your diagnostic equipment.",
     color: "text-gray-400",
     bg: "bg-gray-400/10",
+    target: "Inventory"
   },
 ];
 
-export const IndexScreen = ({ onBack }: { onBack: () => void }) => {
+const CATEGORIES = ["Service & Repairs", "Shop Management", "Research & Tools"];
+
+export const IndexScreen = ({ onBack, onNavigate }: { onBack: () => void, onNavigate: (screen: string) => void }) => {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -90,38 +196,53 @@ export const IndexScreen = ({ onBack }: { onBack: () => void }) => {
         <div className="flex items-center gap-2 text-primary">
           <BookOpen className="w-5 h-5" />
           <h2 className="text-xl font-black uppercase tracking-widest">
-            Operator's Manual
+            Module Directory
           </h2>
         </div>
       </div>
 
       <div className="px-6 mb-6">
         <p className="text-xs text-white/50 leading-relaxed font-mono">
-          Welcome to the Engineering Hub. This suite is designed for advanced
-          automotive diagnostics and operations. Review the sections below to
-          understand the capabilities at your disposal.
+          Easily access all your shop tools below, grouped by category for your convenience.
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 space-y-4 no-scrollbar pb-10">
-        {INDEX_ITEMS.map((item) => (
-          <div
-            key={item.title}
-            className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-primary/30 transition-colors"
-          >
-            <div className="flex items-center gap-4 mb-3">
-              <div
-                className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color}`}
-              >
-                <item.icon className="w-5 h-5" />
-              </div>
-              <h3 className="text-[13px] font-black text-white tracking-widest uppercase">
-                {item.title}
-              </h3>
+      <div className="flex-1 overflow-y-auto px-6 space-y-8 no-scrollbar pb-10">
+        {CATEGORIES.map((category) => (
+          <div key={category} className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-primary border-b border-white/10 pb-2 mb-4">
+              {category}
+            </h3>
+            <div className="space-y-4">
+              {INDEX_ITEMS.filter(item => item.category === category).map((item) => (
+                <div
+                  key={item.title}
+                  onClick={() => onNavigate(item.target)}
+                  className="cursor-pointer bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-primary/30 hover:bg-white/10 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color}`}
+                      >
+                        <item.icon className="w-5 h-5" />
+                      </div>
+                      <h3 className="text-[13px] font-black text-white tracking-widest uppercase">
+                        {item.title}
+                      </h3>
+                    </div>
+                    {item.team && (
+                       <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 bg-black/50 text-white/40 border border-white/5 rounded-md font-mono hidden sm:inline-block">
+                         {item.team}
+                       </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-white/60 leading-relaxed pl-14">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
             </div>
-            <p className="text-[11px] text-white/60 leading-relaxed pl-14">
-              {item.desc}
-            </p>
           </div>
         ))}
 

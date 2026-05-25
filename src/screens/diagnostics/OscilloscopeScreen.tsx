@@ -30,7 +30,7 @@ export const OscilloscopeScreen = ({
   const [isRunning, setIsRunning] = useState(true);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number | ReturnType<typeof setTimeout>;
     if (isRunning) {
       let t = 0;
       interval = setInterval(() => {

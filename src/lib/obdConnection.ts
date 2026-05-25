@@ -50,7 +50,7 @@ export class WebBluetoothObd implements ObdConnection {
       const characteristics = await service.getCharacteristics();
       
       // FFE1 is common for HM-10 RX/TX
-      const rxTxCharacteristic = characteristics.find(c => c.uuid.includes('ffe1')) || characteristics[0];
+      const rxTxCharacteristic = characteristics.find((c: any) => c.uuid.includes('ffe1')) || characteristics[0];
 
       if (rxTxCharacteristic.properties.notify || rxTxCharacteristic.properties.indicate) {
         this.rxCharacteristic = rxTxCharacteristic;
@@ -73,8 +73,8 @@ export class WebBluetoothObd implements ObdConnection {
         });
       } else {
          // Separate RX and TX
-         this.txCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse) || null;
-         this.rxCharacteristic = characteristics.find(c => c.properties.notify) || null;
+         this.txCharacteristic = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse) || null;
+         this.rxCharacteristic = characteristics.find((c: any) => c.properties.notify) || null;
          if (this.rxCharacteristic) {
            await this.rxCharacteristic.startNotifications();
            this.rxCharacteristic.addEventListener('characteristicvaluechanged', (event: any) => {

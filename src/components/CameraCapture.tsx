@@ -51,7 +51,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   }, [facingMode, stopCamera]);
 
   useEffect(() => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'undefined') {
       startCamera();
     } else {
       setHasCamera(false);

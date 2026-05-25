@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Gauge, Activity, Zap } from "lucide-react";
+import { ArrowLeft, Gauge, Activity, Zap, Search, Filter, CheckCircle } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -66,6 +66,20 @@ const CircularGauge = ({
   );
 };
 
+const AVAILABLE_PIDS = [
+  { id: "RPM", name: "Engine RPM", group: "General", unit: "RPM", icon: Activity },
+  { id: "ECT", name: "Coolant Temp", group: "Cooling", unit: "°F", icon: Zap },
+  { id: "MAP", name: "Manifold Pressure", group: "Air", unit: "psi", icon: Gauge },
+  { id: "VSS", name: "Vehicle Speed", group: "General", unit: "mph", icon: Activity },
+  { id: "SPARK", name: "Spark Advance", group: "Spark", unit: "°", icon: Zap },
+  { id: "STFT1", name: "Short Term Fuel Trim", group: "Fuel", unit: "%", icon: Activity },
+  { id: "LTFT1", name: "Long Term Fuel Trim", group: "Fuel", unit: "%", icon: Activity },
+  { id: "MAF", name: "Mass Air Flow", group: "Air", unit: "g/s", icon: Gauge },
+  { id: "IAT", name: "Intake Air Temp", group: "Air", unit: "°F", icon: Zap },
+  { id: "TP", name: "Throttle Pos", group: "Air", unit: "%", icon: Gauge },
+  { id: "O2S", name: "O2 Sensor Voltage", group: "Fuel", unit: "V", icon: Zap },
+];
+
 export const LiveDataScreen = ({
   onBack,
   telemetry = [],
@@ -74,6 +88,9 @@ export const LiveDataScreen = ({
   telemetry?: any[];
 }) => {
   const [localData, setLocalData] = useState<any[]>(telemetry);
+  const [selectedChartPid, setSelectedChartPid] = useState<string>("RPM");
+  const [searchPid, setSearchPid] = useState("");
+  const [filterGroup, setFilterGroup] = useState("All");
 
   // Simulate live data if no real telemetry is provided via props
   useEffect(() => {
@@ -81,14 +98,17 @@ export const LiveDataScreen = ({
     if (telemetry.length === 0) {
       interval = setInterval(() => {
         setLocalData((prev) => {
-          const lastRpm = prev.length ? prev[prev.length - 1].RPM : 800;
-          const newRpm = Math.max(
-            700,
-            Math.min(6500, lastRpm + (Math.random() - 0.5) * 500),
+          const lastVal = prev.length ? (prev[prev.length - 1][selectedChartPid] || (selectedChartPid === "RPM" ? 800 : 50)) : (selectedChartPid === "RPM" ? 800 : 50);
+          const newVal = Math.max(
+            0,
+            lastVal + (Math.random() - 0.5) * (selectedChartPid === "RPM" ? 500 : 5),
           );
           const newData = {
             time: new Date().toLocaleTimeString(),
-            RPM: Math.round(newRpm),
+            [selectedChartPid]: Math.round(newVal * 10) / 10,
+            RPM: selectedChartPid !== "RPM" 
+              ? Math.max(700, prev.length ? prev[prev.length - 1].RPM + (Math.random() - 0.5) * 500 : 800)
+              : Math.round(newVal),
           };
           return [...prev.slice(-40), newData];
         });
@@ -97,10 +117,21 @@ export const LiveDataScreen = ({
       setLocalData(telemetry);
     }
     return () => clearInterval(interval);
-  }, [telemetry]);
+  }, [telemetry, selectedChartPid]);
 
   const currentRpm =
-    localData.length > 0 ? localData[localData.length - 1].RPM : 0;
+    localData.length > 0 ? localData[localData.length - 1].RPM || 0 : 0;
+  const currentChartVal = 
+    localData.length > 0 ? localData[localData.length - 1][selectedChartPid] || 0 : 0;
+    
+  const activePidDef = AVAILABLE_PIDS.find(p => p.id === selectedChartPid) || AVAILABLE_PIDS[0];
+
+  const filteredPids = AVAILABLE_PIDS.filter(pid => {
+    const matchesSearch = pid.name.toLowerCase().includes(searchPid.toLowerCase()) || pid.id.toLowerCase().includes(searchPid.toLowerCase());
+    const matchesGroup = filterGroup === "All" || pid.group === filterGroup;
+    return matchesSearch && matchesGroup;
+  });
+
   const [tab, setTab] = useState<"dashboard" | "maps">("dashboard");
 
   return (
@@ -119,9 +150,12 @@ export const LiveDataScreen = ({
         </button>
         <div className="flex items-center gap-2 text-primary">
           <Activity className="w-5 h-5" />
-          <h2 className="text-xl font-black uppercase tracking-widest">
-            Tuner Hub
-          </h2>
+          <div>
+             <h2 className="text-xl font-black uppercase tracking-widest leading-none">
+               Tuner Hub
+             </h2>
+             <span className="text-[9px] uppercase tracking-widest text-primary/70 font-mono">Team Powertrain</span>
+          </div>
         </div>
       </div>
 
@@ -160,7 +194,7 @@ export const LiveDataScreen = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "Coolant", value: "185", unit: "°F", icon: Zap },
                 { label: "Boost", value: "14.2", unit: "psi", icon: Gauge },
@@ -169,7 +203,7 @@ export const LiveDataScreen = ({
               ].map((metric) => (
                 <div
                   key={metric.label}
-                  className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-2"
+                  className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 hover:bg-white/10 transition-colors cursor-default"
                 >
                   <div className="flex items-center justify-between text-white/50">
                     <span className="text-[10px] font-bold uppercase tracking-widest">
@@ -190,7 +224,7 @@ export const LiveDataScreen = ({
             <div className="h-64 bg-white/5 border border-white/10 rounded-3xl p-4 overflow-hidden relative">
               <div className="flex items-center justify-between mb-4 px-2">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                  RPM Log
+                  {activePidDef.name} Log
                 </h3>
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -201,7 +235,7 @@ export const LiveDataScreen = ({
               </div>
               <ResponsiveContainer width="100%" height="90%">
                 <AreaChart
-                  data={localData.length ? localData : [{ time: "0", RPM: 0 }]}
+                  data={localData.length ? localData : [{ time: "0", [selectedChartPid]: 0 }]}
                 >
                   <defs>
                     <linearGradient id="colorRPM" x1="0" y1="0" x2="0" y2="1">
@@ -223,7 +257,7 @@ export const LiveDataScreen = ({
                   />
                   <Area
                     type="monotone"
-                    dataKey="RPM"
+                    dataKey={selectedChartPid}
                     stroke="#F5A623"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -232,6 +266,75 @@ export const LiveDataScreen = ({
                   />
                 </AreaChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* PID Selection List */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-4 relative flex flex-col">
+              <div className="flex flex-col gap-3 mb-4">
+                <h3 className="text-xs font-black uppercase tracking-widest text-white/70 px-2">Data Stream Selection</h3>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={searchPid}
+                      onChange={(e) => setSearchPid(e.target.value)}
+                      placeholder="Search PIDs (e.g. RPM, Fuel)..."
+                      className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50 transition-colors"
+                    />
+                    <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+                  </div>
+                  <select 
+                    value={filterGroup} 
+                    onChange={(e) => setFilterGroup(e.target.value)}
+                    className="bg-black/50 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
+                  >
+                    <option value="All">All Groups</option>
+                    <option value="General">General</option>
+                    <option value="Cooling">Cooling</option>
+                    <option value="Air">Air</option>
+                    <option value="Spark">Spark</option>
+                    <option value="Fuel">Fuel</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-80 overflow-y-auto no-scrollbar">
+                {filteredPids.map(pid => (
+                  <button
+                    key={pid.id}
+                    onClick={() => setSelectedChartPid(pid.id)}
+                    className={`w-full text-left p-4 rounded-2xl border flex items-center justify-between transition-all ${
+                      selectedChartPid === pid.id 
+                        ? "bg-primary/10 border-primary/40 shadow-[0_0_15px_rgba(245,166,35,0.1)]" 
+                        : "bg-black/40 border-white/5 hover:border-primary/30 hover:bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                       <div className={`p-3 rounded-xl border ${selectedChartPid === pid.id ? "bg-primary/20 text-primary border-primary/30" : "bg-white/5 text-white/40 border-white/10"}`}>
+                         <pid.icon className="w-5 h-5" />
+                       </div>
+                       <div>
+                         <div className="flex items-center gap-2">
+                            <h4 className={`font-bold text-sm ${selectedChartPid === pid.id ? "text-primary" : "text-white"}`}>{pid.name}</h4>
+                            {selectedChartPid === pid.id && <CheckCircle className="w-3 h-3 text-primary" />}
+                         </div>
+                         <span className="text-[10px] text-white/50 uppercase tracking-widest font-mono mt-0.5 inline-block">{pid.id} • {pid.group}</span>
+                       </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                       <span className={`text-lg font-black font-mono ${selectedChartPid === pid.id ? "text-primary" : "text-white/70"}`}>
+                         {selectedChartPid === pid.id ? currentChartVal : "--"}
+                       </span>
+                       <span className="text-[10px] text-white/40 font-mono tracking-widest">{pid.unit}</span>
+                    </div>
+                  </button>
+                ))}
+                {filteredPids.length === 0 && (
+                   <div className="text-center py-8 text-white/40 text-sm">
+                     No PIDs found matching your criteria.
+                   </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -260,42 +363,44 @@ export const LiveDataScreen = ({
             <div className="text-[10px] font-black uppercase tracking-widest text-white/40 border-b border-white/5 pb-2">
               Target Maps
             </div>
-            {[
-              { id: "Fuel_Base", name: "Open Loop Fueling Map", load: "10x10" },
-              {
-                id: "Spark_Adv",
-                name: "Ignition Timing Advance",
-                load: "12x12",
-              },
-              { id: "Boost_Tgt", name: "Wastegate Duty Cycle", load: "8x8" },
-            ].map((map) => (
-              <div
-                key={map.id}
-                className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-primary/30 transition-colors cursor-pointer group"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-mono text-primary/60 uppercase tracking-widest">
-                    {map.id}
-                  </span>
-                  <span className="text-[9px] min-w-12 text-center py-0.5 bg-white/10 text-white rounded font-mono shadow-inner">
-                    {map.load}
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-white mb-2">
-                  {map.name}
-                </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { id: "Fuel_Base", name: "Open Loop Fueling Map", load: "10x10" },
+                {
+                  id: "Spark_Adv",
+                  name: "Ignition Timing Advance",
+                  load: "12x12",
+                },
+                { id: "Boost_Tgt", name: "Wastegate Duty Cycle", load: "8x8" },
+              ].map((map) => (
+                <div
+                  key={map.id}
+                  className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-primary/30 transition-colors cursor-pointer group flex flex-col"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-mono text-primary/60 uppercase tracking-widest">
+                      {map.id}
+                    </span>
+                    <span className="text-[9px] min-w-12 text-center py-0.5 bg-white/10 text-white rounded font-mono shadow-inner">
+                      {map.load}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white mb-4 flex-1">
+                    {map.name}
+                  </h4>
 
-                {/* Fake Grid Map */}
-                <div className="grid grid-cols-4 gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-4 rounded-sm ${i % 3 === 0 ? "bg-primary/40" : i % 2 === 0 ? "bg-orange-500/40" : "bg-red-500/40"}`}
-                    />
-                  ))}
+                  {/* Fake Grid Map */}
+                  <div className="grid grid-cols-4 gap-1 opacity-50 group-hover:opacity-100 transition-opacity mt-auto">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-4 rounded-sm ${i % 3 === 0 ? "bg-primary/40" : i % 2 === 0 ? "bg-orange-500/40" : "bg-red-500/40"}`}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             <button className="w-full mt-4 bg-primary text-black py-4 rounded-xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 hover:bg-primary/90 shadow-[0_4px_15px_rgba(245,166,35,0.3)]">
               Write Flash Data

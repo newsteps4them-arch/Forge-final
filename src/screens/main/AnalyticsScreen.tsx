@@ -95,6 +95,84 @@ export const AnalyticsScreen = ({ onBack }: { onBack: () => void }) => {
           </div>
         </div>
 
+        <div className="bg-surface border border-white/5 p-6 rounded-3xl mb-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5">
+            <Activity className="w-16 h-16" />
+          </div>
+          <h3 className="text-sm font-bold text-text-primary mb-1 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            Predictive Failure Analytics (AI)
+          </h3>
+          <p className="text-[10px] text-text-dim mb-4">
+            Advanced heuristic models trained on historical shop data and OEM telemetry.
+          </p>
+          <div className="space-y-4">
+            <div className="bg-black/40 border border-white/5 rounded-2xl p-4">
+               <div className="flex justify-between items-start mb-2">
+                 <div>
+                   <h4 className="text-white text-xs font-bold font-mono">Ford F-150 (3.5L EcoBoost)</h4>
+                   <p className="text-[10px] text-white/50">Cam Phaser / Timing Chain Risk</p>
+                 </div>
+                 <span className="text-[10px] uppercase font-black tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded">High Risk: 82%</span>
+               </div>
+               <div className="flex gap-4 text-[10px] text-white/40 font-mono mt-3">
+                 <div className="flex flex-col">
+                   <span>Trigger:</span>
+                   <span className="text-white/70">Cold Start Rattle (Audio)</span>
+                 </div>
+                 <div className="flex flex-col">
+                   <span>Est. Window:</span>
+                   <span className="text-white/70">1,500 - 3,000 mi</span>
+                 </div>
+               </div>
+            </div>
+
+            <div className="bg-black/40 border border-white/5 rounded-2xl p-4">
+               <div className="flex justify-between items-start mb-2">
+                 <div>
+                   <h4 className="text-white text-xs font-bold font-mono">Honda CR-V (1.5T)</h4>
+                   <p className="text-[10px] text-white/50">Fuel Injector Degradation</p>
+                 </div>
+                 <span className="text-[10px] uppercase font-black tracking-widest text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded">Elevated: 45%</span>
+               </div>
+               <div className="flex gap-4 text-[10px] text-white/40 font-mono mt-3">
+                 <div className="flex flex-col">
+                   <span>Trigger:</span>
+                   <span className="text-white/70">Fuel Trim Variance (+8%)</span>
+                 </div>
+                 <div className="flex flex-col">
+                   <span>Est. Window:</span>
+                   <span className="text-white/70">5,000 - 10,000 mi</span>
+                 </div>
+               </div>
+            </div>
+
+            <div className="bg-black/40 border border-white/5 rounded-2xl p-4">
+               <div className="flex justify-between items-start mb-2">
+                 <div>
+                   <h4 className="text-white text-xs font-bold font-mono">Chevy Silverado (6.2L)</h4>
+                   <p className="text-[10px] text-white/50">Lifter Failure (AFM/DFM)</p>
+                 </div>
+                 <span className="text-[10px] uppercase font-black tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded">Monitor: 28%</span>
+               </div>
+               <div className="flex gap-4 text-[10px] text-white/40 font-mono mt-3">
+                 <div className="flex flex-col">
+                   <span>Trigger:</span>
+                   <span className="text-white/70">Valve Train Harmonics</span>
+                 </div>
+                 <div className="flex flex-col">
+                   <span>Est. Window:</span>
+                   <span className="text-white/70">12,000+ mi</span>
+                 </div>
+               </div>
+            </div>
+            
+            <button className="w-full py-3 border border-dashed border-white/10 hover:border-primary/50 hover:bg-white/5 text-xs font-bold tracking-widest text-white/50 hover:text-primary transition-all rounded-xl uppercase">
+              Run Fleet Analysis
+            </button>
+          </div>
+        </div>
+
         <div className="bg-surface border border-white/5 p-6 rounded-3xl mb-8">
           <h3 className="text-sm font-bold text-text-primary mb-4">
             API Utilization (Team Forge)

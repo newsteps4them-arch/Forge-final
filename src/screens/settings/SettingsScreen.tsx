@@ -32,12 +32,6 @@ export const SettingsScreen = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = () => {
-    if (geminiKey.trim()) {
-      if (!geminiKey.startsWith("AIza") || geminiKey.length < 39) {
-        setError("Invalid Gemini API Key format. It should start with 'AIza' and be 39 characters.");
-        return;
-      }
-    }
     setError(null);
     onSave(geminiKey, meliKey, alldataK, obdK, openaiKey);
   };
