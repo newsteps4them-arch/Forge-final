@@ -119,7 +119,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               User: {onboarding.assistantName}
             </span>
             <span className="text-[10px] font-mono text-primary/80 uppercase tracking-widest px-2 py-1 bg-white/5 rounded border border-white/5">
-              Vehicle: {onboarding.vehicleYear} {onboarding.vehicleMake}
+              Target: {onboarding.vehicleYear} {onboarding.vehicleMake}
             </span>
           </div>
         </div>
@@ -196,10 +196,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
              </div>
              <div>
                 <h4 className="text-lg font-display font-black text-white leading-tight">
-                  Vehicle Connection status
+                  Hardware Telemetry Link
                 </h4>
                 <p className="text-text-secondary text-xs max-w-sm mt-1">
-                  Connect your scanner tool to read real-time data, clear codes, and run advanced tests.
+                  Connect your diagnostic hardware to read real-time data, clear faults, and run advanced tests on your target asset.
                 </p>
              </div>
           </div>
@@ -259,7 +259,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
            </button>
            <button onClick={() => setCurrentScreen("Terminal")} className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-[#1a1a1a] transition-all">
              <Terminal className="w-6 h-6 text-white" />
-             <span className="text-xs uppercase font-bold tracking-widest font-mono text-white/70">Scan Vehicle</span>
+             <span className="text-xs uppercase font-bold tracking-widest font-mono text-white/70">Scan Target</span>
            </button>
            <button onClick={() => setCurrentScreen("Inventory")} className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-[#1a1a1a] transition-all">
              <Box className="w-6 h-6 text-white" />

@@ -29,7 +29,7 @@ jobs:
         run: npm install
 
       - name: Build Web App
-        run: npm run build
+        run: npm run static-build
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -51,7 +51,8 @@ jobs:
       - name: Run Gradle Assemble
         run: |
           cd android
-          gradle assembleDebug
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

@@ -787,16 +787,16 @@ const VehicleSetupScreen = ({
         </div>
 
         <h2 className="text-4xl font-display font-bold text-text-primary mb-3 leading-tight tracking-tight">
-          Vehicle Connection
+          Target Hardware
         </h2>
         <p className="text-text-secondary text-lg mb-8 tracking-wide">
-          Enter your primary vehicle details for precision diagnostics.
+          Enter your primary physical asset or vehicle details for precision diagnostics.
         </p>
 
         <div className="space-y-6 max-w-md">
           <div className="relative group">
             <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-              Model Year
+              Model Year / Era
             </label>
             <input
               type="text"
@@ -808,28 +808,28 @@ const VehicleSetupScreen = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <div className="relative group">
               <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-                Make
+                Make (Manufacturer)
               </label>
               <input
                 type="text"
                 value={onboarding.vehicleMake}
                 onChange={(e) => updateData("vehicleMake", e.target.value)}
-                placeholder="e.g. Toyota"
+                placeholder="e.g. Toyota, Trane, Boeing"
                 className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
               />
             </div>
             <div className="relative group">
               <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-                Model
+                Model (Configuration)
               </label>
               <input
                 type="text"
                 value={onboarding.vehicleModel}
                 onChange={(e) => updateData("vehicleModel", e.target.value)}
-                placeholder="e.g. RAV4"
+                placeholder="e.g. RAV4, XV20i"
                 className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
               />
             </div>
@@ -837,13 +837,13 @@ const VehicleSetupScreen = ({
 
           <div className="relative group">
             <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-              VIN (Optional)
+              VIN / Serial Number (Optional)
             </label>
             <input
               type="text"
               value={onboarding.vehicleVin}
               onChange={(e) => updateData("vehicleVin", e.target.value)}
-              placeholder="17-character VIN"
+              placeholder="Unique 17-char or formatting"
               className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner font-mono"
             />
           </div>

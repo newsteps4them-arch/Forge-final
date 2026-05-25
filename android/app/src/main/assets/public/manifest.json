@@ -1,0 +1,22 @@
+{
+  "name": "Forge OS",
+  "short_name": "Forge",
+  "description": "Professional Grade Automotive Diagnostic & Repair Suite",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#F5A623",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

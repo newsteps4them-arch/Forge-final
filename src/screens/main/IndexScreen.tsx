@@ -27,7 +27,7 @@ const INDEX_ITEMS = [
     icon: Terminal,
     title: "Diagnostics & Scans",
     team: "Team Diagnostics",
-    desc: "Perform quick or deep vehicle scans. View error codes and clear emission monitors.",
+    desc: "Perform quick or deep system scans. View error codes, system states, and clear faults.",
     color: "text-red-500",
     bg: "bg-red-500/10",
     target: "Diagnostics"
@@ -35,9 +35,9 @@ const INDEX_ITEMS = [
   {
     category: "Service & Repairs",
     icon: Activity,
-    title: "Live Vehicle Data",
+    title: "Live Telemetry Data",
     team: "Team Powertrain",
-    desc: "Monitor live engine data like RPM, boost pressure, and temperatures in real-time.",
+    desc: "Monitor live system data like pressure, temperature, voltage, and RPM in real-time.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
     target: "LiveData"
@@ -47,7 +47,7 @@ const INDEX_ITEMS = [
     icon: Hexagon,
     title: "Maintenance & Resets",
     team: "Team Systems",
-    desc: "Perform routine resets (e.g., Oil, Battery) and customize vehicle module settings.",
+    desc: "Perform routine resets (e.g., duty cycles) and customize hardware controller settings.",
     color: "text-purple-500",
     bg: "bg-purple-500/10",
     target: "Coding"
@@ -57,7 +57,7 @@ const INDEX_ITEMS = [
     icon: Target,
     title: "Sensor Calibration",
     team: "Team Chassis",
-    desc: "Run calibration routines for safety features like lane departure and blind-spot sensors.",
+    desc: "Run static and dynamic calibration routines for hardware sensors, proximity monitoring, and control systems.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
     target: "AdasCalibration"
@@ -67,7 +67,7 @@ const INDEX_ITEMS = [
     icon: Network,
     title: "Network Topology",
     team: "Team Electrical",
-    desc: "Visualize your vehicle's computer networks and see which modules are talking.",
+    desc: "Visualize your asset's communication networks and see which control modules are responding.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
     target: "Topology"
@@ -147,9 +147,9 @@ const INDEX_ITEMS = [
   {
     category: "Research & Tools",
     icon: Car,
-    title: "Garage & Vehicles",
+    title: "Client Assets",
     team: "Team Operations",
-    desc: "Manage client vehicles, view service histories, and set the active target vehicle.",
+    desc: "Manage client property/hardware, view service histories, and set the active target asset.",
     color: "text-pink-500",
     bg: "bg-pink-500/10",
     target: "Garage"

@@ -40,7 +40,10 @@ async function startServer() {
   app.post("/api/chat", async (req, res) => {
     try {
       const { message, image, history, systemInstruction, customApiKey } = req.body;
-      const apiKey = customApiKey || process.env.GEMINI_API_KEY;
+      let apiKey = customApiKey;
+      if (!apiKey || apiKey === "AIzaSy_SYSTEM_DEFAULT") {
+        apiKey = process.env.GEMINI_API_KEY;
+      }
       if (!apiKey) {
         return res.status(400).json({ error: "Gemini API Key is missing. Provide it in the API Keys screen or set GEMINI_API_KEY in the environment." });
       }
