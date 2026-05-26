@@ -1,28 +1,4 @@
-const handleDiagnosticCommand = async (command: string) => {
-    if (!obdConnected) {
-      addLog("[sys] Cannot send - Not connected");
-      return;
-    }
-    
-    try {
-       const res = await sendCommand(command);
-       // basic mock checking for DTCs (03)
-       if (command === "03") {
-         if (res.includes("43 01 33")) {
-           setDetectedDtcs([
-             { code: "P0133", sys: "O2 Sensor", stat: "Active" },
-           ]);
-           toast.show("Diagnostic trouble codes detected", "error");
-         }
-       }
-       if (command === "04") {
-         setDetectedDtcs([]);
-         toast.show("DTC Memory Cleared", "success");
-       }
-    } catch (e: any) {
-       addLog(`[sys] ERROR: ${e.message}`);
-    }
-  };import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   AreaChart,
@@ -260,7 +236,7 @@ type AssistantMode =
   | "HVAC Technician"
   | "Field Welder"
   | "Master Electrician";
-type ChatMessage = { role: "user" | "model"; text: string; image?: string };
+type ChatMessage = { role: "user" | "model" | "system"; text: string; image?: string };
 
 type Task = {
   id: string;
@@ -335,8 +311,8 @@ const ChatHistoryWidget = ({
       <div className="space-y-3">
         {recentChats.map((chat) => (
           <div key={chat.id} className="p-3 bg-black/40 rounded-xl border border-white/5 flex flex-col gap-1">
-            <span className="text-[9px] mb-1 uppercase tracking-[0.2em] font-bold" style={{ color: chat.role === "user" ? "#4CAF50" : "#F5A623" }}>
-              {chat.role === "user" ? "You" : "Forge Team"}
+            <span className="text-[9px] mb-1 uppercase tracking-[0.2em] font-bold" style={{ color: chat.role === "user" ? "#4CAF50" : chat.role === "system" ? "#2196F3" : "#F5A623" }}>
+              {chat.role === "user" ? "You" : chat.role === "system" ? "Diagnostic Logs" : "Forge Team"}
             </span>
             <div className="text-sm text-text-primary line-clamp-2">
               <Markdown>{chat.text}</Markdown>
@@ -1241,7 +1217,7 @@ const ChatScreen = ({
       const history = [
         ...messages,
         { role: "user" as const, text: userMsg, image: attachedImage || undefined },
-      ].map((msg) => ({
+      ].filter((msg) => msg.role !== "system").map((msg) => ({
         role: msg.role === "user" ? ("user" as const) : ("model" as const),
         parts: [{ text: msg.text }],
         text: msg.text,
@@ -1647,10 +1623,10 @@ const ChatScreen = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             key={idx}
-            className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+            className={`flex flex-col ${msg.role === "user" ? "items-end" : msg.role === "system" ? "items-center" : "items-start"}`}
           >
             <div
-              className={`shadow-lg max-w-[90%] p-5 ${msg.role === "user" ? "bg-primary text-black rounded-[2rem] rounded-tr-md" : "bg-surface text-text-primary border border-white/5 rounded-[2rem] rounded-tl-md"}`}
+              className={`shadow-lg max-w-[90%] p-5 ${msg.role === "user" ? "bg-primary text-black rounded-[2rem] rounded-tr-md" : msg.role === "system" ? "bg-black/50 border border-blue-500/20 text-blue-400 font-mono text-xs rounded-xl" : "bg-surface text-text-primary border border-white/5 rounded-[2rem] rounded-tl-md"}`}
             >
               {msg.image && (
                 <img
@@ -1664,6 +1640,10 @@ const ChatScreen = ({
                   <div className="markdown-body text-text-primary/90">
                     <Markdown>{msg.text}</Markdown>
                   </div>
+                ) : msg.role === "system" ? (
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {msg.text}
+                  </p>
                 ) : (
                   <p className="whitespace-pre-wrap text-[15px] leading-relaxed font-medium">
                     {msg.text}
@@ -1673,6 +1653,8 @@ const ChatScreen = ({
             <span className="text-[10px] text-text-dim mt-2 tracking-widest uppercase px-2">
               {msg.role === "user"
                 ? onboarding.userName
+                : msg.role === "system"
+                ? "Terminal LOG"
                 : onboarding.assistantName}
             </span>
           </motion.div>
@@ -2884,9 +2866,20 @@ export default function App() {
 
   const handleDiagnosticCommand = async (command: string) => {
     const timestamp = new Date().toLocaleTimeString();
+    const txLog = `[${timestamp}] TX: ${command}`;
     setDiagnosticLogs((prev) =>
-      [`[${timestamp}] TX: ${command}`, ...prev].slice(0, 50),
+      [txLog, ...prev].slice(0, 50),
     );
+
+    if (user && activeProject) {
+      addDoc(collection(db, "chats"), {
+        role: "system",
+        text: txLog,
+        userId: user.uid,
+        projectId: activeProject,
+        createdAt: Date.now(),
+      }).catch(console.error);
+    }
 
     if (!obdRef.current || !obdRef.current.isConnected()) {
        toast.show("Not connected to vehicle", "error");
@@ -2896,9 +2889,20 @@ export default function App() {
     try {
        const response = await obdRef.current.sendCommand(command);
        const rxTimestamp = new Date().toLocaleTimeString();
+       const rxLog = `[${rxTimestamp}] RX: ${response}`;
        setDiagnosticLogs((prev) =>
-         [`[${rxTimestamp}] RX: ${response}`, ...prev].slice(0, 50),
+         [rxLog, ...prev].slice(0, 50),
        );
+
+       if (user && activeProject) {
+         addDoc(collection(db, "chats"), {
+           role: "system",
+           text: rxLog,
+           userId: user.uid,
+           projectId: activeProject,
+           createdAt: Date.now(),
+         }).catch(console.error);
+       }
 
        if (command === "03") {
          if (response.includes("43")) {
@@ -2917,9 +2921,19 @@ export default function App() {
          toast.show("DTC Memory Cleared", "success");
        }
     } catch (e: any) {
+       const errLog = `[sys] ERROR: ${e.message}`;
        setDiagnosticLogs((prev) =>
-         [`[sys] ERROR: ${e.message}`, ...prev].slice(0, 50),
+         [errLog, ...prev].slice(0, 50),
        );
+       if (user && activeProject) {
+         addDoc(collection(db, "chats"), {
+           role: "system",
+           text: errLog,
+           userId: user.uid,
+           projectId: activeProject,
+           createdAt: Date.now(),
+         }).catch(console.error);
+       }
     }
   };
 
