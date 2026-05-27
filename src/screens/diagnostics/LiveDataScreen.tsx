@@ -114,7 +114,8 @@ export const LiveDataScreen = ({
         });
       }, 800);
     } else {
-      setLocalData(telemetry);
+      // Defer state update to avoid cascading effect warning
+      setTimeout(() => setLocalData(telemetry), 0);
     }
     return () => clearInterval(interval);
   }, [telemetry, selectedChartPid]);
