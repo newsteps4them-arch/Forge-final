@@ -3,12 +3,27 @@ import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "../l
 
 export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   const [obdConnected, setObdConnected] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("forge_terminal_logs");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const obdRef = useRef<ObdConnection | null>(null);
   const [telemetry, setTelemetry] = useState<any[]>([]);
   
   // Background polling interval reference
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("forge_terminal_logs", JSON.stringify(logs));
+    } catch (e) {
+      console.error("Failed to save terminal logs to localStorage:", e);
+    }
+  }, [logs]);
 
   const addLog = useCallback((log: string) => {
     setLogs((prev) => [log, ...prev].slice(0, 50));
@@ -136,6 +151,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     sendCommand,
     logs,
     addLog,
-    telemetry
+    telemetry,
+    setLogs,
   };
 }

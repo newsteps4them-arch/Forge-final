@@ -238,7 +238,7 @@ type AssistantMode =
   | "HVAC Technician"
   | "Field Welder"
   | "Master Electrician";
-type ChatMessage = { role: "user" | "model" | "system"; text: string; image?: string };
+type ChatMessage = { role: "user" | "model" | "system"; text: string; image?: string; id?: string };
 
 type Task = {
   id: string;
@@ -983,7 +983,7 @@ const ChatScreen = ({
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = snapshot.docs
-        .map((doc) => doc.data() as ChatMessage & { createdAt: any })
+        .map((doc) => ({ id: doc.id, ...doc.data() } as ChatMessage & { createdAt: any }))
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       setMessages(fetchedMessages);
     });
@@ -1634,10 +1634,16 @@ const ChatScreen = ({
 
         {messages.map((msg, idx) => (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            key={idx}
+            transition={{ 
+              type: "spring", 
+              stiffness: 240, 
+              damping: 24,
+              opacity: { duration: 0.25 }
+            }}
+            layout="position"
+            key={msg.id || idx}
             className={`flex flex-col ${msg.role === "user" ? "items-end" : msg.role === "system" ? "items-center" : "items-start"}`}
           >
             <div
@@ -2318,7 +2324,7 @@ export default function App() {
 
   // Diagnostic State
   const [obdMode, setObdMode] = useState<"Bluetooth" | "USB" | "Simulated">("Simulated");
-  const { obdConnected, connect, sendCommand, logs: diagnosticLogs, addLog, telemetry } = useObdTelemetry(obdMode);
+  const { obdConnected, connect, sendCommand, logs: diagnosticLogs, addLog, telemetry, setLogs: setDiagnosticLogs } = useObdTelemetry(obdMode);
 
   
   const [detectedDtcs, setDetectedDtcs] = useState<DTC[]>([]);
