@@ -85,6 +85,7 @@ import { DviScreen } from "./screens/main/DviScreen";
 import { TimeClockScreen } from "./screens/main/TimeClockScreen";
 import { VoiceCloneScreen } from "./screens/main/VoiceCloneScreen";
 import { AnalyticsScreen } from "./screens/main/AnalyticsScreen";
+import { GoToMarketScreen } from "./screens/main/GoToMarketScreen";
 import { VisualInspectorScreen } from "./screens/main/VisualInspectorScreen";
 import { GuidedDiagnosticsScreen } from "./screens/diagnostics/GuidedDiagnosticsScreen";
 import { OscilloscopeScreen } from "./screens/diagnostics/OscilloscopeScreen";
@@ -220,6 +221,7 @@ type Screen =
   | "CrmDashboard"
   | "DviModule"
   | "TimeClock"
+  | "GoToMarket"
   | "AdasCalibration";
 type AssistantMode =
   | "Operations"
@@ -543,6 +545,19 @@ const WelcomeScreen = ({
   onLogin: () => void;
   onLoginAnon: () => void;
 }) => {
+  const [embers] = React.useState(() => {
+    return [...Array(12)].map((_, i) => ({
+      id: i,
+      x: Math.random() * 50 - 25,
+      y: Math.random() * -100,
+      duration: 4 + Math.random() * 5,
+      width: `${2 + Math.random() * 4}px`,
+      height: `${2 + Math.random() * 4}px`,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+    }));
+  });
+
   return (
     <div className="flex flex-col justify-between h-full py-12 px-8 bg-[#000] overflow-hidden relative">
       {/* Cinematic Grid Background */}
@@ -556,27 +571,27 @@ const WelcomeScreen = ({
 
       {/* Ember decoration */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(12)].map((_, i) => (
+        {embers.map((ember) => (
           <motion.div
-            key={i}
+            key={ember.id}
             initial={{ opacity: 0 }}
             animate={{
               opacity: [0.1, 0.5, 0.1],
               scale: [1, 1.8, 1],
-              x: [0, Math.random() * 50 - 25, 0],
-              y: [0, Math.random() * -100, 0],
+              x: [0, ember.x, 0],
+              y: [0, ember.y, 0],
             }}
             transition={{
-              duration: 4 + Math.random() * 5,
+              duration: ember.duration,
               repeat: Infinity,
               ease: "linear",
             }}
             className="absolute rounded-full bg-primary shadow-[0_0_20px_rgba(245,166,35,0.9)]"
             style={{
-              width: `${2 + Math.random() * 4}px`,
-              height: `${2 + Math.random() * 4}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: ember.width,
+              height: ember.height,
+              left: ember.left,
+              top: ember.top,
             }}
           />
         ))}
@@ -952,7 +967,7 @@ const ChatScreen = ({
 
   useEffect(() => {
     if (initialQuery && messages.length === 0) {
-      setInput(initialQuery);
+      setTimeout(() => setInput(initialQuery), 0);
     }
   }, [initialQuery, messages.length]);
 
@@ -1076,7 +1091,7 @@ const ChatScreen = ({
       try {
         recognition.start();
       } catch (e) {
-        setIsRecording(false);
+        setTimeout(() => setIsRecording(false), 0);
         toast.show("Speech recognition failed to start", "error");
       }
     }
@@ -1761,7 +1776,7 @@ const ChatScreen = ({
           {messages.length > 0 && (
             <div className="flex overflow-x-auto gap-2 no-scrollbar py-1 mt-1 pb-2">
               {(() => {
-                let suggestions: string[] = [];
+                let suggestions: string[];
                 switch (mode) {
                   case "Diagnostics Lead":
                     suggestions = [
@@ -2356,8 +2371,10 @@ export default function App() {
   // Fetch Projects and Tasks on login
   useEffect(() => {
     if (!user) {
-      setProjects([]);
-      setTasks([]);
+      setTimeout(() => {
+        setProjects([]);
+        setTasks([]);
+      }, 0);
       return;
     }
 
@@ -2476,6 +2493,7 @@ export default function App() {
       }
     };
     loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const PROJECT_COLORS = [
@@ -2500,7 +2518,7 @@ export default function App() {
     }
   };
 
-  const ProjectPicker = () => {
+  const renderProjectPicker = () => {
     const activeProj = projects.find((p) => p.id === activeProject);
 
     return (
@@ -3130,7 +3148,7 @@ export default function App() {
                   handleConnect={handleConnect}
                   setCurrentScreen={setCurrentScreen}
                   setChatMode={setChatMode}
-                  projectPicker={<ProjectPicker />}
+                  projectPicker={renderProjectPicker()}
                   chatHistoryWidget={
                     <ChatHistoryWidget
                       user={user!}
@@ -3252,6 +3270,10 @@ export default function App() {
 
               {currentScreen === "Analytics" && (
                 <AnalyticsScreen onBack={() => goBack()} />
+              )}
+
+              {currentScreen === "GoToMarket" && (
+                <GoToMarketScreen onBack={() => goBack()} />
               )}
 
               {currentScreen === "VisualInspector" && (

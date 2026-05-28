@@ -8,7 +8,6 @@ import {
   Zap,
   Activity,
   ArrowUp,
-  Wrench,
   RefreshCw,
   Key,
   Database,

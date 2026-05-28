@@ -24,6 +24,7 @@ export type Screen =
   | "GuidedDiagnostics"
   | "Oscilloscope"
   | "WiringDiagrams"
+  | "GoToMarket"
   | "Index";
 
 export function useNavigation(initialScreen: Screen = "Welcome") {
@@ -46,7 +47,7 @@ export function useNavigation(initialScreen: Screen = "Welcome") {
     });
   }, []);
 
-  const goBack = useCallback((defaultFallback: Screen = "Main") => {
+  const goBack = useCallback(() => {
     setStack((prev) => {
       // Avoid popping history if we're programmatically going back here, 
       // but popstate already handles the window portion. 
@@ -71,7 +72,7 @@ export function useNavigation(initialScreen: Screen = "Welcome") {
 
   useEffect(() => {
     // Android hardware back button / Browser back button
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
        setStack(prev => {
          if (prev.length <= 1) {
            return ["Main"];

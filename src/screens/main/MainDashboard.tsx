@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { 
   Terminal, Activity, Zap, Wifi, Cpu, MessageSquare, 
-  Settings, User, BookOpen, AlertCircle, Wrench, Battery, LayoutGrid, Box
+  Settings, User, BookOpen, LayoutGrid, Box
 } from "lucide-react";
 
 interface MainDashboardProps {

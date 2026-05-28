@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Car, Plus, Search, User, MapPin } from "lucide-react";
 
-export const GarageScreen = ({ onBack, onSelectVehicle }: { onBack: () => void, onSelectVehicle: (v: any) => void }) => {
+export const GarageScreen = ({ onBack, onSelectVehicle }: { onBack: () => void, onSelectVehicle: (v: { id: number, make: string, model: string, year: string, vin: string, client: string, lastVisit: string }) => void }) => {
   const [search, setSearch] = useState("");
-  const [vehicles, setVehicles] = useState([
+  const [vehicles] = useState([
     { id: 1, make: "Ford", model: "F-150", year: "2018", vin: "1FTFW1RG4KFGxxxxx", client: "John Doe", lastVisit: "2023-10-12" },
     { id: 2, make: "Chevrolet", model: "Silverado", year: "2020", vin: "1GCVKPEH5LZxxxxx", client: "Acme Corp", lastVisit: "2023-11-01" },
     { id: 3, make: "BMW", model: "330i", year: "2019", vin: "WBA5R1C51K8xxxxxx", client: "Jane Smith", lastVisit: "2024-01-15" }

@@ -5,7 +5,6 @@ import {
   Activity,
   Play,
   Pause,
-  Maximize2,
   Settings,
 } from "lucide-react";
 import {

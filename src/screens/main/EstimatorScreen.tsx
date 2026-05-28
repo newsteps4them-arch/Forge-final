@@ -7,7 +7,6 @@ import {
   Send,
   Plus,
   Trash2,
-  Database,
   Search,
 } from "lucide-react";
 import { toast } from "../../lib/notifications";

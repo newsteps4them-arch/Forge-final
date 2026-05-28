@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, Camera, CheckCircle, AlertTriangle, XCircle, FileText, Upload } from "lucide-react";
 
 export const DviScreen = ({ onBack }: { onBack: () => void }) => {
-  const [items, setItems] = useState([
+  const [items] = useState([
     { id: 1, category: "Tires & Brakes", name: "Front Brake Pads", status: "attention", notes: "3mm remaining, replace soon." },
     { id: 2, category: "Under Hood", name: "Engine Oil", status: "good", notes: "Level and condition okay." },
     { id: 3, category: "Under Hood", name: "Drive Belt", status: "critical", notes: "Cracked and glazed, immediate replacement recommended." },

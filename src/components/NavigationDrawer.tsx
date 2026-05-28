@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Wrench, Activity, Database, Calculator, 
   ScanEye, BarChart3, Zap, FileText, 
-  Terminal, Home, MessageSquare, BookOpen, Settings
+  Terminal, Home, MessageSquare, BookOpen, Settings, Rocket
 } from "lucide-react";
 
 type Screen = any;
@@ -48,6 +48,7 @@ const MENU_GROUPS = [
     items: [
       { id: "Integrations", label: "3rd Party API", icon: Database, desc: "External Tools" },
       { id: "Analytics", label: "Shop Analytics", icon: BarChart3, desc: "Performance ROI" },
+      { id: "GoToMarket", label: "Launch Console", icon: Rocket, desc: "SaaS & Build Stats" },
       { id: "Settings", label: "Settings", icon: Settings, desc: "System Config" },
       { id: "Index", label: "Documentation", icon: BookOpen, desc: "Manual & Docs" },
     ]

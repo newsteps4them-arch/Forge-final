@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Gauge, Activity, Zap, Search, Filter, CheckCircle } from "lucide-react";
+import { motion } from "motion/react";
+import { ArrowLeft, Gauge, Activity, Zap, Search, CheckCircle } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,

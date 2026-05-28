@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion } from "motion/react";
-import { Camera, Upload, X, ScanEye, Crosshair, AlertCircle } from "lucide-react";
+import { Camera, X, ScanEye, Crosshair, AlertCircle } from "lucide-react";
 import { analyzeImage } from "../../services/geminiService";
 import { toast } from "../../lib/notifications";
 import Markdown from "react-markdown";

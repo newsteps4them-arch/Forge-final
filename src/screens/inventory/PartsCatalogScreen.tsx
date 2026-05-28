@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, ShoppingCart, Search, Package, Plus, DollarSign, ExternalLink } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Search, Package, Plus, ExternalLink } from "lucide-react";
 
 export const PartsCatalogScreen = ({ onBack, vehicleMake }: { onBack: () => void, vehicleMake: string }) => {
   const [search, setSearch] = useState("");

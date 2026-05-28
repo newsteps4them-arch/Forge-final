@@ -3,7 +3,6 @@ import { motion } from "motion/react";
 import {
   ArrowLeft,
   Network,
-  Server,
   Zap,
   AlertTriangle,
   CheckCircle2,

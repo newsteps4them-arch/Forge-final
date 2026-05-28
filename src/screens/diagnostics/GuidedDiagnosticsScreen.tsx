@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   ChevronRight,
-  FileText,
   AlertTriangle,
   PenTool,
 } from "lucide-react";

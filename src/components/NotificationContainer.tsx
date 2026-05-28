@@ -12,6 +12,10 @@ import {
 export function NotificationContainer() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
+  const dismiss = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
   useEffect(() => {
     const unsubscribe = toast.subscribe((notification) => {
       setNotifications((prev) => [...prev, notification]);
@@ -24,10 +28,6 @@ export function NotificationContainer() {
     });
     return unsubscribe;
   }, []);
-
-  const dismiss = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
 
   return (
     <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-sm px-4">

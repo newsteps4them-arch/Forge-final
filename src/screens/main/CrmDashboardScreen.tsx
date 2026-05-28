@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Users, TrendingUp, DollarSign, Calendar, MessageSquare, Plus, Bell } from "lucide-react";
+import { ArrowLeft, Users, TrendingUp, DollarSign, Calendar, Plus, Bell } from "lucide-react";
 
 export const CrmDashboardScreen = ({ onBack }: { onBack: () => void }) => {
   return (

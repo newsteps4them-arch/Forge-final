@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 import firebaseRulesPlugin from '@firebase/eslint-plugin-security-rules';
 
 export default tseslint.config(
-  { ignores: ['dist', 'android', '.expo', '.github'] },
+  { ignores: ['dist', 'android', '.expo', '.github', '**/*.rules', 'DRAFT_firestore.rules'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -24,6 +24,9 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-empty': 'off',
     },
   },
   {

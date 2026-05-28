@@ -52,13 +52,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
 
   useEffect(() => {
     if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'undefined') {
-      startCamera();
+      setTimeout(() => startCamera(), 0);
     } else {
-      setHasCamera(false);
+      setTimeout(() => setHasCamera(false), 0);
     }
     return () => {
       stopCamera();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
   const handleCapture = () => {

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Wifi,
-  Battery,
-  BatteryMedium,
   BatteryFull,
   Activity,
   Download,

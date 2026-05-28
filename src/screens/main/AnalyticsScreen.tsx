@@ -2,7 +2,6 @@ import React from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
-  BarChart3,
   Activity,
   Users,
   TrendingUp,
