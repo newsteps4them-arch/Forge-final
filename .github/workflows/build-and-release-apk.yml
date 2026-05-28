@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Set up Java
@@ -29,11 +29,15 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install dependencies
-        run: npm install
+      - name: Clean cache and install dependencies
+        run: |
+          npm ci
+          npm cache clean --force
 
       - name: Build web assets
         run: npm run static-build
+        env:
+          NODE_OPTIONS: --experimental-global-webcrypto
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -152,7 +156,7 @@ jobs:
             1. Download the APK file (`Forge-final-v*.apk`) from this release
             2. On your Android device, go to:
                - **Settings > Security > Allow installation from unknown sources** (Android < 8), OR
-               - **Settings > Apps & notifications > Advanced > Special app access > Install unknown apps > Choose your browser/file manager** (Android 8+)
+               - **Settings > Apps & notifications > Advanced > Special app access > Install unknown apps > Choose your file manager** (Android 8+)
             3. Open the downloaded APK file
             4. Tap **Install**
             5. Launch the app from your home screen
