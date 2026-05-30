@@ -1,14 +1,21 @@
-name: Build and Release Signed APK
+name: Build and Release APK
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: false
+        default: 'auto'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
@@ -17,166 +24,86 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: 'zulu'
+          java-version: '21'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Clean cache and install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      - name: Synchronize Env Secrets
         run: |
-          npm ci
-          npm cache clean --force
+          chmod +x ./scripts/sync-env.sh
+          ./scripts/sync-env.sh
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_FIRESTORE_DATABASE_ID: ${{ secrets.VITE_FIREBASE_FIRESTORE_DATABASE_ID }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
 
       - name: Build web assets
         run: npm run static-build
-        env:
-          NODE_OPTIONS: --experimental-global-webcrypto
 
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Create keystore from secrets
+      - name: Build APK
         run: |
-          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/forge-final-keystore.jks
-          ls -lh ${{ github.workspace }}/forge-final-keystore.jks
-
-      - name: Create gradle.properties with signing config
-        run: |
-          cat > ${{ github.workspace }}/android/gradle.properties << EOF
-          org.gradle.jvmargs=-Xmx2048m
-          android.useAndroidX=true
-          android.enableJetifier=true
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
           
-          # Signing configuration
-          KEYSTORE_PATH=${{ github.workspace }}/forge-final-keystore.jks
-          KEYSTORE_PASSWORD=${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}
-          EOF
-
-      - name: Setup signing config in build.gradle
-        run: |
-          cd ${{ github.workspace }}/android/app
-          
-          # Check if signingConfigs block exists, if not add it
-          if ! grep -q "signingConfigs" build.gradle; then
-            cat >> build.gradle << 'EOF'
-          
-          android {
-              signingConfigs {
-                  release {
-                      storeFile file(System.getenv("KEYSTORE_PATH") ?: "forge-final-keystore.jks")
-                      storePassword System.getenv("KEYSTORE_PASSWORD")
-                      keyAlias System.getenv("KEY_ALIAS")
-                      keyPassword System.getenv("KEY_PASSWORD")
-                  }
-              }
-              
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.release
-                      minifyEnabled false
-                  }
-              }
-          }
-          EOF
-          fi
-
-      - name: Build signed release APK
-        run: |
-          cd ${{ github.workspace }}/android
-          ./gradlew assembleRelease --info
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/forge-final-keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-
-      - name: Verify APK signature
-        run: |
-          APK_PATH="${{ github.workspace }}/android/app/build/outputs/apk/release/app-release.apk"
-          if [ -f "$APK_PATH" ]; then
-            echo "✅ APK found at: $APK_PATH"
-            ls -lh "$APK_PATH"
-            echo ""
-            echo "Verifying signature..."
-            jarsigner -verify -verbose "$APK_PATH"
-          else
-            echo "❌ Error: APK not found at $APK_PATH"
-            exit 1
-          fi
-
-      - name: Get version and date
+      - name: Get version
         id: version
         run: |
-          VERSION=$(node -e "console.log(require('./package.json').version)")
+          VERSION=$(node -e "console.log(require('./package.json').version || '1.0.0')")
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
-          echo "date=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
 
       - name: Rename APK
         run: |
-          APK_PATH="${{ github.workspace }}/android/app/build/outputs/apk/release/app-release.apk"
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$APK_PATH" ]; then
-            cp "$APK_PATH" "Forge-final-v${{ steps.version.outputs.version }}.apk"
-            ls -lh Forge-final-v*.apk
+            mv "$APK_PATH" "Forge-final-${{ steps.version.outputs.version }}.apk"
           else
-            echo "Error: APK not found at $APK_PATH"
+            echo "APK not found at $APK_PATH"
             exit 1
           fi
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          files: Forge-final-v*.apk
+          files: Forge-final-${{ steps.version.outputs.version }}.apk
           tag_name: v${{ steps.version.outputs.version }}-${{ steps.version.outputs.timestamp }}
           body: |
-            # 🚀 Forge Final - Production Release
+            # Forge Final APK Release
             
-            **Version:** ${{ steps.version.outputs.version }}  
-            **Build Date:** ${{ steps.version.outputs.date }}  
-            **Commit:** [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            **Version:** ${{ steps.version.outputs.version }}
+            **Build Date:** ${{ steps.version.outputs.timestamp }}
             
-            ## ✨ What's Included
-            - ✅ **Digitally Signed** - Production-ready with release signing key
-            - ✅ **Optimized** - Built for performance
-            - ✅ **Ready for Play Store** - Can be submitted to Google Play Store
+            ## Download
+            Download the APK file below to install on your Android device.
             
-            ## 📱 Installation Instructions
+            ## Installation
+            1. Download the APK file
+            2. On your Android device, go to Settings > Security > Allow installation from unknown sources
+            3. Open the APK file and tap Install
             
-            ### For Testing (Sideload):
-            1. Download the APK file (`Forge-final-v*.apk`) from this release
-            2. On your Android device, go to:
-               - **Settings > Security > Allow installation from unknown sources** (Android < 8), OR
-               - **Settings > Apps & notifications > Advanced > Special app access > Install unknown apps > Choose your file manager** (Android 8+)
-            3. Open the downloaded APK file
-            4. Tap **Install**
-            5. Launch the app from your home screen
-            
-            ### For Production (Google Play Store):
-            This APK is ready for submission to the Google Play Store. Use this in your Play Console release.
-            
-            ## 🔐 Security Information
-            - **Signature:** Digitally signed with your release signing key
-            - **Status:** Production-ready
-            - **Recommended for:** Distribution via Google Play Store or direct installation
-            
-            ## 📋 Troubleshooting
-            - If installation fails, ensure unknown sources are enabled
-            - On Android 12+, you may need to grant install permission to your file manager
-            - Verify your Android version matches the app requirements
-            
-            ---
-            
-            **Questions?** Visit the [repository](https://github.com/${{ github.repository }})
+            **Release Notes:**
+            - Automatic build generated on: ${{ github.event.head_commit.timestamp }}
+            - Commit: ${{ github.sha }}
           draft: false
           prerelease: false
         env:
@@ -185,13 +112,6 @@ jobs:
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: forge-final-signed-apk
-          path: Forge-final-v*.apk
-          retention-days: 90
-          compression-level: 0
-
-      - name: Cleanup sensitive files
-        if: always()
-        run: |
-          rm -f ${{ github.workspace }}/forge-final-keystore.jks
-          echo "✅ Keystore removed from runner"
+          name: apk
+          path: Forge-final-${{ steps.version.outputs.version }}.apk
+          retention-days: 30

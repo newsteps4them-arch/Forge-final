@@ -112,7 +112,7 @@ service cloud.firestore {
 
       function isValidChat(data) {
         return data.keys().hasAll(['role', 'text', 'userId', 'projectId']) &&
-               data.role in ['user', 'model'] &&
+               data.role in ['user', 'model', 'system'] &&
                data.text is string && data.text.size() <= 10000 &&
                data.userId == request.auth.uid &&
                data.projectId is string;

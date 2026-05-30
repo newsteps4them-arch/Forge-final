@@ -28,8 +28,10 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Web App
-        run: npm run static-build
+      - name: Synchronize Env Secrets
+        run: |
+          chmod +x ./scripts/sync-env.sh
+          ./scripts/sync-env.sh
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -37,7 +39,10 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_FIRESTORE_DATABASE_ID: ${{ secrets.VITE_FIREBASE_FIRESTORE_DATABASE_ID }}
-          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
+
+      - name: Build Web App
+        run: npm run static-build
 
       - name: Capacitor Sync
         run: npx cap sync android

@@ -94,4 +94,51 @@
     outline: none !important;
     filter: drop-shadow(0 0 10px rgba(245, 166, 35, 0.3));
   }
+
+  /* CRT Scanline Monitor and Retro Diagnostic Feel */
+  .crt-text {
+    text-shadow: 
+      0 0 2px rgba(0, 255, 65, 0.5),
+      0 0 6px rgba(0, 255, 65, 0.15);
+  }
+
+  /* Retro CRT Terminal scanline simulation overlay */
+  .scanlines-pattern {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scanlines-pattern::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+      rgba(0, 0, 0, 0) 50%, 
+      rgba(0, 0, 0, 0.3) 50%
+    );
+    background-size: 100% 3px;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .scanlines-pattern::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(0, 255, 65, 0.02) 0%,
+      rgba(0, 0, 0, 0.3) 100%
+    );
+    z-index: 4;
+    pointer-events: none;
+  }
 }
