@@ -18,3 +18,6 @@
 [2026-05-12 23:01:49] Pulling from origin...
 [2026-05-12 23:01:51] SUCCESS: Pull complete
 [2026-05-12 23:01:51] Committing: fix: Update SettingsScreen with support for AllData, OBDII, and OpenAI API keys
+[2026-06-01 13:55:28] Health check...
+[2026-06-01 13:55:28] SUCCESS: Health OK
+[2026-06-01 13:56:22] WARNING: Git repository not initialized in this directory.

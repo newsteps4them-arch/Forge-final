@@ -3,6 +3,11 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
 import dotenv from "dotenv";
+import { exec } from "child_process";
+import { promisify } from "util";
+import fs from "fs/promises";
+
+const execAsync = promisify(exec);
 
 dotenv.config();
 
@@ -17,6 +22,100 @@ async function startServer() {
   // API endpoints
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // GitHub Git Sync API Gateway
+  app.get("/api/git/status", async (req, res) => {
+    try {
+      const { stdout } = await execAsync("bash scripts/sync.sh --check");
+      let isInitialized = false;
+      try {
+        await fs.access(path.join(process.cwd(), ".git"));
+        isInitialized = true;
+      } catch (err) {}
+
+      let lastLogs = "";
+      try {
+        lastLogs = await fs.readFile(path.join(process.cwd(), ".sync-log"), "utf8");
+        lastLogs = lastLogs.split("\n").slice(-30).join("\n");
+      } catch (e) {}
+
+      res.json({ 
+        success: true, 
+        initialized: isInitialized, 
+        statusOutput: stdout,
+        logs: lastLogs
+      });
+    } catch (error: any) {
+      console.error("Git Status API Error:", error);
+      let isInitialized = false;
+      try {
+        await fs.access(path.join(process.cwd(), ".git"));
+        isInitialized = true;
+      } catch (err) {}
+      res.json({ 
+        success: false, 
+        initialized: isInitialized, 
+        error: error.message || "Git not initialized or not accessible.",
+        statusOutput: error.stdout || error.message || ""
+      });
+    }
+  });
+
+  app.post("/api/git/link", async (req, res) => {
+    try {
+      const { repoUrl } = req.body;
+      if (!repoUrl) {
+        return res.status(400).json({ error: "Repository URL is required." });
+      }
+      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh --link "${repoUrl}"`);
+      res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
+    } catch (error: any) {
+      console.error("Git Link API Error:", error);
+      res.status(500).json({ error: error.message || "Failed to link repository.", output: error.stdout || error.stderr || "" });
+    }
+  });
+
+  app.post("/api/git/sync", async (req, res) => {
+    try {
+      const { commitMessage } = req.body;
+      const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
+      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh sync ${msg}`);
+      res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
+    } catch (error: any) {
+      console.error("Git Sync API Error:", error);
+      res.status(500).json({ error: error.message || "Failed to sync codebase.", output: error.stdout || error.stderr || "" });
+    }
+  });
+
+  app.post("/api/git/pull", async (req, res) => {
+    try {
+      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --pull-only");
+      res.json({ success: true, message: "Remote repository updates pulled successfully.", output: stdout || stderr });
+    } catch (error: any) {
+      console.error("Git Pull API Error:", error);
+      res.status(500).json({ error: error.message || "Failed to pull updates.", output: error.stdout || error.stderr || "" });
+    }
+  });
+
+  app.post("/api/git/push", async (req, res) => {
+    try {
+      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --push-only");
+      res.json({ success: true, message: "Local workspace updates pushed to remote successfully.", output: stdout || stderr });
+    } catch (error: any) {
+      console.error("Git Push API Error:", error);
+      res.status(500).json({ error: error.message || "Failed to push updates.", output: error.stdout || error.stderr || "" });
+    }
+  });
+
+  app.post("/api/git/health-check", async (req, res) => {
+    try {
+      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --health");
+      res.json({ success: true, message: "Integrity check done.", output: stdout || stderr });
+    } catch (error: any) {
+      console.error("Git Health API Error:", error);
+      res.status(500).json({ error: error.message || "Failed workspace integrity check.", output: error.stdout || error.stderr || "" });
+    }
   });
 
   app.post("/api/chat", async (req, res) => {

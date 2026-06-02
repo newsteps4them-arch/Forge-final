@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { 
   ArrowLeft, Key, Bot, ShieldAlert, EyeOff, Eye, Database, Car, Sparkles,
-  CheckCircle2, HelpCircle, Zap, SlidersHorizontal, ChevronDown, ChevronUp, AlertCircle
+  CheckCircle2, HelpCircle, Zap, SlidersHorizontal, ChevronDown, ChevronUp, AlertCircle,
+  Github, GitCommit, GitPullRequest, Terminal, RefreshCw, FileText, Activity, HardHat
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "../../lib/notifications";
@@ -43,6 +44,158 @@ export const SettingsScreen = ({
 
   // Help guides visible state
   const [openGuide, setOpenGuide] = useState<string | null>(null);
+
+  // Git synchronization states & hooks
+  const [gitInitialized, setGitInitialized] = useState(false);
+  const [gitRepoUrl, setGitRepoUrl] = useState("https://github.com/newsteps4them/team.forge.git");
+  const [commitMessage, setCommitMessage] = useState("");
+  const [gitStatusOutput, setGitStatusOutput] = useState("");
+  const [gitLogs, setGitLogs] = useState("");
+  const [gitLoading, setGitLoading] = useState(false);
+  const [showGitConfig, setShowGitConfig] = useState(true);
+
+  const fetchGitStatus = async () => {
+    try {
+      const res = await fetch("/api/git/status");
+      const data = await res.json();
+      if (data.success) {
+        setGitInitialized(data.initialized);
+        setGitStatusOutput(data.statusOutput || "Healthy. Standby for remote audits.");
+        setGitLogs(data.logs || "");
+      } else {
+        setGitInitialized(data.initialized || false);
+        setGitStatusOutput(data.error || "Git repo not initialized.");
+        setGitLogs(data.logs || "");
+      }
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchGitStatus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLinkGit = async () => {
+    if (!gitRepoUrl.trim()) {
+      toast.show("Please enter a valid Git Repository URL.", "error");
+      return;
+    }
+    setGitLoading(true);
+    toast.show("Linking GitHub repository to workspace...", "info");
+    try {
+      const res = await fetch("/api/git/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoUrl: gitRepoUrl.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.show("GitHub repository linked successfully!", "success");
+        setGitInitialized(true);
+        fetchGitStatus();
+      } else {
+        toast.show(data.error || "Failed linking repository", "error");
+        setGitStatusOutput(data.output || data.error);
+      }
+    } catch (e: any) {
+      toast.show("Linking error: " + e.message, "error");
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  const handleGitPull = async () => {
+    setGitLoading(true);
+    toast.show("Pulling codebase from GitHub master...", "info");
+    try {
+      const res = await fetch("/api/git/pull", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        toast.show("Updates pulled and rebased successfully!", "success");
+        setGitStatusOutput(data.output);
+        fetchGitStatus();
+      } else {
+        toast.show(data.error || "Failed pulling updates", "error");
+        setGitStatusOutput(data.output || data.error);
+      }
+    } catch (e: any) {
+      toast.show("Pull error: " + e.message, "error");
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  const handleGitPush = async () => {
+    setGitLoading(true);
+    toast.show("Pushing local updates to GitHub origin master...", "info");
+    try {
+      const res = await fetch("/api/git/push", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        toast.show("Local commits pushed successfully!", "success");
+        setGitStatusOutput(data.output);
+        fetchGitStatus();
+      } else {
+        toast.show(data.error || "Failed pushing updates", "error");
+        setGitStatusOutput(data.output || data.error);
+      }
+    } catch (e: any) {
+      toast.show("Push error: " + e.message, "error");
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  const handleGitSync = async () => {
+    setGitLoading(true);
+    toast.show("Executing Full Antigravity Code Sync sequence...", "info");
+    try {
+      const res = await fetch("/api/git/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commitMessage: commitMessage.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.show("Lifecycle Sync successfully finalized!", "success");
+        setCommitMessage("");
+        setGitStatusOutput(data.output);
+        fetchGitStatus();
+      } else {
+        toast.show(data.error || "Sync sequence failure", "error");
+        setGitStatusOutput(data.output || data.error);
+      }
+    } catch (e: any) {
+      toast.show("Sync error: " + e.message, "error");
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  const handleGitHealth = async () => {
+    setGitLoading(true);
+    toast.show("Running system memory and storage diagnostics...", "info");
+    try {
+      const res = await fetch("/api/git/health-check", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+         toast.show("Active Integrity Check Green!", "success");
+         setGitStatusOutput(data.output);
+         fetchGitStatus();
+      } else {
+         toast.show("Found issues or cache overflow", "error");
+         setGitStatusOutput(data.output || data.error);
+      }
+    } catch (e: any) {
+       toast.show("Diagnostics error: " + e.message, "error");
+    } finally {
+       setGitLoading(false);
+    }
+  };
 
   // OBD-II Link Dropdown Preset State
   const [selectedObdPreset, setSelectedObdPreset] = useState(() => {
@@ -493,6 +646,142 @@ export const SettingsScreen = ({
                 </button>
               </div>
             )}
+          </div>
+
+          {/* 6. GitHub Repository Sync & Antigravity Linker */}
+          <div className="bg-surface/30 border border-white/5 rounded-3xl p-5 space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="bg-black/40 w-10 h-10 rounded-xl flex items-center justify-center border border-white/5">
+                  <Github className="text-primary w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-white uppercase tracking-wider">GitHub Team Forge Sync Core</h4>
+                  <p className="text-[10px] text-text-dim font-medium">Link workspace codebase to GitHub repository, sync changes, and track active commits.</p>
+                </div>
+              </div>
+              <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 ${gitInitialized ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20"}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${gitInitialized ? "bg-green-500 animate-pulse" : "bg-zinc-500"}`} />
+                {gitInitialized ? "Linked" : "No Link"}
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Repo HTTPS URL</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={gitRepoUrl}
+                    onChange={(e) => setGitRepoUrl(e.target.value)}
+                    placeholder="https://github.com/username/project.git"
+                    className="flex-1 bg-black/40 border border-white/5 rounded-xl py-3 px-4 text-xs text-text-primary placeholder:text-text-dim outline-none focus:border-primary/50 transition-all font-mono animate-none"
+                    disabled={gitInitialized}
+                  />
+                  {!gitInitialized ? (
+                    <button
+                      onClick={handleLinkGit}
+                      disabled={gitLoading}
+                      className="px-4 py-3 bg-primary hover:bg-primary/95 text-black font-extrabold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md disabled:opacity-50"
+                    >
+                      {gitLoading ? "Linking..." : "Link"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Disconnect linked repository?")) {
+                          setGitInitialized(false);
+                          toast.show("Repository unlinked", "info");
+                        }
+                      }}
+                      className="px-4 py-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-extrabold text-[10px] uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Unlink
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {gitInitialized && (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Workspace Commit Message</span>
+                    <input
+                      type="text"
+                      value={commitMessage}
+                      onChange={(e) => setCommitMessage(e.target.value)}
+                      placeholder="e.g. Syncing parts inventory adjustments"
+                      className="w-full bg-black/40 border border-white/5 rounded-xl py-3 px-4 text-xs text-text-primary placeholder:text-text-dim outline-none focus:border-primary/50 transition-all font-mono"
+                    />
+                  </div>
+
+                  {/* Actions Console controls */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <button
+                      onClick={handleGitSync}
+                      disabled={gitLoading}
+                      className="py-3 bg-primary/10 border border-primary/20 hover:bg-primary text-primary hover:text-black font-black uppercase tracking-widest text-[9px] rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${gitLoading ? "animate-spin" : ""}`} />
+                      Sync Work
+                    </button>
+                    <button
+                      onClick={handleGitPull}
+                      disabled={gitLoading}
+                      className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[9px] rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <GitPullRequest className="w-3 h-3" />
+                      Pull Update
+                    </button>
+                    <button
+                      onClick={handleGitPush}
+                      disabled={gitLoading}
+                      className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[9px] rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <FileText className="w-3 h-3" />
+                      Push Commit
+                    </button>
+                    <button
+                      onClick={handleGitHealth}
+                      disabled={gitLoading}
+                      className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[9px] rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Activity className="w-3 h-3" />
+                      Audits Check
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Console log window */}
+              <div className="border border-white/5 rounded-2xl bg-black/80 overflow-hidden mt-3">
+                <div className="px-4 py-2 border-b border-white/5 bg-zinc-950 flex items-center justify-between">
+                  <span className="text-[8px] font-mono font-bold uppercase text-text-dim tracking-wider flex items-center gap-1.5">
+                    <Terminal className="w-3 h-3 text-primary" /> Active Terminal Engine output
+                  </span>
+                  <button
+                    onClick={fetchGitStatus}
+                    className="text-[8px] text-primary uppercase font-black hover:underline"
+                  >
+                    Refresh Status
+                  </button>
+                </div>
+                <div className="p-4 max-h-40 overflow-y-auto font-mono text-[10px] text-green-400 no-scrollbar space-y-1 select-all selection:bg-primary/20 selection:text-white">
+                  {gitStatusOutput ? (
+                    <div className="whitespace-pre-wrap">{gitStatusOutput}</div>
+                  ) : (
+                    <span className="text-text-dim italic">Waiting for connection stream...</span>
+                  )}
+                  {gitLogs && (
+                    <div className="pt-2 border-t border-white/5 mt-2">
+                      <span className="text-text-dim block text-[8px] uppercase font-black mb-1">Tail .sync-log telemetry:</span>
+                      <div className="whitespace-pre-wrap text-zinc-500 font-mono">{gitLogs}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
 
         </div>
