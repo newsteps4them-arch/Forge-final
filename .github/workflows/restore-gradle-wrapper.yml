@@ -1,4 +1,4 @@
-name: Restore Gradle Wrapper
+name: Restore Gradle Wrapper - Complete Fix
 
 on:
   workflow_dispatch:
@@ -16,9 +16,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
       
-      - name: Install npm dependencies
-        run: npm install
+      - name: Install npm dependencies with verbose logging
+        run: |
+          npm install --verbose
+          echo "=== Verifying @capacitor/android installation ==="
+          ls -la node_modules/@capacitor/android/capacitor/ || echo "ERROR: @capacitor/android not found"
       
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,37 +33,45 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       
-      - name: Generate Capacitor Android config and plugins
-        run: npx cap sync android
+      - name: Run capacitor sync to generate required files
+        run: |
+          npx cap sync android --verbose || true
+          echo "=== Checking for capacitor-cordova-android-plugins ==="
+          ls -la android/capacitor-cordova-android-plugins/ || echo "Not generated yet"
       
-      - name: Generate gradle-wrapper.jar using gradle wrapper command
+      - name: Verify node_modules structure before gradle
+        run: |
+          echo "=== Checking @capacitor/android/capacitor ==="
+          test -d node_modules/@capacitor/android/capacitor && echo "✓ Found" || echo "✗ NOT FOUND"
+          ls -la node_modules/@capacitor/android/ || true
+      
+      - name: Generate gradle-wrapper.jar
         run: |
           cd android
           chmod +x ./gradlew
-          # Use the local gradlew to generate the wrapper for Gradle 8.7
+          # Run gradle wrapper to generate the correct gradle-wrapper.jar
           ./gradlew wrapper --gradle-version 8.7 --distribution-type bin
           cd ..
       
-      - name: Verify JAR file is valid
+      - name: Verify gradle-wrapper.jar
         run: |
           file android/gradle/wrapper/gradle-wrapper.jar
           jar tf android/gradle/wrapper/gradle-wrapper.jar | head -5
       
-      - name: Clean build directory and test build
+      - name: Test assembleDebug build
         run: |
           cd android
-          ./gradlew clean
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug
           cd ..
       
-      - name: Commit and push gradle-wrapper.jar fix
+      - name: Commit gradle-wrapper.jar if changed
         if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add android/gradle/wrapper/gradle-wrapper.jar
           if git diff --cached --quiet; then
-            echo "No changes to gradle-wrapper.jar"
+            echo "No changes to commit"
           else
             git commit -m "fix: Restore valid gradle-wrapper.jar for Gradle 8.7"
             git push origin fix/restore-gradle-wrapper-jar
