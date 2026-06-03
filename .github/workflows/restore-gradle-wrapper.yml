@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '18'
       
-      - name: Install npm dependencies first
+      - name: Install npm dependencies
         run: npm install
       
       - name: Setup Java
@@ -25,6 +25,12 @@ jobs:
         with:
           java-version: '21'
           distribution: 'zulu'
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Generate Capacitor Android config and plugins
+        run: npx cap sync android
       
       - name: Generate gradle-wrapper.jar using gradle wrapper command
         run: |
