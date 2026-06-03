@@ -9,8 +9,6 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
-        with:
-          ref: fix/restore-gradle-wrapper-jar
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -71,5 +69,5 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "fix: Restore valid gradle-wrapper.jar for Gradle 8.7"
-            git push origin fix/restore-gradle-wrapper-jar
+            git push origin HEAD
           fi

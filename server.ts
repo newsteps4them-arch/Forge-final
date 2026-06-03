@@ -9,6 +9,35 @@ import fs from "fs/promises";
 
 const execAsync = promisify(exec);
 
+async function getBashCommand(): Promise<string> {
+  if (process.platform !== "win32") {
+    return "bash";
+  }
+  const standardPaths = [
+    "C:\\Program Files\\Git\\bin\\bash.exe",
+    "C:\\Program Files\\Git\\usr\\bin\\bash.exe",
+    "C:\\Program Files (x86)\\Git\\bin\\bash.exe",
+    "C:\\Program Files (x86)\\Git\\usr\\bin\\bash.exe",
+  ];
+  for (const p of standardPaths) {
+    try {
+      await fs.access(p);
+      return `"${p}"`;
+    } catch {}
+  }
+  try {
+    const { stdout } = await execAsync("where git");
+    const gitPath = stdout.split("\r\n")[0] || stdout.split("\n")[0];
+    if (gitPath) {
+      const gitDir = path.dirname(path.dirname(gitPath));
+      const possibleBash = path.join(gitDir, "bin", "bash.exe");
+      await fs.access(possibleBash);
+      return `"${possibleBash}"`;
+    }
+  } catch {}
+  return "bash";
+}
+
 dotenv.config();
 
 async function startServer() {
@@ -27,7 +56,8 @@ async function startServer() {
   // GitHub Git Sync API Gateway
   app.get("/api/git/status", async (req, res) => {
     try {
-      const { stdout } = await execAsync("bash scripts/sync.sh --check");
+      const bashCmd = await getBashCommand();
+      const { stdout } = await execAsync(`${bashCmd} scripts/sync.sh --check`);
       let isInitialized = false;
       try {
         await fs.access(path.join(process.cwd(), ".git"));
@@ -68,7 +98,8 @@ async function startServer() {
       if (!repoUrl) {
         return res.status(400).json({ error: "Repository URL is required." });
       }
-      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh --link "${repoUrl}"`);
+      const bashCmd = await getBashCommand();
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --link "${repoUrl}"`);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Link API Error:", error);
@@ -80,7 +111,8 @@ async function startServer() {
     try {
       const { commitMessage } = req.body;
       const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
-      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh sync ${msg}`);
+      const bashCmd = await getBashCommand();
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh sync ${msg}`);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Sync API Error:", error);
@@ -90,7 +122,8 @@ async function startServer() {
 
   app.post("/api/git/pull", async (req, res) => {
     try {
-      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --pull-only");
+      const bashCmd = await getBashCommand();
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --pull-only`);
       res.json({ success: true, message: "Remote repository updates pulled successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Pull API Error:", error);
@@ -100,7 +133,8 @@ async function startServer() {
 
   app.post("/api/git/push", async (req, res) => {
     try {
-      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --push-only");
+      const bashCmd = await getBashCommand();
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --push-only`);
       res.json({ success: true, message: "Local workspace updates pushed to remote successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Push API Error:", error);
@@ -110,7 +144,8 @@ async function startServer() {
 
   app.post("/api/git/health-check", async (req, res) => {
     try {
-      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --health");
+      const bashCmd = await getBashCommand();
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --health`);
       res.json({ success: true, message: "Integrity check done.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Health API Error:", error);

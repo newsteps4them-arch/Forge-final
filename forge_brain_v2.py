@@ -57,20 +57,40 @@ def run_tests(ptype):
     try:
         if ptype == "python":
             res = subprocess.run(["python", "-m", "py_compile", "."], capture_output=True, text=True, timeout=30)
-            return res.stderr if res.returncode != 0 else None
+            if res.returncode != 0:
+                return res.stderr or res.stdout or "Compilation failed"
+            return None
         elif ptype == "node":
-            res = subprocess.run(["npm", "run", "lint"], capture_output=True, text=True, timeout=30)
-            return res.stderr if res.returncode != 0 else None
+            npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+            res = subprocess.run([npm_cmd, "run", "lint"], capture_output=True, text=True, timeout=30)
+            if res.returncode != 0:
+                return (res.stdout or "") + "\n" + (res.stderr or "")
+            return None
     except Exception as e:
         return str(e)
     return None
 
 def get_fix(error, ptype, model):
-    prompt = f"Fix this {ptype} error:\n{error[:800]}\n\nReturn JSON with 'code' key containing ```{ptype}``` block"
+    prompt = (
+        f"Fix this {ptype} error:\n{error[:1500]}\n\n"
+        f"Identify which file has the error, fix it, and return a JSON object with two keys:\n"
+        f"- 'file': the relative path of the file that needs to be fixed\n"
+        f"- 'code': the full corrected contents of that file\n\n"
+        f"Return ONLY the raw JSON object, without any markdown formatting around it."
+    )
     try:
-        return model.generate_content(prompt).text
-    except:
-        return None
+        # Use JSON mode if possible for reliable parsing
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"}
+        )
+        return response.text
+    except Exception as e:
+        print(f"   ⚠ API Call failed: {e}")
+        try:
+            return model.generate_content(prompt).text
+        except:
+            return None
 
 def extract_code(text, ptype):
     match = re.search(rf"```{ptype}(.*?)```", text, re.DOTALL)
@@ -99,10 +119,32 @@ def main():
             return
         
         print(f"🔍 Loop {loop+1}/{MAX_LOOPS}: Requesting Gemini fix...")
-        fix = get_fix(error, ptype, model)
-        if fix:
-            log_it(loop+1, error, fix)
-            print(f"   ✏ Fix received")
+        fix_text = get_fix(error, ptype, model)
+        if fix_text:
+            log_it(loop+1, error, fix_text)
+            print(f"   ✏ Fix received. Applying...")
+            
+            # Clean and parse JSON
+            clean_text = fix_text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            elif clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+            clean_text = clean_text.strip()
+            
+            try:
+                data = json.loads(clean_text)
+                file_path = data.get("file")
+                code_content = data.get("code")
+                if file_path and code_content:
+                    Path(file_path).write_text(code_content, encoding="utf-8")
+                    print(f"   ✅ Applied fix to {file_path}")
+                else:
+                    print("   ⚠ Invalid JSON structure in fix response (missing 'file' or 'code')")
+            except Exception as ex:
+                print(f"   ⚠ Failed to parse/apply fix: {ex}")
         else:
             print(f"   ⚠ Could not get fix")
     
