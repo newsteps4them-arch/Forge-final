@@ -14,6 +14,47 @@ import {
 } from "lucide-react";
 import { toast } from "../../lib/notifications";
 
+interface PinInfo {
+  label: string;
+  pin: string;
+  function: string;
+}
+
+interface EcmData {
+  name: string;
+  pins: PinInfo[];
+}
+
+interface ConnectionToEcm {
+  ecmPin: string;
+  coilPin: string;
+  wireColor: string;
+}
+
+interface ThrottleConnection {
+  ecmPin: string;
+  throttlePin: string;
+  wireColor: string;
+}
+
+interface IgnitionCoilData {
+  name: string;
+  pins: PinInfo[];
+  connectionToEcm: ConnectionToEcm;
+}
+
+interface ThrottleBodyData {
+  name: string;
+  pins: PinInfo[];
+  connectionToEcm: ThrottleConnection[];
+}
+
+interface WiringData {
+  ecm: EcmData;
+  ignitionCoil: IgnitionCoilData;
+  throttleBody: ThrottleBodyData;
+}
+
 export const WiringDiagramsScreen = ({
   onBack,
   vehicle,
@@ -25,8 +66,8 @@ export const WiringDiagramsScreen = ({
   const [activeLayer, setActiveLayer] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [wiringData, setWiringData] = useState<any>(null);
-  const [selectedComponent, setSelectedComponent] = useState<{ title: string, details: string, pins: any[] } | null>(null);
+  const [wiringData, setWiringData] = useState<WiringData | null>(null);
+  const [selectedComponent, setSelectedComponent] = useState<{ title: string, details: string, pins: PinInfo[] } | null>(null);
 
   const layers = [
     { id: "all", name: "All Circuits" },
@@ -111,9 +152,10 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
         
         const parsed = JSON.parse(cleanText);
         setWiringData(parsed);
-      } catch (err: any) {
-        console.error("Failed to load custom wiring schema:", err);
-        setError(err.message || "Failed to load custom vehicle schematics.");
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Failed to load custom wiring schema:", error);
+        setError(error.message || "Failed to load custom vehicle schematics.");
         // Fallback to static generic specs if API fails
         setWiringData({
           ecm: {
@@ -195,6 +237,10 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
              <p className="text-[10px] text-white/50 uppercase tracking-widest mt-1.5 font-mono">Querying factory electrical layouts for {vehicle}...</p>
           </div>
         </div>
+      ) : !wiringData ? (
+        <div className="flex-1 bg-[#0A0A0A] border border-white/10 rounded-3xl flex items-center justify-center text-white/50 font-mono text-xs uppercase tracking-wider">
+          Failed to load wiring schematics
+        </div>
       ) : (
         <>
           <div className="flex items-center gap-2 bg-surface/50 border border-white/10 p-2 rounded-2xl mb-4">
@@ -254,8 +300,8 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                   {wiringData.ecm.name}
                 </div>
                 <div className="flex flex-col gap-3.5 text-[9px] font-mono text-white/70">
-                  {wiringData.ecm.pins.slice(0, 5).map((p: any, idx: number) => (
-                    <div key={idx} className="flex justify-between border-b border-white/5 pb-1">
+                  {wiringData.ecm.pins.slice(0, 5).map((p) => (
+                    <div key={p.pin} className="flex justify-between border-b border-white/5 pb-1">
                       <span className="text-white">Pin {p.pin}</span>
                       <span className="text-primary/70">({p.label})</span>
                     </div>
@@ -276,8 +322,8 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                   {wiringData.ignitionCoil.name}
                 </div>
                 <div className="flex flex-col gap-2 text-[9px] font-mono text-white/50">
-                  {wiringData.ignitionCoil.pins.slice(0, 3).map((p: any, idx: number) => (
-                    <div key={idx} className="flex justify-between">
+                  {wiringData.ignitionCoil.pins.slice(0, 3).map((p) => (
+                    <div key={p.pin} className="flex justify-between">
                       <span className="text-white">Pin {p.pin}</span>
                       <span>({p.label})</span>
                     </div>
@@ -298,8 +344,8 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                   {wiringData.throttleBody.name}
                 </div>
                 <div className="flex flex-col gap-2 text-[9px] font-mono text-white/50">
-                  {wiringData.throttleBody.pins.slice(0, 3).map((p: any, idx: number) => (
-                    <div key={idx} className="flex justify-between">
+                  {wiringData.throttleBody.pins.slice(0, 3).map((p) => (
+                    <div key={p.pin} className="flex justify-between">
                       <span className="text-white">Pin {p.pin}</span>
                       <span>({p.label})</span>
                     </div>
@@ -420,8 +466,8 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
           <div className="flex-grow overflow-y-auto no-scrollbar">
             <div className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-2 font-mono">Pin Mapping & Diagnostic Functions</div>
             <div className="space-y-2">
-              {selectedComponent.pins.map((p, idx) => (
-                <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-3 flex justify-between items-center">
+              {selectedComponent.pins.map((p) => (
+                <div key={p.pin} className="bg-white/5 border border-white/5 rounded-xl p-3 flex justify-between items-center">
                   <div>
                     <span className="text-xs text-white font-bold">Pin {p.pin}</span>
                     <span className="text-[10px] text-primary/80 font-mono ml-2">({p.label})</span>

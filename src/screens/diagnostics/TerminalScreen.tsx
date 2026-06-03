@@ -4,7 +4,7 @@ import { ArrowLeft, Terminal, Send, Save, Download, Tv, ChevronDown, ChevronRigh
 import { toast } from "../../lib/notifications";
 
 // Helper to parse each flat log line into metadata
-const parseLogLine = (log: string) => {
+const parseLogLine = (log: string, index: number = 0) => {
   const isTxVal = log.includes("TX:") || log.startsWith(">") || log.includes("[sys] TX:");
   const isErrorVal = log.toLowerCase().includes("error") || log.toLowerCase().includes("failed");
   
@@ -19,6 +19,7 @@ const parseLogLine = (log: string) => {
   content = content.replace(/^(TX:|RX:|>\s*|\[sys\]\s*TX:|\[sys\]\s*RX:)\s*/i, "");
   
   return {
+    id: `log-${index}-${timestamp}-${content}`,
     raw: log,
     isTx: isTxVal,
     isError: isErrorVal,
@@ -43,7 +44,7 @@ const parseTransactions = (flatLogs: string[]): CommandTransaction[] => {
   let currentTx: CommandTransaction | null = null;
   
   chronological.forEach((log, index) => {
-    const parsed = parseLogLine(log);
+    const parsed = parseLogLine(log, index);
     
     if (parsed.isTx) {
       if (currentTx) {
@@ -125,6 +126,7 @@ export const TerminalScreen = ({
   const [crtEnabled, setCrtEnabled] = useState(true);
   const [collapsedTxIds, setCollapsedTxIds] = useState<Record<string, boolean>>({});
   const logEndRef = useRef<HTMLDivElement>(null);
+  const linkRef = useRef<HTMLAnchorElement>(null);
 
   // Parse transactions for rendering folding nodes
   const transactions = parseTransactions(logs);
@@ -155,13 +157,13 @@ export const TerminalScreen = ({
       }).join("\n");
       
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `TorquePro_Log_${new Date().getTime()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.show("Logs exported as CSV for Torque Pro", "success");
+    if (linkRef.current) {
+      const link = linkRef.current;
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `TorquePro_Log_${new Date().getTime()}.csv`);
+      link.click();
+      toast.show("Logs exported as CSV for Torque Pro", "success");
+    }
   };
 
   // Toggles collapsing for *all* transactions that contain outputs
@@ -270,8 +272,8 @@ export const TerminalScreen = ({
                 </div>
                 {!isCollapsed && (
                   <div className="space-y-1">
-                    {t.responses.map((resp, idx) => (
-                      <div key={idx} className="flex items-start gap-3 text-[#00ff41]/70 font-mono text-xs">
+                    {t.responses.map((resp) => (
+                      <div key={resp.id} className="flex items-start gap-3 text-[#00ff41]/70 font-mono text-xs">
                         <span className="opacity-50 select-none flex-shrink-0">RX</span>
                         <span className="opacity-30">|</span>
                         <span className="break-all">{resp.content}</span>
@@ -335,8 +337,8 @@ export const TerminalScreen = ({
                   {/* Visual vertical connector rail */}
                   <div className="absolute left-[21px] top-0 bottom-4 w-[1px] bg-[#00ff41]/15 pointer-events-none" />
 
-                  {t.responses.map((resp, idx) => (
-                    <ResponseLineItem key={idx} resp={resp} />
+                  {t.responses.map((resp) => (
+                    <ResponseLineItem key={resp.id} resp={resp} />
                   ))}
                 </div>
               )}
@@ -392,6 +394,7 @@ export const TerminalScreen = ({
             </button>
         </div>
       </div>
+      <a ref={linkRef} className="hidden" style={{ display: "none" }} />
     </motion.div>
   );
 };

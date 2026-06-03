@@ -175,7 +175,7 @@ type DTC = {
   status: "Stored" | "Pending" | "Permanent";
 };
 
-type OnboardingData = {
+export type OnboardingData = {
   assistantName: string;
   wakeWord: string;
   customVoiceEnabled: boolean;
@@ -197,7 +197,7 @@ type OnboardingData = {
 };
 
 
-type AssistantMode =
+export type AssistantMode =
   | "Operations"
   | "Diagnostics Lead"
   | "Performance Tuner"
@@ -224,7 +224,7 @@ type Task = {
   dueDate?: string;
   userId: string;
   projectId: string;
-  updatedAt?: any;
+  updatedAt?: unknown;
 };
 
 type Project = {
@@ -266,7 +266,7 @@ const ChatHistoryWidget = ({
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as any))
+        .map((doc) => ({ id: doc.id, ...doc.data() } as { id: string; text: string; role: string; createdAt: number }))
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         .slice(0, 5);
       setRecentChats(fetchedMessages);
@@ -669,7 +669,7 @@ const SetupScreen = ({
 }: {
   title: string;
   subtitle: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   placeholder: string;
   value: string;
   onChange: (val: string) => void;
@@ -733,7 +733,7 @@ const VehicleSetupScreen = ({
   onNext,
 }: {
   onboarding: OnboardingData;
-  updateData: (key: keyof OnboardingData, value: any) => void;
+  updateData: (key: keyof OnboardingData, value: string | boolean) => void;
   onNext: () => void;
 }) => {
   return (
@@ -957,7 +957,7 @@ const ChatScreen = ({
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as ChatMessage & { createdAt: any }))
+        .map((doc) => ({ id: doc.id, ...doc.data() } as ChatMessage & { createdAt: number }))
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       setMessages(fetchedMessages);
     });
@@ -1031,17 +1031,45 @@ const ChatScreen = ({
   const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
-    let recognition: any = null;
+    interface SpeechRecognitionEvent {
+      resultIndex: number;
+      results: {
+        length: number;
+        [index: number]: {
+          isFinal: boolean;
+          [index: number]: {
+            transcript: string;
+          };
+        };
+      };
+    }
+
+    interface WebkitSpeechRecognition {
+      continuous: boolean;
+      interimResults: boolean;
+      onresult: (event: SpeechRecognitionEvent) => void;
+      onerror: (event: unknown) => void;
+      onend: () => void;
+      start: () => void;
+      stop: () => void;
+    }
+
+    interface SpeechRecognitionWindow extends Window {
+      SpeechRecognition?: new () => WebkitSpeechRecognition;
+      webkitSpeechRecognition?: new () => WebkitSpeechRecognition;
+    }
+
+    let recognition: WebkitSpeechRecognition | null = null;
     const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+      (window as unknown as SpeechRecognitionWindow).SpeechRecognition ||
+      (window as unknown as SpeechRecognitionWindow).webkitSpeechRecognition;
 
     if (SpeechRecognition && isRecording) {
       recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = false;
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         let transcript = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
@@ -1058,7 +1086,6 @@ const ChatScreen = ({
       };
 
       recognition.onend = () => {
-        // if it stops organically, restart if isRecording is true, but since that can loop, just turn it off
         setIsRecording(false);
       };
 
@@ -1078,10 +1105,14 @@ const ChatScreen = ({
   }, [isRecording]);
 
   const handleMicClick = () => {
+    interface SpeechRecognitionWindow extends Window {
+      SpeechRecognition?: unknown;
+      webkitSpeechRecognition?: unknown;
+    }
     if (
       !(
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition
+        (window as unknown as SpeechRecognitionWindow).SpeechRecognition ||
+        (window as unknown as SpeechRecognitionWindow).webkitSpeechRecognition
       )
     ) {
       alert("Speech recognition is not supported in this browser.");
@@ -1234,8 +1265,9 @@ const ChatScreen = ({
       if (autoSpeak) {
         speakText(response);
       }
-    } catch (error: any) {
-      toast.show(error.message || "AI Error", "error");
+    } catch (error) {
+      const err = error as Error;
+      toast.show(err.message || "AI Error", "error");
     } finally {
       setLoading(false);
     }
@@ -2328,10 +2360,10 @@ const DiagnosticScreen = ({
                       {activeTab === "system" ? "Detected Category Areas" : "Severity Categorization"}
                     </div>
                     <div className="space-y-1.5">
-                      {chartData.map((item, idx) => {
+                      {chartData.map((item) => {
                         const percentage = Math.round((item.value / dtcs.length) * 100);
                         return (
-                          <div key={idx} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
+                          <div key={item.name} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                               <span className="text-[10px] text-white/80 font-mono uppercase">{item.name}</span>
@@ -2807,11 +2839,12 @@ export default function App() {
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+    } catch (error) {
+      const err = error as { code?: string; message?: string };
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
         toast.show("Login popup was blocked or closed. Please allow popups.", "error");
       } else {
-        toast.show(`Login failed: ${error.message}`, "error");
+        toast.show(`Login failed: ${err.message}`, "error");
       }
     }
   };
@@ -2821,8 +2854,9 @@ export default function App() {
       await signInAnonymously(auth);
       toast.show("Signed in as Offline User", "info");
       handleNext();
-    } catch (error: any) {
-      toast.show(`Offline Login failed: ${error.message}`, "error");
+    } catch (error) {
+      const err = error as { message?: string };
+      toast.show(`Offline Login failed: ${err.message}`, "error");
       handleNext();
     }
   };
@@ -2831,8 +2865,9 @@ export default function App() {
     try {
       await signOut(auth);
       toast.show("Signed out successfully", "info");
-    } catch (error: any) {
-      toast.show(`Logout failed: ${error.message}`, "error");
+    } catch (error) {
+      const err = error as { message?: string };
+      toast.show(`Logout failed: ${err.message}`, "error");
     }
   };
 
@@ -3017,12 +3052,13 @@ export default function App() {
       } else {
         toast.show("Disconnected from OBD", "info");
       }
-    } catch (err: any) {
-      console.error(err);
+    } catch (err) {
+      const error = err as { name?: string; message?: string };
+      console.error(error);
       const msg =
-        err.name === "SecurityError"
+        error.name === "SecurityError"
           ? "Hardware access requires top-level navigation. Open app in new tab."
-          : err.message || "Connection failed";
+          : error.message || "Connection failed";
       toast.show(msg, "error");
     }
   };
@@ -3088,8 +3124,9 @@ export default function App() {
          setDetectedDtcs([]);
          toast.show("DTC Memory Cleared", "success");
        }
-    } catch (e: any) {
-       const errLog = `[sys] ERROR: ${e.message}`;
+    } catch (e) {
+       const error = e as Error;
+       const errLog = `[sys] ERROR: ${error.message}`;
        setDiagnosticLogs((prev) =>
          [errLog, ...prev].slice(0, 50),
        );
@@ -3105,7 +3142,7 @@ export default function App() {
     }
   };
 
-  const updateData = (key: keyof OnboardingData, value: any) => {
+  const updateData = (key: keyof OnboardingData, value: string | boolean) => {
     setOnboarding((prev) => ({ ...prev, [key]: value }));
   };
 

@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "../lib/obdConnection";
 
+const OBD_RPM_FACTOR = 256;
+const OBD_RPM_DIVISOR = 4;
+const OBD_POLLING_MS = 2000;
+
 export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   const [obdConnected, setObdConnected] = useState(false);
   const [logs, setLogs] = useState<string[]>(() => {
@@ -57,7 +61,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
       addLog(`[sys] RX: ${res}`);
       
       return true; // connected
-    } catch (err: any) {
+    } catch (err: unknown) {
       obdRef.current = null;
       setObdConnected(false);
       throw err;
@@ -94,7 +98,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
                  A = parseInt(hexParts[2], 16);
                  B = parseInt(hexParts[3], 16);
                }
-               const rpm = ((A * 256) + B) / 4;
+               const rpm = ((A * OBD_RPM_FACTOR) + B) / OBD_RPM_DIVISOR;
                
                setTelemetry(prev => {
                    const currTime = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -106,7 +110,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
        } catch (err) {
            console.error("Polling error", err);
        }
-    }, 2000); // Poll every 2 seconds
+    }, OBD_POLLING_MS); // Poll every 2 seconds
   }, []);
 
   const stopPolling = useCallback(() => {

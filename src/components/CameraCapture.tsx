@@ -19,6 +19,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   assistantMode,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [hasCamera, setHasCamera] = useState<boolean>(true);
@@ -82,12 +83,11 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
     return () => {
       stopCamera();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facingMode, startCamera]);
+  }, [startCamera, stopCamera]);
 
   const handleCapture = () => {
-    if (videoRef.current && stream) {
-      const canvas = document.createElement("canvas");
+    if (videoRef.current && canvasRef.current && stream) {
+      const canvas = canvasRef.current;
       canvas.width = videoRef.current.videoWidth || 1080;
       canvas.height = videoRef.current.videoHeight || 1920;
       const ctx = canvas.getContext("2d");
@@ -175,6 +175,11 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
             autoPlay
             playsInline
             className="absolute inset-0 w-full h-full object-cover"
+          />
+          <canvas
+            ref={canvasRef}
+            className="hidden"
+            style={{ display: "none" }}
           />
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
              <div className="w-64 h-64 border-2 border-white/20 rounded-3xl relative">

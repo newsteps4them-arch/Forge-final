@@ -5,18 +5,21 @@ import {
   Settings, User, BookOpen, LayoutGrid, Box
 } from "lucide-react";
 
+import { Screen } from "../../hooks/useNavigation";
+import { OnboardingData, AssistantMode } from "../../App";
+
 interface MainDashboardProps {
-  onboarding: any;
+  onboarding: OnboardingData;
   isOnline: boolean;
   activeProject: string;
-  projects: any[];
-  obdMode: string;
-  setObdMode: (mode: any) => void;
-  updateData: (key: any, val: any) => void;
+  projects: Record<string, unknown>[];
+  obdMode: "Bluetooth" | "USB" | "Simulated";
+  setObdMode: (mode: "Bluetooth" | "USB" | "Simulated") => void;
+  updateData: (key: keyof OnboardingData, val: string | boolean) => void;
   obdConnected: boolean;
   handleConnect: () => void;
-  setCurrentScreen: (screen: any) => void;
-  setChatMode: (mode: any) => void;
+  setCurrentScreen: (screen: Screen) => void;
+  setChatMode: (mode: AssistantMode) => void;
   setChatInitialQuery: (query: string) => void;
   projectPicker: React.ReactNode;
   chatHistoryWidget: React.ReactNode;
@@ -47,8 +50,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const lower = omniInput.toLowerCase();
     
     // Auto-categorize based on heuristics
-    let targetCategory: any = "Operations";
-    let targetScreen = "Chat";
+    let targetCategory: AssistantMode = "Operations";
+    let targetScreen: Screen = "Chat";
 
     if (lower.includes("code") || lower.includes("scan") || lower.includes("dtc") || lower.includes("diagnose") || lower.includes("fault") || lower.includes("check engine")) {
       targetCategory = "Diagnostics Lead";
