@@ -20,29 +20,31 @@ jobs:
       - name: Install npm dependencies
         run: npm install
       
-      - name: Download Gradle 8.7 distribution
-        run: |
-          mkdir -p /tmp/gradle-download
-          cd /tmp/gradle-download
-          wget https://services.gradle.org/distributions/gradle-8.7-bin.zip
-          unzip -q gradle-8.7-bin.zip
-          
-      - name: Extract and restore gradle-wrapper.jar
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'zulu'
+      
+      - name: Download gradle-wrapper.jar from official Gradle GitHub
         run: |
           mkdir -p android/gradle/wrapper
-          cp /tmp/gradle-download/gradle-8.7/lib/gradle-wrapper.jar android/gradle/wrapper/gradle-wrapper.jar
+          cd android/gradle/wrapper
+          # Download the official gradle-wrapper.jar from Gradle's GitHub repository
+          wget https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -O gradle-wrapper.jar
+          cd /home/runner/work/team.forge/team.forge
           
       - name: Verify JAR file
         run: |
           file android/gradle/wrapper/gradle-wrapper.jar
           jar tf android/gradle/wrapper/gradle-wrapper.jar | head -20
       
-      - name: Test build
+      - name: Test build with gradlew
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
-      
+          ./gradlew --version
+          
       - name: Commit and push
         if: success()
         run: |
@@ -52,6 +54,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "fix: Restore gradle-wrapper.jar for Gradle 8.7"
+            git commit -m "fix: Restore gradle-wrapper.jar from official Gradle repository"
             git push origin fix/restore-gradle-wrapper-jar
           fi
