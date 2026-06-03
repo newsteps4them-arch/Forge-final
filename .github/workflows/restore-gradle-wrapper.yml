@@ -12,6 +12,14 @@ jobs:
         with:
           ref: fix/restore-gradle-wrapper-jar
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install npm dependencies
+        run: npm install
+      
       - name: Download Gradle 8.7 distribution
         run: |
           mkdir -p /tmp/gradle-download
@@ -29,7 +37,14 @@ jobs:
           file android/gradle/wrapper/gradle-wrapper.jar
           jar tf android/gradle/wrapper/gradle-wrapper.jar | head -20
       
+      - name: Test build
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+      
       - name: Commit and push
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
