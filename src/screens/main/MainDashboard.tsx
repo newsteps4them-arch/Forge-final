@@ -12,10 +12,10 @@ interface MainDashboardProps {
   projects: any[];
   obdMode: string;
   setObdMode: (mode: any) => void;
-  updateData: (key: string, val: string) => void;
+  updateData: (key: any, val: any) => void;
   obdConnected: boolean;
   handleConnect: () => void;
-  setCurrentScreen: (screen: string) => void;
+  setCurrentScreen: (screen: any) => void;
   setChatMode: (mode: any) => void;
   setChatInitialQuery: (query: string) => void;
   projectPicker: React.ReactNode;

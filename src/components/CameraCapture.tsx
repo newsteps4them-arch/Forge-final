@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, X, RefreshCcw, Upload, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { toast } from "../lib/notifications";
 import { motion, AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
+import { Camera as NativeCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export interface CameraCaptureProps {
   onCapture: (imageDataUrl: string) => void;
@@ -30,6 +32,25 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   }, [stream]);
 
   const startCamera = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const image = await NativeCamera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Camera,
+        });
+        if (image.dataUrl) {
+          onCapture(image.dataUrl);
+        }
+        onClose();
+      } catch (e) {
+        console.error("Native camera access denied or failed", e);
+        setHasCamera(false);
+      }
+      return;
+    }
+
     stopCamera();
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -48,10 +69,12 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
         "info"
       );
     }
-  }, [facingMode, stopCamera]);
+  }, [facingMode, stopCamera, onCapture, onClose]);
 
   useEffect(() => {
-    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'undefined') {
+    if (Capacitor.isNativePlatform()) {
+      setTimeout(() => startCamera(), 0);
+    } else if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'undefined') {
       setTimeout(() => startCamera(), 0);
     } else {
       setTimeout(() => setHasCamera(false), 0);
@@ -60,7 +83,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
       stopCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facingMode]);
+  }, [facingMode, startCamera]);
 
   const handleCapture = () => {
     if (videoRef.current && stream) {

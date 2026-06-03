@@ -1,0 +1,17 @@
+{
+  "servers": {
+    "codetrust": {
+      "command": "codetrust-mcp",
+      "_injectedBy": "codetrust-auto-injected",
+      "_resolvedStrategy": "bare_fallback"
+    },
+    "codetrust-gateway": {
+      "command": "codetrust-gateway-mcp",
+      "_injectedBy": "codetrust-auto-injected",
+      "_resolvedStrategy": "bare_fallback",
+      "env": {
+        "CODETRUST_WORKSPACE": "${workspaceFolder}"
+      }
+    }
+  }
+}

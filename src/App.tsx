@@ -99,6 +99,8 @@ import { CameraCapture } from "./components/CameraCapture";
 import { SettingsScreen } from "./screens/settings/SettingsScreen";
 import { MainDashboard } from "./screens/main/MainDashboard";
 import { toast } from "./lib/notifications";
+import { Capacitor } from "@capacitor/core";
+import { storage } from "./lib/storage";
 import {
   auth,
   db,
@@ -194,39 +196,7 @@ type OnboardingData = {
   onboardingComplete: boolean;
 };
 
-type Screen =
-  | "Welcome"
-  | "NameAssistant"
-  | "WakeWord"
-  | "VoiceClone"
-  | "AboutYou"
-  | "Inventory"
-  | "Vehicles"
-  | "Garage"
-  | "KnowledgeBase"
-  | "Ready"
-  | "Settings"
-  | "Main"
-  | "Chat"
-  | "Diagnostics"
-  | "LiveData"
-  | "Coding"
-  | "Terminal"
-  | "Integrations"
-  | "Estimator"
-  | "Topology"
-  | "Analytics"
-  | "VisualInspector"
-  | "GuidedDiagnostics"
-  | "Oscilloscope"
-  | "WiringDiagrams"
-  | "Index"
-  | "PartsCatalog"
-  | "CrmDashboard"
-  | "DviModule"
-  | "TimeClock"
-  | "GoToMarket"
-  | "AdasCalibration";
+
 type AssistantMode =
   | "Operations"
   | "Diagnostics Lead"
@@ -2616,18 +2586,21 @@ export default function App() {
             !fetchedProjects.find((p) => p.id === activeProject)
           ) {
             // Check local storage first
-            try {
-              const saved = localStorage.getItem(
-                `forge_active_project_${user.uid}`,
-              );
-              if (saved && fetchedProjects.find((p) => p.id === saved)) {
-                setActiveProject(saved);
-              } else {
+            const loadSavedProject = async () => {
+              try {
+                const saved = await storage.getItem(
+                  `forge_active_project_${user.uid}`,
+                );
+                if (saved && fetchedProjects.find((p) => p.id === saved)) {
+                  setActiveProject(saved);
+                } else {
+                  setActiveProject(fetchedProjects[0].id);
+                }
+              } catch (e) {
                 setActiveProject(fetchedProjects[0].id);
               }
-            } catch (e) {
-              setActiveProject(fetchedProjects[0].id);
-            }
+            };
+            loadSavedProject();
           }
         }
       },
@@ -2824,9 +2797,9 @@ export default function App() {
   useEffect(() => {
     if (user && activeProject) {
       try {
-        localStorage.setItem(`forge_active_project_${user.uid}`, activeProject);
+        storage.setItem(`forge_active_project_${user.uid}`, activeProject);
       } catch (e) {
-        console.warn("localStorage not available", e);
+        console.warn("storage not available", e);
       }
     }
   }, [activeProject, user]);
@@ -3037,38 +3010,15 @@ export default function App() {
   };
 
   const handleConnect = async () => {
-    if (obdConnected) {
-      if (obdRef.current) {
-         try {
-           await obdRef.current.disconnect();
-         } catch(e) {}
-         obdRef.current = null;
-      }
-      setObdConnected(false);
-      return;
-    }
-
     try {
-      if (obdMode === "Simulated") {
-        obdRef.current = new SimulatedObd();
-      } else if (obdMode === "Bluetooth") {
-        obdRef.current = new WebBluetoothObd();
-      } else if (obdMode === "USB") {
-        obdRef.current = new WebSerialObd();
+      const isConnectedNow = await connect();
+      if (isConnectedNow) {
+        toast.show(`Connected via ${obdMode}`, "success");
+      } else {
+        toast.show("Disconnected from OBD", "info");
       }
-
-      if (!obdRef.current) return;
-      
-      await obdRef.current.connect();
-      setObdConnected(true);
-      
-      const res = await obdRef.current.sendCommand("ATI");
-      setDiagnosticLogs((prev) => [`[sys] RX: ${res}`, ...prev].slice(0, 50));
-      
-      toast.show(`Connected via ${obdMode}`, "success");
     } catch (err: any) {
       console.error(err);
-      obdRef.current = null;
       const msg =
         err.name === "SecurityError"
           ? "Hardware access requires top-level navigation. Open app in new tab."
@@ -3102,18 +3052,15 @@ export default function App() {
       }).catch(console.error);
     }
 
-    if (!obdRef.current || !obdRef.current.isConnected()) {
+    if (!obdConnected) {
        toast.show("Not connected to vehicle", "error");
        return;
     }
 
     try {
-       const response = await obdRef.current.sendCommand(command);
+       const response = await sendCommand(command);
        const rxTimestamp = new Date().toLocaleTimeString();
        const rxLog = `[${rxTimestamp}] RX: ${response}`;
-       setDiagnosticLogs((prev) =>
-         [rxLog, ...prev].slice(0, 50),
-       );
 
        if (user && activeProject) {
          addDoc(collection(db, "chats"), {
@@ -3351,6 +3298,7 @@ export default function App() {
                   handleConnect={handleConnect}
                   setCurrentScreen={setCurrentScreen}
                   setChatMode={setChatMode}
+                  setChatInitialQuery={setChatInitialQuery}
                   projectPicker={renderProjectPicker()}
                   chatHistoryWidget={
                     <ChatHistoryWidget

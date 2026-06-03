@@ -15,7 +15,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   const [telemetry, setTelemetry] = useState<any[]>([]);
   
   // Background polling interval reference
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     try {

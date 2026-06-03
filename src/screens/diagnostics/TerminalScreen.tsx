@@ -353,6 +353,26 @@ export const TerminalScreen = ({
         <div ref={logEndRef} />
       </div>
 
+      {/* Preset Macro Buttons */}
+      <div className="px-6 mb-3 flex flex-wrap gap-2 relative z-10 select-none">
+        {[
+          { label: "Adapter Info", cmd: "ATI" },
+          { label: "Voltage", cmd: "ATRV" },
+          { label: "Engine RPM", cmd: "01 0C" },
+          { label: "Speed", cmd: "01 0D" },
+          { label: "Scan DTCs", cmd: "03" },
+          { label: "Clear DTCs", cmd: "04" },
+        ].map((m) => (
+          <button
+            key={m.cmd}
+            onClick={() => onCommand(m.cmd)}
+            className="px-3 py-1.5 border border-[#00ff41]/20 bg-[#00ff41]/5 hover:bg-[#00ff41]/20 text-[#00ff41]/80 hover:text-[#00ff41] text-[10px] font-mono uppercase transition-colors"
+          >
+            {m.label} ({m.cmd})
+          </button>
+        ))}
+      </div>
+
       <div className="px-6 relative z-10">
         <div className="relative group">
             <div className="absolute inset-0 bg-[#00ff41]/5 blur-md rounded-none pointer-events-none transition-opacity opacity-0 group-focus-within:opacity-100" />
