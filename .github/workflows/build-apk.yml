@@ -25,6 +25,9 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Dependencies
         run: npm install
 
@@ -50,7 +53,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: '8.14.3'
+          gradle-version: '8.7'
           cache-disabled: false
 
       - name: Run Gradle Assemble
