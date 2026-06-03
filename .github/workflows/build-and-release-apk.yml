@@ -58,12 +58,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build APK
-        run: |
-          cd android
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
-          
       - name: Get version
         id: version
         run: |
@@ -72,46 +66,78 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
-      - name: Rename APK
+      - name: Build APK and App Bundle
         run: |
-          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$APK_PATH" ]; then
-            mv "$APK_PATH" "Forge-final-${{ steps.version.outputs.version }}.apk"
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug assembleRelease bundleRelease
+
+      - name: Locate and Rename Artifacts
+        run: |
+          mkdir -p artifacts
+          
+          # Find and copy Debug APK
+          DEBUG_APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -n "$DEBUG_APK" ]; then
+            cp "$DEBUG_APK" "artifacts/Forge-debug-${{ steps.version.outputs.version }}.apk"
+            echo "Found debug APK: $DEBUG_APK"
           else
-            echo "APK not found at $APK_PATH"
-            exit 1
+            echo "Warning: Debug APK not found"
+          fi
+          
+          # Find and copy Release APK  
+          RELEASE_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" "artifacts/Forge-release-unsigned-${{ steps.version.outputs.version }}.apk"
+            echo "Found release APK: $RELEASE_APK"
+          else
+            echo "Warning: Release APK not found"
+          fi
+          
+          # Find and copy Release AAB
+          RELEASE_AAB=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          if [ -n "$RELEASE_AAB" ]; then
+            cp "$RELEASE_AAB" "artifacts/Forge-production-release-${{ steps.version.outputs.version }}.aab"
+            echo "Found release AAB: $RELEASE_AAB"
+          else
+            echo "Warning: Release AAB not found"
           fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Forge-final-${{ steps.version.outputs.version }}.apk
+          files: |
+            artifacts/Forge-debug-${{ steps.version.outputs.version }}.apk
+            artifacts/Forge-release-unsigned-${{ steps.version.outputs.version }}.apk
+            artifacts/Forge-production-release-${{ steps.version.outputs.version }}.aab
           tag_name: v${{ steps.version.outputs.version }}-${{ steps.version.outputs.timestamp }}
           body: |
-            # Forge Final APK Release
+            # Forge Production & Staging Release (v${{ steps.version.outputs.version }})
             
             **Version:** ${{ steps.version.outputs.version }}
             **Build Date:** ${{ steps.version.outputs.timestamp }}
             
-            ## Download
-            Download the APK file below to install on your Android device.
+            ## 📦 Build Artifacts
+            - **Google Play App Bundle (AAB):** `Forge-production-release-${{ steps.version.outputs.version }}.aab` (Ready for upload/signing in Google Play Console)
+            - **Sideloadable Release APK:** `Forge-release-unsigned-${{ steps.version.outputs.version }}.apk` (Full production build, manually/automatically sign before device install)
+            - **Interim Debug APK:** `Forge-debug-${{ steps.version.outputs.version }}.apk` (Pre-signed; install instantly on diagnostic devices for sandbox/staging testing)
             
-            ## Installation
-            1. Download the APK file
-            2. On your Android device, go to Settings > Security > Allow installation from unknown sources
-            3. Open the APK file and tap Install
+            ## 📲 Sideload Sandbox Installation
+            1. Download the **Debug APK** below.
+            2. On your Android device, go to Settings > Security and enable **Allow installation from unknown sources** / **Allow Unknown Apps**.
+            3. Open the APK file and tap **Install**.
             
             **Release Notes:**
-            - Automatic build generated on: ${{ github.event.head_commit.timestamp }}
+            - Automatic multi-build pipeline generated on: ${{ github.event.head_commit.timestamp }}
             - Commit: ${{ github.sha }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload APK as artifact
+      - name: Upload APKs and AAB as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apk
-          path: Forge-final-${{ steps.version.outputs.version }}.apk
+          name: app-production-ready-artifacts
+          path: artifacts/*
           retention-days: 30

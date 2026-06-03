@@ -56,14 +56,31 @@ jobs:
           gradle-version: '8.7'
           cache-disabled: false
 
-      - name: Run Gradle Assemble
+      - name: Run Gradle Compile (All Targets)
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug assembleRelease bundleRelease
 
-      - name: Upload APK
+      - name: Organize Artifacts
+        run: |
+          mkdir -p artifacts
+          
+          # Debug APK
+          DEBUG_APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -n "$DEBUG_APK" ]; then cp "$DEBUG_APK" "artifacts/Forge-debug.apk"; fi
+          
+          # Release APK
+          RELEASE_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ]; then cp "$RELEASE_APK" "artifacts/Forge-release-unsigned.apk"; fi
+          
+          # Release AAB (App Bundle)
+          RELEASE_AAB=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          if [ -n "$RELEASE_AAB" ]; then cp "$RELEASE_AAB" "artifacts/Forge-production-release.aab"; fi
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-ci-build-artifacts
+          path: artifacts/*
+          retention-days: 14
