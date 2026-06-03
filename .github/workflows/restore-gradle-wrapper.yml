@@ -12,18 +12,22 @@ jobs:
         with:
           ref: fix/restore-gradle-wrapper-jar
       
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'zulu'
-      
-      - name: Download and restore gradle-wrapper.jar
+      - name: Download Gradle 8.7 distribution
+        run: |
+          mkdir -p /tmp/gradle-download
+          cd /tmp/gradle-download
+          wget https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          
+      - name: Extract and restore gradle-wrapper.jar
         run: |
           mkdir -p android/gradle/wrapper
-          cd android
-          gradle wrapper --gradle-version 8.7
-          cd ..
+          cp /tmp/gradle-download/gradle-8.7/lib/gradle-wrapper.jar android/gradle/wrapper/gradle-wrapper.jar
+          
+      - name: Verify JAR file
+        run: |
+          file android/gradle/wrapper/gradle-wrapper.jar
+          jar tf android/gradle/wrapper/gradle-wrapper.jar | head -20
       
       - name: Commit and push
         run: |
@@ -34,5 +38,5 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "fix: Restore gradle-wrapper.jar for Gradle 8.7"
-            git push
+            git push origin fix/restore-gradle-wrapper-jar
           fi
