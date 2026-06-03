@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '18'
       
-      - name: Install npm dependencies
+      - name: Install npm dependencies first
         run: npm install
       
       - name: Setup Java
@@ -26,34 +26,35 @@ jobs:
           java-version: '21'
           distribution: 'zulu'
       
-      - name: Download gradle-wrapper.jar from official Gradle GitHub
-        run: |
-          mkdir -p android/gradle/wrapper
-          cd android/gradle/wrapper
-          # Download the official gradle-wrapper.jar from Gradle's GitHub repository
-          wget https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar -O gradle-wrapper.jar
-          cd /home/runner/work/team.forge/team.forge
-          
-      - name: Verify JAR file
-        run: |
-          file android/gradle/wrapper/gradle-wrapper.jar
-          jar tf android/gradle/wrapper/gradle-wrapper.jar | head -20
-      
-      - name: Test build with gradlew
+      - name: Generate gradle-wrapper.jar using gradle wrapper command
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew --version
-          
-      - name: Commit and push
+          # Use the local gradlew to generate the wrapper for Gradle 8.7
+          ./gradlew wrapper --gradle-version 8.7 --distribution-type bin
+          cd ..
+      
+      - name: Verify JAR file is valid
+        run: |
+          file android/gradle/wrapper/gradle-wrapper.jar
+          jar tf android/gradle/wrapper/gradle-wrapper.jar | head -5
+      
+      - name: Clean build directory and test build
+        run: |
+          cd android
+          ./gradlew clean
+          ./gradlew assembleDebug
+          cd ..
+      
+      - name: Commit and push gradle-wrapper.jar fix
         if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add android/gradle/wrapper/gradle-wrapper.jar
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "No changes to gradle-wrapper.jar"
           else
-            git commit -m "fix: Restore gradle-wrapper.jar from official Gradle repository"
+            git commit -m "fix: Restore valid gradle-wrapper.jar for Gradle 8.7"
             git push origin fix/restore-gradle-wrapper-jar
           fi
