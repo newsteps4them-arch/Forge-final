@@ -8,6 +8,10 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 import {
   Sparkles,
@@ -2058,15 +2062,75 @@ const DiagnosticScreen = ({
   dtcs,
   onCommand,
   onDeepDive,
+  setDtcs,
 }: {
   onBack: () => void;
   connected: boolean;
   dtcs: DTC[];
   onCommand: (cmd: string) => void;
   onDeepDive: (dtc: DTC) => void;
+  setDtcs?: React.Dispatch<React.SetStateAction<DTC[]>>;
 }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanType, setScanType] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"system" | "severity">("system");
+
+  const systemMap: Record<string, { label: string; color: string }> = {
+    P: { label: "Powertrain", color: "#EF4444" },
+    C: { label: "Chassis", color: "#3B82F6" },
+    B: { label: "Body", color: "#10B981" },
+    U: { label: "Network", color: "#8B5CF6" },
+  };
+
+  const severityMap: Record<string, { label: string; color: string }> = {
+    Permanent: { label: "High / Permanent", color: "#EF4444" },
+    Stored: { label: "Medium / Stored", color: "#F5A623" },
+    Pending: { label: "Low / Pending", color: "#10B981" },
+  };
+
+  const getSystemDistribution = () => {
+    const counts: Record<string, number> = { P: 0, C: 0, B: 0, U: 0 };
+    dtcs.forEach((dtc) => {
+      const firstChar = dtc.code.charAt(0).toUpperCase();
+      if (counts[firstChar] !== undefined) {
+        counts[firstChar]++;
+      } else {
+        counts.P++;
+      }
+    });
+
+    return Object.entries(counts)
+      .map(([key, count]) => ({
+        name: systemMap[key]?.label || "Other",
+        value: count,
+        color: systemMap[key]?.color || "#6B7280",
+      }))
+      .filter((item) => item.value > 0);
+  };
+
+  const getSeverityDistribution = () => {
+    const counts: Record<string, number> = { Permanent: 0, Stored: 0, Pending: 0 };
+    dtcs.forEach((dtc) => {
+      const status = dtc.status || "Stored";
+      if (counts[status] !== undefined) {
+        counts[status]++;
+      } else {
+        counts.Stored++;
+      }
+    });
+
+    return Object.entries(counts)
+      .map(([key, count]) => ({
+        name: severityMap[key]?.label || key,
+        value: count,
+        color: severityMap[key]?.color || "#F59E0B",
+      }))
+      .filter((item) => item.value > 0);
+  };
+
+  const systemData = getSystemDistribution();
+  const severityData = getSeverityDistribution();
+  const chartData = activeTab === "system" ? systemData : severityData;
 
   const handleScan = (type: "quick" | "deep") => {
     if (!connected) {
@@ -2098,6 +2162,43 @@ const DiagnosticScreen = ({
       onCommand("04"); // Clear/Reset Emission-Related Diagnostic Info
       toast.show("Clear command sent", "info");
     }
+  };
+
+  const handleInjectFaults = () => {
+    if (!setDtcs) return;
+    setDtcs([
+      {
+        code: "P0133",
+        description: "O2 Sensor Circuit Slow Response (Bank 1 Sensor 1)",
+        status: "Pending",
+      },
+      {
+        code: "P0300",
+        description: "Random/Multiple Cylinder Misfire Detected (Critical Safety)",
+        status: "Permanent",
+      },
+      {
+        code: "C0035",
+        description: "Left Front Wheel Speed Sensor Circuit Malfunction",
+        status: "Stored",
+      },
+      {
+        code: "B1204",
+        description: "SRS Airbag Curtain Sensor Circuit Fault",
+        status: "Permanent",
+      },
+      {
+        code: "U0100",
+        description: "Lost Communication with Engine Control Module ECM",
+        status: "Permanent",
+      },
+      {
+        code: "P0113",
+        description: "Intake Air Temperature Sensor 1 Circuit High State",
+        status: "Stored",
+      },
+    ]);
+    toast.show("Loaded R&D Simulated DTC Multi-System Cluster!", "success");
   };
 
   return (
@@ -2189,6 +2290,94 @@ const DiagnosticScreen = ({
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
+              {/* Pie Chart Distribution Overview */}
+              <div className="bg-[#121212]/90 border border-white/5 rounded-3xl p-5 mb-4 space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="text-primary w-4 h-4" />
+                    <h4 className="text-xs font-extrabold text-white uppercase tracking-wider font-mono">DTC Distribution Analysis</h4>
+                  </div>
+                  {/* Segmented control tabs */}
+                  <div className="bg-black/40 border border-white/5 rounded-lg p-0.5 flex gap-1">
+                    <button
+                      onClick={() => setActiveTab("system")}
+                      className={`py-1 px-3 text-[9px] uppercase tracking-wider font-black rounded-md transition-all ${activeTab === "system" ? "bg-primary text-black font-extrabold" : "text-white/40 hover:text-white font-medium"}`}
+                    >
+                      System
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("severity")}
+                      className={`py-1 px-3 text-[9px] uppercase tracking-wider font-black rounded-md transition-all ${activeTab === "severity" ? "bg-primary text-black font-extrabold" : "text-white/40 hover:text-white font-medium"}`}
+                    >
+                      Severity
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pie Chart and list */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  <div className="h-[180px] w-full flex items-center justify-center relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={75}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="#000" strokeWidth={1} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#18181B",
+                            borderColor: "rgba(255,255,255,0.08)",
+                            borderRadius: "12px",
+                          }}
+                          itemStyle={{ color: "#FFF", fontSize: "10px", fontFamily: "monospace" }}
+                          labelStyle={{ display: "none" }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-x-0 top-[42%] flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-xl font-mono font-black text-white leading-none">
+                        {dtcs.length}
+                      </span>
+                      <span className="text-[7px] text-white/40 uppercase tracking-widest font-mono mt-0.5">
+                        Total DTCs
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-[10px] text-primary uppercase tracking-widest font-black font-mono border-l-2 border-primary pl-2 mb-1.5">
+                      {activeTab === "system" ? "Detected Category Areas" : "Severity Categorization"}
+                    </div>
+                    <div className="space-y-1.5">
+                      {chartData.map((item, idx) => {
+                        const percentage = Math.round((item.value / dtcs.length) * 100);
+                        return (
+                          <div key={idx} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                              <span className="text-[10px] text-white/80 font-mono uppercase">{item.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-white/90 font-mono font-black">{item.value}x</span>
+                              <span className="text-[8px] text-white/40 font-mono">({percentage}%)</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between mt-6">
                 <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">
                   {dtcs.length} Fault(s) Detected
@@ -2238,7 +2427,7 @@ const DiagnosticScreen = ({
                         {dtc.status}
                       </p>
                       <div className="text-[9px] text-white/40 leading-relaxed font-mono uppercase">
-                        Module: PCM (Powertrain Control Module)
+                        Module: {dtc.code.charAt(0).toUpperCase() === "P" ? "PCM (Powertrain Control)" : dtc.code.charAt(0).toUpperCase() === "C" ? "ABS/TCS (Chassis Control)" : dtc.code.charAt(0).toUpperCase() === "B" ? "SRS (Body Control)" : "CAN/BUS (Network Control)"}
                       </div>
                     </div>
                   </div>
@@ -2294,6 +2483,14 @@ const DiagnosticScreen = ({
                 <br />
                 System OK
               </span>
+              {setDtcs && (
+                <button
+                  onClick={handleInjectFaults}
+                  className="mt-6 px-4 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 rounded-full text-[10px] uppercase font-black tracking-widest transition-all"
+                >
+                  Load simulated multi-system DTC cluster
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -3230,6 +3427,7 @@ export default function App() {
                   dtcs={detectedDtcs}
                   onCommand={handleDiagnosticCommand}
                   onDeepDive={handleDeepDive}
+                  setDtcs={setDetectedDtcs}
                 />
               )}
 
