@@ -1,4 +1,4 @@
-name: Restore Gradle Wrapper - Complete Fix
+name: Restore Gradle Wrapper - Complete Fix v2
 
 on:
   workflow_dispatch:
@@ -18,11 +18,8 @@ jobs:
           node-version: '18'
           cache: 'npm'
       
-      - name: Install npm dependencies with verbose logging
-        run: |
-          npm install --verbose
-          echo "=== Verifying @capacitor/android installation ==="
-          ls -la node_modules/@capacitor/android/capacitor/ || echo "ERROR: @capacitor/android not found"
+      - name: Install npm dependencies
+        run: npm install
       
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -33,38 +30,38 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       
-      - name: Run capacitor sync to generate required files
-        run: |
-          npx cap sync android --verbose || true
-          echo "=== Checking for capacitor-cordova-android-plugins ==="
-          ls -la android/capacitor-cordova-android-plugins/ || echo "Not generated yet"
+      - name: Run capacitor sync to generate plugin files
+        run: npx cap sync android || true
       
-      - name: Verify node_modules structure before gradle
+      - name: Delete old gradle-wrapper.jar
         run: |
-          echo "=== Checking @capacitor/android/capacitor ==="
-          test -d node_modules/@capacitor/android/capacitor && echo "✓ Found" || echo "✗ NOT FOUND"
-          ls -la node_modules/@capacitor/android/ || true
+          rm -f android/gradle/wrapper/gradle-wrapper.jar
+          ls -la android/gradle/wrapper/
       
-      - name: Generate gradle-wrapper.jar
+      - name: Generate fresh gradle-wrapper.jar using gradlew
         run: |
           cd android
           chmod +x ./gradlew
-          # Run gradle wrapper to generate the correct gradle-wrapper.jar
+          # Force gradle wrapper regeneration
           ./gradlew wrapper --gradle-version 8.7 --distribution-type bin
           cd ..
       
-      - name: Verify gradle-wrapper.jar
+      - name: Verify gradle-wrapper.jar is valid
         run: |
+          echo "=== Checking file type ==="
           file android/gradle/wrapper/gradle-wrapper.jar
-          jar tf android/gradle/wrapper/gradle-wrapper.jar | head -5
+          echo "=== Checking jar contents (first 10 entries) ==="
+          jar tf android/gradle/wrapper/gradle-wrapper.jar | head -10
+          echo "=== File size ==="
+          ls -lh android/gradle/wrapper/gradle-wrapper.jar
       
-      - name: Test assembleDebug build
+      - name: Test build with assembleDebug
         run: |
           cd android
           ./gradlew clean assembleDebug
           cd ..
       
-      - name: Commit gradle-wrapper.jar if changed
+      - name: Commit and push gradle-wrapper.jar
         if: success()
         run: |
           git config user.name "github-actions[bot]"
