@@ -3,6 +3,10 @@ name: Restore Gradle Wrapper - Complete Fix v2
 on:
   workflow_dispatch:
 
+concurrency:
+  group: restore-gradle-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   restore-wrapper:
     runs-on: ubuntu-latest

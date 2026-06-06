@@ -1,9 +1,13 @@
-name: Build Android APK
+name: Build and Test APK
 
 on:
-  push:
+  pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

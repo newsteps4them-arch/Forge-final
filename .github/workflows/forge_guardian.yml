@@ -2,7 +2,14 @@ name: Forge Autonomous Guardian v2
 on:
   push:
     branches: [main, develop, master]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
   workflow_dispatch:
+
+concurrency:
+  group: guardian-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
