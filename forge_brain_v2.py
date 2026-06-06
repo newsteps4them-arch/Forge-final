@@ -8,9 +8,18 @@ MAX_LOOPS = 3
 LOG_FILE = "FORGE_HEALING_LOG.md"
 
 def setup_gemini():
-    api_key = os.environ.get("GEMINI_API_KEY")
+    # Try loading from .env if present
+    if os.path.exists(".env"):
+        with open(".env", "r") as f:
+            for line in f:
+                if "=" in line and not line.startswith("#"):
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("VITE_GEMINI_API_KEY")
     if not api_key:
-        print("❌ GEMINI_API_KEY not set"); sys.exit(1)
+        print("❌ GEMINI_API_KEY or VITE_GEMINI_API_KEY not set in environment or .env file")
+        sys.exit(1)
     genai.configure(api_key=api_key)
     return genai.GenerativeModel("gemini-1.5-pro")
 
