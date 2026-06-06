@@ -125,9 +125,10 @@ async function startServer() {
   app.post("/api/git/sync", async (req, res) => {
     try {
       const { commitMessage } = req.body;
-      const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
+      // Stricter sanitization for shell safety
+      const sanitizedMsg = commitMessage ? commitMessage.replace(/[^a-zA-Z0-9\s._\-]/g, "") : "";
       const bashCmd = await getBashCommand();
-      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh sync ${msg}`);
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh sync "${sanitizedMsg}"`);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Sync API Error:", error);

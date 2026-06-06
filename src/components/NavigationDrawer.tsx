@@ -13,8 +13,7 @@ import {
   Terminal, Home, MessageSquare, BookOpen, Settings, Rocket
 } from "lucide-react";
 
-// The 'any' here should ideally be the Screen type from useNavigation
-type Screen = any;
+import { Screen } from "../hooks/useNavigation";
 
 interface NavigationDrawerProps {
   /** Visibility state of the drawer. */
