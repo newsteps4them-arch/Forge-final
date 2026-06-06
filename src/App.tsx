@@ -3283,12 +3283,31 @@ export default function App() {
                   alldataKey={onboarding.alldataKey}
                   obdKey={onboarding.obdKey}
                   openAiKey={onboarding.openAiKey}
-                  onSave={(api, meli, alldata, obd, openai) => {
-                    updateData("apiKey", api);
-                    updateData("meliApiKey", meli);
-                    updateData("alldataKey", alldata);
-                    updateData("obdKey", obd);
-                    updateData("openAiKey", openai);
+                  onSave={async (api, meli, alldata, obd, openai) => {
+                    const updatedOnboarding = {
+                      ...onboarding,
+                      apiKey: api,
+                      meliApiKey: meli,
+                      alldataKey: alldata,
+                      obdKey: obd,
+                      openAiKey: openai,
+                    };
+                    setOnboarding(updatedOnboarding);
+                    if (user) {
+                      try {
+                        await setDoc(doc(db, "users", user.uid), {
+                          ...updatedOnboarding,
+                          email: user.email,
+                          updatedAt: serverTimestamp(),
+                        });
+                        toast.show("Connections updated in cloud profile", "success");
+                      } catch (e) {
+                        console.error("Failed to sync profile connections:", e);
+                        toast.show("Saved locally (Cloud sync failed)", "warning");
+                      }
+                    } else {
+                      toast.show("Saved locally (Offline Mode)", "info");
+                    }
                     setCurrentScreen("Main");
                   }}
                   onBack={() => goBack()}

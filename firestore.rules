@@ -34,8 +34,11 @@ service cloud.firestore {
       allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && (
         // Action: Update Profile
         incoming().diff(existing()).affectedKeys().hasOnly([
-          'assistantName', 'wakeWord', 'userName', 'apiKey', 
-          'vehicleInfo', 'inventory', 'onboardingComplete', 'email', 'updatedAt'
+          'assistantName', 'wakeWord', 'customVoiceEnabled', 'customVoiceUrl',
+          'userName', 'apiKey', 'vehicleYear', 'vehicleMake', 'vehicleModel',
+          'vehicleVin', 'vehicleProtocol', 'vehicleInfo', 'inventory',
+          'meliApiKey', 'alldataKey', 'obdKey', 'openAiKey', 'onboardingComplete',
+          'email', 'updatedAt'
         ])
       );
 
