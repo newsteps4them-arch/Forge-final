@@ -1,3 +1,10 @@
+/**
+ * Team Forge Backend Server
+ *
+ * An Express.js server that acts as a secure proxy for the Gemini AI API
+ * and provides a local gateway for Git-based workspace synchronization.
+ */
+
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -9,6 +16,9 @@ import fs from "fs/promises";
 
 const execAsync = promisify(exec);
 
+/**
+ * Attempts to find a valid bash executable across different platforms (primarily Windows).
+ */
 async function getBashCommand(): Promise<string> {
   if (process.platform !== "win32") {
     return "bash";
@@ -40,6 +50,10 @@ async function getBashCommand(): Promise<string> {
 
 dotenv.config();
 
+/**
+ * Main server startup function.
+ * Orchestrates API endpoints and Vite development middleware.
+ */
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -48,12 +62,13 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-  // API endpoints
+  // API health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
 
-  // GitHub Git Sync API Gateway
+  // --- GitHub Git Sync API Gateway ---
+
   app.get("/api/git/status", async (req, res) => {
     try {
       const bashCmd = await getBashCommand();
@@ -153,6 +168,8 @@ async function startServer() {
     }
   });
 
+  // --- Gemini AI Chat Proxy ---
+
   app.post("/api/chat", async (req, res) => {
     try {
       const { message, image, history, systemInstruction, customApiKey } = req.body;
@@ -214,6 +231,8 @@ async function startServer() {
       res.status(500).json({ error: error.message || "An error occurred during generating content." });
     }
   });
+
+  // --- Static Files / Production Handling ---
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

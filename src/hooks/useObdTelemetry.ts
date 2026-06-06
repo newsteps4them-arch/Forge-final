@@ -1,3 +1,12 @@
+/**
+ * useObdTelemetry Hook
+ *
+ * Manages the connection and data streaming from an OBD-II interface.
+ * Supports Bluetooth, USB (Serial), and Simulated modes.
+ * Includes automatic polling of engine data (RPM, etc.) and handles
+ * application lifecycle events (pausing on background).
+ */
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "../lib/obdConnection";
 
@@ -21,6 +30,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   // Background polling interval reference
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Sync logs to localStorage for persistence across reloads
   useEffect(() => {
     try {
       localStorage.setItem("forge_terminal_logs", JSON.stringify(logs));
@@ -29,10 +39,17 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     }
   }, [logs]);
 
+  /**
+   * Adds a new entry to the diagnostic terminal log.
+   */
   const addLog = useCallback((log: string) => {
     setLogs((prev) => [log, ...prev].slice(0, 50));
   }, []);
 
+  /**
+   * Initiates a connection to the OBD-II device based on the active mode.
+   * If already connected, it will disconnect.
+   */
   const connect = useCallback(async () => {
     if (obdConnected && obdRef.current) {
       try {
@@ -68,6 +85,9 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     }
   }, [mode, obdConnected, addLog]);
 
+  /**
+   * Sends a raw OBD-II PID command and adds it to the logs.
+   */
   const sendCommand = useCallback(async (cmd: string) => {
     if (!obdRef.current || !obdConnected) throw new Error("Not connected");
     const res = await obdRef.current.sendCommand(cmd);
@@ -76,7 +96,9 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     return res;
   }, [obdConnected, addLog]);
 
-  // Implement the background "Service" for polling PIDs
+  /**
+   * Starts a background polling service to fetch live telemetry data.
+   */
   const startPolling = useCallback(() => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     
@@ -113,6 +135,9 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     }, OBD_POLLING_MS); // Poll every 2 seconds
   }, []);
 
+  /**
+   * Stops the background telemetry polling.
+   */
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);

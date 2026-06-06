@@ -1,6 +1,16 @@
+/**
+ * BottomNavBar Component
+ *
+ * The primary navigation controller for the mobile-style interface.
+ * Provides quick access to Home, Hub, Chat, and Assets.
+ */
+
 import React from "react";
 import { Home, LayoutGrid, MessageSquare, Box } from "lucide-react";
 
+/**
+ * Navigation tabs configuration.
+ */
 const TABS = [
   { id: "Main", label: "Home", icon: Home },
   { id: "Index", label: "Hub", icon: LayoutGrid },
@@ -8,12 +18,16 @@ const TABS = [
   { id: "Inventory", label: "Assets", icon: Box },
 ];
 
-export const BottomNavBar = ({
+interface BottomNavBarProps {
+  /** The ID of the currently active tab. */
+  currentTab: string;
+  /** Callback function triggered when a tab is clicked. */
+  onTabSelect: (id: string) => void;
+}
+
+export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   currentTab,
   onTabSelect,
-}: {
-  currentTab: string;
-  onTabSelect: (id: string) => void;
 }) => {
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 rounded-full px-2 py-2 flex items-center shadow-[0_20px_60px_rgba(0,0,0,0.8)] z-50">
@@ -29,9 +43,11 @@ export const BottomNavBar = ({
                 : "w-12 text-text-dim hover:text-white hover:bg-white/5 mx-0.5"
             } rounded-full overflow-hidden`}
           >
+            {/* Pulsing indicator for active state */}
             {isActive && (
               <div className="absolute inset-0 bg-primary/10 rounded-full animate-pulse" />
             )}
+
             <div className={`relative flex items-center justify-center gap-2 ${isActive ? "scale-100" : "scale-90"}`}>
               <tab.icon className={`transition-all duration-300 ${isActive ? "w-4 h-4" : "w-5 h-5"}`} />
               <div 
@@ -48,5 +64,3 @@ export const BottomNavBar = ({
     </div>
   );
 };
-
-

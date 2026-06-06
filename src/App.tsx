@@ -1,3 +1,19 @@
+/**
+ * Team Forge: Engineering Suite - Main Application Entry
+ *
+ * This application is a professional-grade workshop management and diagnostic tool.
+ * Core features:
+ * - Project & Task Management (Syncing to Firestore)
+ * - Multimodal AI Integration (Gemini-powered Chat & Vision)
+ * - OBD-II Hardware Diagnostics (Web Bluetooth & Web Serial)
+ * - Specialized Engineering Hub Screens
+ *
+ * Structure:
+ * - Onboarding flow for initial setup.
+ * - MainDashboard: Central hub for project overview.
+ * - Specialized screens in src/screens for different engineering tasks.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {

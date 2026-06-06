@@ -1,14 +1,32 @@
+/**
+ * OBD-II Connection Libraries
+ *
+ * This module provides abstraction layers for different hardware communication
+ * protocols used to interface with ELM327-compatible OBD-II adapters.
+ */
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export type ObdDeviceType = 'bluetooth' | 'serial' | 'simulated';
 
+/**
+ * Common interface for all OBD-II connection types.
+ */
 export interface ObdConnection {
+  /** Opens the connection to the hardware. */
   connect(): Promise<void>;
+  /** Closes the hardware connection. */
   disconnect(): Promise<void>;
+  /** Sends a raw PID command and returns the response string. */
   sendCommand(command: string): Promise<string>;
+  /** Returns true if currently connected. */
   isConnected(): boolean;
 }
 
+/**
+ * Web Bluetooth Implementation
+ * Targets BLE-based ELM327 adapters (e.g. HM-10, VLinker).
+ */
 export class WebBluetoothObd implements ObdConnection {
   private device: any | null = null;
   private rxCharacteristic: any | null = null;
@@ -140,6 +158,10 @@ export class WebBluetoothObd implements ObdConnection {
   }
 }
 
+/**
+ * Web Serial Implementation
+ * Targets USB-based ELM327 adapters or passthrough interfaces.
+ */
 export class WebSerialObd implements ObdConnection {
   private port: any | null = null;
   private reader: ReadableStreamDefaultReader | null = null;
@@ -230,6 +252,10 @@ export class WebSerialObd implements ObdConnection {
   }
 }
 
+/**
+ * Simulated/Mock OBD-II Implementation
+ * Used for development and testing without physical hardware.
+ */
 export class SimulatedObd implements ObdConnection {
   private connected = false;
 
