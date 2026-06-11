@@ -6,12 +6,18 @@
  */
 
 import { initializeApp } from 'firebase/app';
+import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, signInWithRedirect } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize the core Firebase App instance
 const app = initializeApp(firebaseConfig);
+
+/**
+ * Firebase Analytics instance.
+ */
+export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 /**
  * Firebase Authentication instance.
