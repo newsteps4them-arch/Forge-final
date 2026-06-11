@@ -84,6 +84,7 @@ import {
   Thermometer,
   Plug,
   ScanEye,
+  Mail,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { NotificationContainer } from "./components/NotificationContainer";
@@ -125,6 +126,9 @@ import {
   signInAnonymously,
   signOut,
   onAuthStateChanged,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   doc,
   getDoc,
   setDoc,
@@ -535,6 +539,34 @@ const WelcomeScreen = ({
   onLogin: () => void;
   onLoginAnon: () => void;
 }) => {
+  const [email, setEmail] = React.useState("");
+  const [isSending, setIsSending] = React.useState(false);
+  const [linkSent, setLinkSent] = React.useState(false);
+
+  const handleSendLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) {
+      toast.show("Please enter a valid email address.", "error");
+      return;
+    }
+    setIsSending(true);
+    try {
+      const actionCodeSettings = {
+        url: window.location.origin,
+        handleCodeInApp: true,
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', email);
+      setLinkSent(true);
+      toast.show("Sign-in link sent to your email!", "success");
+    } catch (error) {
+      const err = error as Error;
+      toast.show(`Failed to send link: ${err.message}`, "error");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const [embers] = React.useState(() => {
     return [...Array(12)].map((_, i) => ({
       id: i,
@@ -653,6 +685,35 @@ const WelcomeScreen = ({
           />
           Authenticate User
         </button>
+
+        {/* Email Passwordless Sign-In */}
+        <form onSubmit={handleSendLink} className="space-y-3 p-4 bg-white/5 border border-white/5 rounded-[1.5rem] backdrop-blur-sm">
+          <div className="relative flex items-center">
+            <Mail className="absolute left-4 text-text-dim w-4 h-4" />
+            <input
+              type="email"
+              placeholder="ENTER EMAIL FOR MAGIC LINK..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isSending || linkSent}
+              className="w-full bg-black/50 border border-white/10 rounded-[1rem] py-3.5 pl-11 pr-5 text-xs text-white font-mono placeholder-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all uppercase tracking-wider"
+              required
+            />
+            {linkSent && (
+              <span className="absolute right-4 text-green-500 text-[9px] font-mono tracking-widest animate-pulse">
+                SENT_OK
+              </span>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isSending || linkSent}
+            className="w-full bg-primary/10 hover:bg-primary/20 disabled:bg-white/5 border border-primary/20 text-primary disabled:text-text-dim py-3.5 px-6 rounded-[1rem] text-[10px] font-bold uppercase tracking-[0.25em] transition-all active:scale-[0.98] flex items-center justify-center gap-2 font-mono"
+          >
+            {isSending ? "TRANSMITTING..." : linkSent ? "CHECK YOUR INBOX" : "REQUEST SIGN-IN LINK"}
+          </button>
+        </form>
+
         <div className="flex items-center gap-4 px-4">
           <div className="h-[2px] bg-white/5 flex-1" />
           <span className="text-[10px] text-text-dim uppercase tracking-[0.4em] font-black">
@@ -2587,6 +2648,35 @@ export default function App() {
       }
     });
     return () => unsubscribe();
+  }, []);
+
+  // Handle Email Link Sign-in redirection
+  useEffect(() => {
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      const performEmailSignIn = async () => {
+        let email = window.localStorage.getItem("emailForSignIn");
+        if (!email) {
+          email = window.prompt("Please enter your email to confirm sign-in:");
+        }
+        if (!email) {
+          toast.show("Email confirmation required to sign in", "error");
+          return;
+        }
+        setAuthLoading(true);
+        try {
+          await signInWithEmailLink(auth, email, window.location.href);
+          window.localStorage.removeItem("emailForSignIn");
+          toast.show("Successfully signed in with email link!", "success");
+          // Clean up URL parameters
+          window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
+        } catch (error) {
+          const err = error as Error;
+          toast.show(`Failed to sign in: ${err.message}`, "error");
+          setAuthLoading(false);
+        }
+      };
+      performEmailSignIn();
+    }
   }, []);
 
   // Fetch Projects and Tasks on login
