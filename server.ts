@@ -126,7 +126,7 @@ async function startServer() {
     try {
       const { commitMessage } = req.body;
       // Stricter sanitization for shell safety
-      const sanitizedMsg = commitMessage ? commitMessage.replace(/[^a-zA-Z0-9\s._\-]/g, "") : "";
+      const sanitizedMsg = commitMessage ? commitMessage.replace(/[^a-zA-Z0-9\s._-]/g, "") : "";
       const bashCmd = await getBashCommand();
       const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh sync "${sanitizedMsg}"`);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
