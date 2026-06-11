@@ -3233,7 +3233,24 @@ export default function App() {
 
           <div className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-2 lg:pt-4">
             <AnimatePresence mode="wait">
-              {currentScreen === "Welcome" && (
+              {authLoading ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center h-full bg-[#050505] p-8"
+                >
+                  <div className="relative mb-10">
+                    <div className="absolute inset-[-20px] bg-primary/20 rounded-full blur-2xl animate-pulse" />
+                    <Hammer className="text-primary w-16 h-16 relative z-10" />
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <h2 className="text-xl font-display font-black text-white tracking-widest uppercase">Initializing Forge</h2>
+                    <p className="text-[10px] font-mono text-text-dim uppercase tracking-[0.3em] animate-pulse">Syncing_Neural_Link...</p>
+                  </div>
+                </motion.div>
+              ) : currentScreen === "Welcome" && (
                 <WelcomeScreen
                   key="welcome"
                   onNext={handleNext}
