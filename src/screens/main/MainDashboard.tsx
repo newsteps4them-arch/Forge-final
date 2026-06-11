@@ -149,15 +149,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       </header>
 
       {/* Main Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-min">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 auto-rows-min max-w-[1600px] mx-auto w-full">
         
         {/* Project Context (Spans across) */}
-        <div className="md:col-span-12">
+        <div className="md:col-span-12 lg:col-span-12">
           {projectPicker}
         </div>
 
         {/* AI Hub / Omnibar (Large feature) */}
-        <div className="md:col-span-12 bg-gradient-to-b from-[#111] to-[#0A0A0A] rounded-[2rem] p-8 md:p-12 border border-primary/20 relative shadow-[0_10px_40px_rgba(245,166,35,0.08)] flex flex-col items-center justify-center text-center overflow-hidden min-h-[20rem]">
+        <div className="md:col-span-12 lg:col-span-8 bg-gradient-to-b from-[#111] to-[#0A0A0A] rounded-[2rem] p-6 sm:p-8 md:p-12 border border-primary/20 relative shadow-[0_10px_40px_rgba(245,166,35,0.08)] flex flex-col items-center justify-center text-center overflow-hidden min-h-[22rem]">
            <div className="absolute top-0 right-0 p-8 opacity-5">
               <Cpu className="w-48 h-48 text-primary" />
            </div>
@@ -169,10 +169,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               </div>
            </div>
            
-           <h3 className="font-display font-black text-3xl md:text-4xl text-white tracking-tight mb-2">
+           <h3 className="font-display font-black text-2xl sm:text-3xl md:text-4xl text-white tracking-tight mb-2">
              How can we help today?
            </h3>
-           <p className="text-xs text-text-dim/80 uppercase tracking-[0.2em] font-mono mb-8 max-w-md">
+           <p className="text-[10px] sm:text-xs text-text-dim/80 uppercase tracking-[0.2em] font-mono mb-8 max-w-md">
              Type what you need to do, and the AI will guide you to the right tool automatically.
            </p>
 
@@ -181,65 +181,63 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                type="text"
                value={omniInput}
                onChange={e => setOmniInput(e.target.value)}
-               placeholder="e.g. Scan for codes, lookup a wiring diagram, or draft an estimate..."
-               className="w-full bg-black/80 backdrop-blur-md border border-white/10 hover:border-primary/50 focus:border-primary px-6 py-5 rounded-2xl text-white outline-none pl-14 transition-all text-sm shadow-xl"
+               placeholder="e.g. Scan for codes, lookup a wiring diagram..."
+               className="w-full bg-black/80 backdrop-blur-md border border-white/10 hover:border-primary/50 focus:border-primary px-6 py-4 sm:py-5 rounded-2xl text-white outline-none pl-12 sm:pl-14 transition-all text-xs sm:text-sm shadow-xl"
              />
-             <MessageSquare className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/50" />
-             <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary text-black px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(245,166,35,0.4)] transition-all">
+             <MessageSquare className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-primary/50" />
+             <button type="submit" className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-primary text-black px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(245,166,35,0.4)] transition-all">
                Execute
              </button>
            </form>
         </div>
 
-        {/* Hardware Telemetry Block */}
-        <div className="md:col-span-12 bg-[#050505] border border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-             <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                <Activity className="w-6 h-6 text-primary" />
+        {/* Hardware Telemetry Block (Takes side space on large screens) */}
+        <div className="md:col-span-12 lg:col-span-4 bg-[#050505] border border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden flex flex-col items-center justify-between gap-6 min-h-[22rem]">
+          <div className="absolute inset-0 bg-primary/5 scanlines-pattern opacity-30 pointer-events-none" />
+          <div className="flex flex-col items-center text-center gap-4 relative z-10">
+             <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner">
+                <Activity className="w-8 h-8 text-primary" />
              </div>
              <div>
-                <h4 className="text-lg font-display font-black text-white leading-tight">
-                  Hardware Telemetry Link
+                <h4 className="text-xl font-display font-black text-white leading-tight">
+                  Telemetry Link
                 </h4>
-                <p className="text-text-secondary text-xs max-w-sm mt-1">
-                  Connect your diagnostic hardware to read real-time data, clear faults, and run advanced tests on your target asset.
+                <p className="text-text-secondary text-xs max-w-[200px] mt-2 leading-relaxed">
+                  Real-time hardware interface for target diagnostics.
                 </p>
              </div>
           </div>
           
-          <div className="flex flex-wrap items-center gap-4">
-             <div className="flex flex-col gap-1 min-w-[140px]">
+          <div className="flex flex-col w-full gap-3 relative z-10">
+             <div className="grid grid-cols-2 gap-2">
                <select
                   value={onboarding.vehicleProtocol}
                   onChange={(e) => updateData("vehicleProtocol", e.target.value)}
-                  className="bg-[#111] border border-white/10 rounded-lg text-[10px] px-3 py-2 text-white outline-none font-bold uppercase tracking-wider h-10"
+                  className="bg-[#111] border border-white/10 rounded-xl text-[9px] px-3 py-2 text-white outline-none font-bold uppercase tracking-wider h-11"
                 >
                   <option value="Auto">Auto Detect</option>
-                  <option value="ISO 15765-4 (CAN 11/500)">CAN Bus 11-bit</option>
-                  <option value="ISO 15765-4 (CAN 29/500)">CAN Bus 29-bit</option>
-                  <option value="ISO 14230-4 (KWP FAST)">KWP / Serial</option>
+                  <option value="ISO 15765-4 (CAN 11/500)">CAN 11-bit</option>
+                  <option value="ISO 15765-4 (CAN 29/500)">CAN 29-bit</option>
+                  <option value="ISO 14230-4 (KWP FAST)">KWP/Serial</option>
                 </select>
-             </div>
-             
-             <div className="flex flex-col gap-1 min-w-[140px]">
                <select
                   value={obdMode}
                   onChange={(e) => setObdMode(e.target.value as any)}
-                  className="bg-[#111] border border-white/10 rounded-lg text-[10px] px-3 py-2 text-white outline-none font-bold uppercase tracking-wider h-10"
+                  className="bg-[#111] border border-white/10 rounded-xl text-[9px] px-3 py-2 text-white outline-none font-bold uppercase tracking-wider h-11"
                 >
                   <option value="Simulated">Demo Sim</option>
-                  <option value="Bluetooth">Bluetooth/BLE</option>
-                  <option value="USB">USB OTG Cable</option>
+                  <option value="Bluetooth">BT / BLE</option>
+                  <option value="USB">USB Cable</option>
                 </select>
              </div>
 
              <button
                 onClick={handleConnect}
-                className={`h-10 px-6 rounded-lg flex items-center justify-center gap-2 transition-all text-[10px] ${
+                className={`h-12 w-full rounded-xl flex items-center justify-center gap-2 transition-all text-[10px] ${
                   obdConnected
                     ? "bg-success/20 text-success border border-success/40"
                     : "bg-primary text-black hover:bg-primary/90"
-                } font-black uppercase tracking-widest`}
+                } font-black uppercase tracking-widest shadow-lg`}
               >
                 {obdConnected ? (
                   <>
@@ -255,7 +253,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         </div>
         
         {/* Quick Actions / Shortcuts */}
-        <div className="md:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+        <div className="md:col-span-12 lg:col-span-12 grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
            <button onClick={() => setCurrentScreen("Index")} className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-[#1a1a1a] transition-all">
              <LayoutGrid className="w-6 h-6 text-primary" />
              <span className="text-xs uppercase font-bold tracking-widest font-mono text-white/70">Tools Menu</span>

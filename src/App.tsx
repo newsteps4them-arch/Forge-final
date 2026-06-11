@@ -1311,8 +1311,8 @@ const ChatScreen = ({
         />
       )}
       {/* Tech Header */}
-      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-10 pb-4 bg-[#050505]/90 backdrop-blur-xl flex flex-col gap-3 border-b border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff41]/50 to-transparent" />
+      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 sm:pt-6 md:pt-10 pb-4 bg-[#050505]/90 backdrop-blur-xl flex flex-col gap-3 border-b border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
@@ -1734,7 +1734,7 @@ const ChatScreen = ({
       </div>
 
       {/* Floating Input Footer */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 pb-8 glass border-t border-white/5">
+      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 pb-6 sm:pb-8 md:pb-12 glass border-t border-white/5">
         {image && (
           <div className="mb-3 relative inline-block mx-2">
             <img
@@ -3211,7 +3211,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern">
+    <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern pt-safe pb-safe pl-safe pr-safe">
       <TopStatusBar 
         onSettingsClick={onboarding.onboardingComplete ? () => setCurrentScreen("Settings") : undefined} 
         onMenuClick={onboarding.onboardingComplete ? () => setIsDrawerOpen(true) : undefined}
@@ -3225,11 +3225,11 @@ export default function App() {
       />
       
       <NotificationContainer />
-      <div className="flex-1 w-full flex items-center justify-center p-0 lg:p-6 bg-transparent">
+      <div className="flex-1 w-full flex items-center justify-center p-0 md:p-4 lg:p-6 2xl:p-12 bg-transparent">
         {/* Rugged Scanner Device Container (Tablet/Widescreen on Desktop) */}
-        <div className="w-full h-full lg:max-w-6xl xl:max-w-7xl bg-[#0A0A0A] lg:rounded-[2rem] relative overflow-hidden lg:border-[8px] border-[#1d1d1d] lg:ring-4 ring-[#0f0f0f] shadow-[0_0_100px_-10px_rgba(245,166,35,0.15),inset_0_0_0_1px_rgba(255,255,255,0.05)] flex flex-col dotted-pattern">
+        <div className="w-full h-full lg:max-w-6xl xl:max-w-[1400px] 2xl:max-w-[1600px] bg-[#0A0A0A] md:rounded-[2.5rem] relative overflow-hidden md:border-[10px] lg:border-[14px] border-[#1d1d1d] md:ring-4 lg:ring-8 ring-[#0f0f0f] shadow-[0_0_100px_-10px_rgba(245,166,35,0.15),inset_0_0_0_1px_rgba(255,255,255,0.05)] flex flex-col dotted-pattern">
           {/* Hardware Header accents */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent z-40 hidden lg:block" />
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent z-40 hidden md:block" />
 
           <div className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-2 lg:pt-4">
             <AnimatePresence mode="wait">

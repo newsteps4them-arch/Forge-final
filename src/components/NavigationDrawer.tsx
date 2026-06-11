@@ -96,7 +96,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             className="fixed top-0 left-0 bottom-0 w-[300px] sm:w-[320px] bg-[#050505] border-r border-white/5 z-[100] flex flex-col shadow-2xl hardware-pattern"
           >
             {/* Header / Brand */}
-            <div className="flex items-center justify-between p-6 border-b border-primary/20 bg-primary/5">
+            <div className="flex items-center justify-between p-6 border-b border-primary/20 bg-primary/5 pt-safe">
               <h2 className="text-xl font-display font-black text-white tracking-widest uppercase">
                 Forge<span className="text-primary tracking-normal">.OS</span>
               </h2>
@@ -109,7 +109,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             </div>
             
             {/* Scrollable Items List */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-6 pb-32">
+            <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-6 pb-32 pl-safe">
               {MENU_GROUPS.map((group) => (
                 <div key={group.title} className="flex flex-col gap-2">
                   <h3 className="px-3 text-[10px] font-mono text-primary/70 uppercase tracking-[0.25em] font-bold">
