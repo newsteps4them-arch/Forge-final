@@ -23,6 +23,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+              Firebase Auth redirect / email-link deep-link handler.
+              BUG FIX: Without this intent-filter the Android WebView cannot
+              receive the OAuth redirect or email-link callback URL, causing
+              Google sign-in (redirect flow) and email-link sign-in to silently
+              fail on the native build.
+
+              The scheme "https" + host "demoforce-d8279.firebaseapp.com" matches
+              the Firebase-generated email-link and OAuth redirect URLs.
+              Replace the host with your production authDomain if it differs.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="demoforce-d8279.firebaseapp.com" />
+            </intent-filter>
+
         </activity>
 
         <provider

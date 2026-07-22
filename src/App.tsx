@@ -123,6 +123,8 @@ import {
   db,
   googleProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInAnonymously,
   signOut,
   onAuthStateChanged,
@@ -545,23 +547,37 @@ const WelcomeScreen = ({
 
   const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) {
-      toast.show("Please enter a valid email address.", "error");
+    if (!email || !email.includes('@')) {
+      toast.show('Please enter a valid email address.', 'error');
       return;
     }
     setIsSending(true);
     try {
+      // BUG FIX: The `url` in actionCodeSettings must exactly match one of the
+      // Authorized Domains configured in Firebase Console → Authentication →
+      // Settings → Authorized domains.  Using `window.location.href` (which
+      // may contain query params or hash) can cause auth/invalid-continue-uri
+      // errors.  We use `window.location.origin + window.location.pathname`
+      // to produce a clean, canonical URL that is always authorised.
       const actionCodeSettings = {
-        url: window.location.origin,
+        url: window.location.origin + window.location.pathname,
         handleCodeInApp: true,
       };
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
       setLinkSent(true);
-      toast.show("Sign-in link sent to your email!", "success");
+      toast.show('Sign-in link sent! Check your inbox (and spam folder).', 'success');
     } catch (error) {
-      const err = error as Error;
-      toast.show(`Failed to send link: ${err.message}`, "error");
+      const err = error as { code?: string; message?: string };
+      const friendly =
+        err.code === 'auth/operation-not-allowed'
+          ? 'Email link sign-in is not enabled. Please contact the administrator.'
+          : err.code === 'auth/invalid-continue-uri'
+            ? 'Invalid redirect URL. Please check your Firebase Authorized Domains.'
+            : err.code === 'auth/missing-continue-uri'
+              ? 'A redirect URL is required for email link sign-in.'
+              : `Failed to send link: ${err.message}`;
+      toast.show(friendly, 'error');
     } finally {
       setIsSending(false);
     }
@@ -2639,44 +2655,87 @@ export default function App() {
   });
 
   // Auth Listener
+  // BUG FIX: The previous listener set the user but never navigated away from
+  // the Welcome screen on its own.  Navigation was delegated entirely to the
+  // profile-load effect, which fires in a separate useEffect after `user`
+  // changes.  If the profile-load effect threw (e.g. Firestore permission
+  // denied for anonymous users) the screen stayed on "Welcome" forever.
+  // We now also handle getRedirectResult here so that Google sign-in via
+  // redirect (used as a fallback when popups are blocked) is processed on
+  // every app mount.
   useEffect(() => {
+    // Process any pending redirect-based Google sign-in result first.
+    // This is a no-op when there is no pending redirect.
+    getRedirectResult(auth).catch((err: { code?: string; message?: string }) => {
+      // auth/no-current-user is expected when there is no redirect pending.
+      if (err?.code !== 'auth/no-current-user') {
+        console.error('getRedirectResult error:', err);
+        toast.show(`Google sign-in failed: ${err.message}`, 'error');
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
       if (u) {
-        toast.show(`Signed in as ${u.displayName || u.email}`, "success");
+        toast.show(`Signed in as ${u.displayName || u.email || 'Anonymous'}`, 'success');
       }
     });
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle Email Link Sign-in redirection
+  // BUG FIX 1: `setAuthLoading(false)` was missing from the success path.
+  //   After `signInWithEmailLink` resolves, `onAuthStateChanged` fires and
+  //   sets authLoading=false, but only if the listener is already mounted.
+  //   On a cold page-load triggered by clicking the email link, there is a
+  //   race condition where the listener may not have fired yet, leaving the
+  //   spinner visible indefinitely.  We now explicitly clear it on success.
+  // BUG FIX 2: The URL cleanup used `window.location.pathname` which strips
+  //   the hash fragment.  On some hosting setups (e.g. hash-router) this
+  //   caused a blank screen.  We now preserve the hash.
   useEffect(() => {
     if (isSignInWithEmailLink(auth, window.location.href)) {
       const performEmailSignIn = async () => {
-        let email = window.localStorage.getItem("emailForSignIn");
+        let email = window.localStorage.getItem('emailForSignIn');
         if (!email) {
-          email = window.prompt("Please enter your email to confirm sign-in:");
+          email = window.prompt('Please enter your email to confirm sign-in:');
         }
         if (!email) {
-          toast.show("Email confirmation required to sign in", "error");
+          toast.show('Email confirmation required to sign in.', 'error');
           return;
         }
         setAuthLoading(true);
         try {
           await signInWithEmailLink(auth, email, window.location.href);
-          window.localStorage.removeItem("emailForSignIn");
-          toast.show("Successfully signed in with email link!", "success");
-          // Clean up URL parameters
-          window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
+          window.localStorage.removeItem('emailForSignIn');
+          // Clean up the OOB code from the URL without losing the hash.
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.origin + window.location.pathname + window.location.hash,
+          );
+          toast.show('Successfully signed in with email link!', 'success');
+          // Explicitly clear loading — onAuthStateChanged may fire after this.
+          setAuthLoading(false);
         } catch (error) {
-          const err = error as Error;
-          toast.show(`Failed to sign in: ${err.message}`, "error");
+          const err = error as { code?: string; message?: string };
+          // auth/invalid-action-code: link already used or expired.
+          // auth/invalid-email: stored email doesn't match the link.
+          const friendly =
+            err.code === 'auth/invalid-action-code'
+              ? 'This sign-in link has expired or already been used. Please request a new one.'
+              : err.code === 'auth/invalid-email'
+                ? 'The email address does not match the sign-in link. Please try again.'
+                : `Failed to sign in: ${err.message}`;
+          toast.show(friendly, 'error');
           setAuthLoading(false);
         }
       };
       performEmailSignIn();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch Projects and Tasks on login
@@ -2792,18 +2851,41 @@ export default function App() {
   // Fetch User Profile
   useEffect(() => {
     if (!user) return;
+
+    // BUG FIX: Anonymous users have no Firestore profile document and the
+    // previous code silently caught the Firestore permission error without
+    // navigating, leaving them stuck on the Welcome screen.
+    // We now:
+    //  1. Skip the Firestore fetch for anonymous users and route them directly
+    //     to onboarding (NameAssistant).
+    //  2. On any Firestore error for authenticated users, fall back to
+    //     onboarding rather than leaving the app in a broken state.
+    if (user.isAnonymous) {
+      setCurrentScreen('NameAssistant');
+      return;
+    }
+
     const loadProfile = async () => {
       try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           const profile = userDoc.data() as OnboardingData;
           setOnboarding(profile);
-          if (profile.onboardingComplete) setCurrentScreen("Main");
+          if (profile.onboardingComplete) {
+            setCurrentScreen('Main');
+          } else {
+            // Profile exists but onboarding was never completed — resume it.
+            setCurrentScreen('NameAssistant');
+          }
         } else {
-          setCurrentScreen("NameAssistant");
+          // New user — start onboarding.
+          setCurrentScreen('NameAssistant');
         }
       } catch (e) {
-        console.error("Profile load failed", e);
+        // Firestore permission errors (e.g. rules not yet deployed) must not
+        // leave the user stranded.  Log the error and fall back to onboarding.
+        console.error('Profile load failed — falling back to onboarding:', e);
+        setCurrentScreen('NameAssistant');
       }
     };
     loadProfile();
@@ -2943,37 +3025,91 @@ export default function App() {
   }, [activeProject, user]);
 
   const handleLogin = async () => {
+    // BUG FIX: On native Capacitor (Android/iOS) and in browsers that block
+    // third-party popups, `signInWithPopup` throws auth/popup-blocked or
+    // auth/cancelled-popup-request.  The previous code only showed an error
+    // toast and left the user unable to sign in.
+    // We now automatically fall back to `signInWithRedirect` in those cases.
+    // `getRedirectResult` (called in the auth listener useEffect above) will
+    // pick up the result when the app reloads after the redirect.
+    const isNative = Capacitor.isNativePlatform();
+    if (isNative) {
+      // Popups are not supported inside a Capacitor WebView.
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (error) {
+        const err = error as { message?: string };
+        toast.show(`Google sign-in failed: ${err.message}`, 'error');
+      }
+      return;
+    }
+
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       const err = error as { code?: string; message?: string };
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-        toast.show("Login popup was blocked or closed. Please allow popups.", "error");
+      if (
+        err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/cancelled-popup-request' ||
+        err.code === 'auth/popup-closed-by-user'
+      ) {
+        // Popup was blocked or closed — fall back to redirect flow.
+        toast.show('Popup blocked. Redirecting to Google sign-in…', 'info');
+        try {
+          await signInWithRedirect(auth, googleProvider);
+        } catch (redirectErr) {
+          const rErr = redirectErr as { message?: string };
+          toast.show(`Google sign-in failed: ${rErr.message}`, 'error');
+        }
+      } else if (err.code === 'auth/operation-not-allowed') {
+        toast.show(
+          'Google sign-in is not enabled. Please contact the administrator.',
+          'error',
+        );
       } else {
-        toast.show(`Login failed: ${err.message}`, "error");
+        toast.show(`Login failed: ${err.message}`, 'error');
       }
     }
   };
 
   const handleLoginAnon = async () => {
+    // BUG FIX: The previous implementation called `handleNext()` both on
+    // success AND in the catch block.  This advanced the screen to
+    // NameAssistant before `onAuthStateChanged` had fired, meaning `user`
+    // was still null when the profile-load effect ran, causing it to bail
+    // out immediately.  The user was then stuck in onboarding with no auth.
+    // We now let `onAuthStateChanged` + the profile-load effect handle
+    // navigation, consistent with the Google sign-in flow.
     try {
       await signInAnonymously(auth);
-      toast.show("Signed in as Offline User", "info");
-      handleNext();
+      // Navigation is handled by the profile-load useEffect once user is set.
     } catch (error) {
-      const err = error as { message?: string };
-      toast.show(`Offline Login failed: ${err.message}`, "error");
-      handleNext();
+      const err = error as { code?: string; message?: string };
+      if (err.code === 'auth/operation-not-allowed') {
+        toast.show(
+          'Anonymous sign-in is not enabled. Please contact the administrator.',
+          'error',
+        );
+      } else {
+        toast.show(`Offline login failed: ${err.message}`, 'error');
+      }
     }
   };
 
   const handleLogout = async () => {
+    // BUG FIX: The previous implementation signed out of Firebase but did not
+    // reset the navigation state.  The user remained on "Main" (or wherever
+    // they were) with `user` set to null, causing Firestore listeners to fail
+    // and leaving the UI in an inconsistent state.
+    // We now navigate back to Welcome immediately after sign-out so the app
+    // re-enters the unauthenticated state cleanly.
     try {
       await signOut(auth);
-      toast.show("Signed out successfully", "info");
+      setCurrentScreen('Welcome');
+      toast.show('Signed out successfully.', 'info');
     } catch (error) {
       const err = error as { message?: string };
-      toast.show(`Logout failed: ${err.message}`, "error");
+      toast.show(`Logout failed: ${err.message}`, 'error');
     }
   };
 
@@ -3340,7 +3476,11 @@ export default function App() {
                     <p className="text-[10px] font-mono text-text-dim uppercase tracking-[0.3em] animate-pulse">Syncing_Neural_Link...</p>
                   </div>
                 </motion.div>
-              ) : currentScreen === "Welcome" && (
+              ) : currentScreen === "Welcome" && !user && (
+                // BUG FIX: Guard against briefly re-rendering the Welcome screen
+                // when `user` is already set but `currentScreen` hasn't been
+                // updated yet by the profile-load effect.  Without this guard,
+                // a returning user would see a flash of the login screen.
                 <WelcomeScreen
                   key="welcome"
                   onNext={handleNext}
