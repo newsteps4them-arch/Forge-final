@@ -1,0 +1,114 @@
+{
+  "P0100": {
+    "system": "Powertrain",
+    "title": "Mass or Volume Air Flow Circuit Malfunction",
+    "severity": "Medium",
+    "symptoms": ["Rough idle", "Engine hesitation", "Decreased fuel economy", "Check Engine Light"],
+    "possibleCauses": ["Fouled or dirty MAF sensor wire", "MAF sensor failure", "Air intake leaks", "Wiring harness fault"],
+    "diagnosticSteps": "1. Inspect intake tubing for loose clamps or tears.\n2. Spray clean MAF sensor with dedicated MAF cleaner.\n3. Verify 12V power supply and ground to MAF connector."
+  },
+  "P0101": {
+    "system": "Powertrain",
+    "title": "Mass Air Flow Circuit Range/Performance Problem",
+    "severity": "Medium",
+    "symptoms": ["Poor acceleration", "Stalling at stoplights", "Hard start"],
+    "possibleCauses": ["Dirty air filter", "Blocked intake passage", "Contaminated MAF sensor element"],
+    "diagnosticSteps": "1. Inspect and replace air filter if clogged.\n2. Check live MAF g/s reading on diagnostic scanner at idle (~2-5 g/s for 2.0L engine)."
+  },
+  "P0133": {
+    "system": "Powertrain",
+    "title": "O2 Sensor Circuit Slow Response (Bank 1 Sensor 1)",
+    "severity": "Low",
+    "symptoms": ["Slightly elevated emissions", "Reduced fuel economy"],
+    "possibleCauses": ["Aged upstream O2 sensor", "Exhaust manifold leak upstream of sensor", "Contaminated sensor element"],
+    "diagnosticSteps": "1. Inspect exhaust manifold and downpipe for soot traces/cracks.\n2. Monitor live O2 sensor 1 voltage graph for rapid 0.1V to 0.9V switching rate."
+  },
+  "P0171": {
+    "system": "Powertrain",
+    "title": "System Too Lean (Bank 1)",
+    "severity": "High",
+    "symptoms": ["Engine misfire under load", "Lean surge", "High long-term fuel trim (>+15%)"],
+    "possibleCauses": ["Vacuum leak downstream of MAF", "Weak fuel pump / clogged fuel filter", "Clogged fuel injectors", "PCV valve stuck open"],
+    "diagnosticSteps": "1. Perform smoke test on intake manifold to pinpoint vacuum leaks.\n2. Test fuel rail pressure with mechanical gauge.\n3. Inspect Short Term & Long Term Fuel Trim values."
+  },
+  "P0172": {
+    "system": "Powertrain",
+    "title": "System Too Rich (Bank 1)",
+    "severity": "High",
+    "symptoms": ["Black exhaust smoke", "Strong fuel odor", "Fouled spark plugs", "Negative fuel trim (<-15%)"],
+    "possibleCauses": ["Leaking fuel injector", "High fuel pressure", "Stuck closed EVAP purge valve", "Fouled MAF sensor"],
+    "diagnosticSteps": "1. Inspect fuel pressure regulator for diaphragm leak into vacuum line.\n2. Check EVAP purge valve for vacuum pass-through when de-energized."
+  },
+  "P0300": {
+    "system": "Powertrain",
+    "title": "Random / Multiple Cylinder Misfire Detected",
+    "severity": "Critical",
+    "symptoms": ["Flashing Check Engine Light", "Severe engine shake", "Power loss", "Risk of catalytic converter damage"],
+    "possibleCauses": ["Worn spark plugs", "Low fuel pressure", "Systemic vacuum leak", "EGR valve stuck open"],
+    "diagnosticSteps": "1. CAUTION: Flashing MIL indicates active catalyst damage. Avoid heavy throttle.\n2. Check ignition coil power supply and ground harness.\n3. Execute cylinder compression test across all cylinders."
+  },
+  "P0301": {
+    "system": "Powertrain",
+    "title": "Cylinder 1 Misfire Detected",
+    "severity": "High",
+    "symptoms": ["Rough idle", "Engine shudder on acceleration", "Loss of power"],
+    "possibleCauses": ["Faulty Cylinder 1 spark plug", "Failed Cylinder 1 ignition coil", "Clogged Cylinder 1 fuel injector", "Low compression on Cylinder 1"],
+    "diagnosticSteps": "1. Swap Cylinder 1 ignition coil to Cylinder 2; clear DTC and check if misfire follows coil.\n2. Inspect Cylinder 1 spark plug electrode condition and gap."
+  },
+  "P0302": {
+    "system": "Powertrain",
+    "title": "Cylinder 2 Misfire Detected",
+    "severity": "High",
+    "symptoms": ["Rough idle", "Engine shudder on acceleration", "Loss of power"],
+    "possibleCauses": ["Faulty Cylinder 2 spark plug", "Failed Cylinder 2 ignition coil", "Clogged Cylinder 2 fuel injector"],
+    "diagnosticSteps": "1. Swap Cylinder 2 coil to Cylinder 3; re-test for code shift.\n2. Test injector pulse using noid light."
+  },
+  "P0420": {
+    "system": "Powertrain",
+    "title": "Catalytic Converter System Efficiency Below Threshold (Bank 1)",
+    "severity": "Medium",
+    "symptoms": ["Check Engine Light illuminated", "Possible sulfur odor from exhaust"],
+    "possibleCauses": ["Degraded catalytic converter substrate", "Downstream O2 sensor fault", "Exhaust leak between upstream and downstream O2 sensors"],
+    "diagnosticSteps": "1. Inspect downstream O2 sensor signal (should be steady ~0.45V - 0.7V on healthy cat).\n2. Measure exhaust temperature delta at catalytic converter inlet vs outlet with IR thermometer."
+  },
+  "P0455": {
+    "system": "Powertrain",
+    "title": "EVAP System Gross Leak Detected",
+    "severity": "Low",
+    "symptoms": ["Check Engine Light illuminated", "Possible fuel vapor odor"],
+    "possibleCauses": ["Loose, damaged, or missing gas cap", "Stuck open EVAP vent solenoid", "Cracked EVAP vapor line"],
+    "diagnosticSteps": "1. Inspect gas cap rubber seal for cracks or debris.\n2. Command EVAP vent solenoid closed with scan tool and apply low-pressure smoke test to EVAP service port."
+  },
+  "P0700": {
+    "system": "Powertrain / Transmission",
+    "title": "Transmission Control System Malfunction (MIL Request)",
+    "severity": "High",
+    "symptoms": ["Transmission in Limp Mode (3rd gear lockup)", "Harsh shifting", "Check Engine Light"],
+    "possibleCauses": ["Sub-module fault in Transmission Control Module (TCM)", "Low transmission fluid level", "TCM wiring harness corrosion"],
+    "diagnosticSteps": "1. Scan TCM module specifically for secondary transmission P-codes (e.g. P0750, P0755).\n2. Verify fluid level, color, and smell."
+  },
+  "B0001": {
+    "system": "Body / SRS Airbag",
+    "title": "Driver Frontal Stage 1 Deployment Control Malfunction",
+    "severity": "Critical",
+    "symptoms": ["Airbag Warning Lamp illuminated", "SRS system disabled"],
+    "possibleCauses": ["Faulty steering wheel clock spring", "Corroded airbag harness connector under column", "Driver airbag module failure"],
+    "diagnosticSteps": "1. Disconnect vehicle battery and wait 10 minutes before servicing SRS.\n2. Inspect steering wheel clock spring harness for continuity."
+  },
+  "C0035": {
+    "system": "Chassis / ABS",
+    "title": "Left Front Wheel Speed Circuit Malfunction",
+    "severity": "High",
+    "symptoms": ["ABS Light illuminated", "Traction Control Light illuminated", "Disabled ABS anti-lock braking"],
+    "possibleCauses": ["Damaged ABS wheel speed sensor cable", "Debris on tone ring", "Faulty wheel bearing hub assembly"],
+    "diagnosticSteps": "1. Inspect wiring harness near LF wheel well for chaffing or hub movement damage.\n2. Measure AC voltage output from sensor while spinning wheel manually."
+  },
+  "U0100": {
+    "system": "Network / CAN Bus",
+    "title": "Lost Communication With ECM / PCM 'A'",
+    "severity": "Critical",
+    "symptoms": ["No-start condition", "Dashboard instrument cluster warning lights illuminated", "Scantool cannot establish link to ECM"],
+    "possibleCauses": ["Blown ECM main fuse / relay", "ECM ground wire corrosion", "High-speed CAN bus line shorted to ground or power"],
+    "diagnosticSteps": "1. Check main ECM fuses and power relay under hood fuse box.\n2. Measure resistance across CAN High (pin 6) and CAN Low (pin 14) at OBD-II connector (should read ~60 ohms)."
+  }
+}
