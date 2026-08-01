@@ -27,7 +27,7 @@ import json
 import sys
 from typing import Any
 
-import cloud_rest_helpers_nodeps
+import cloud_rest_helpers_nodeps  # type: ignore # noqa
 import validation
 
 _BIGQUERY_API = "https://bigquery.googleapis.com/bigquery/v2/projects"

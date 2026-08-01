@@ -17,10 +17,10 @@
 import argparse
 from collections.abc import Mapping, Sequence
 import json
-import textwrap
+import textwrap  # type: ignore # noqa
 from typing import Any
 
-import cloud_rest_helpers_nodeps
+import cloud_rest_helpers_nodeps  # type: ignore # noqa
 import validation
 
 _SKILL = "gcs-security-assessment"

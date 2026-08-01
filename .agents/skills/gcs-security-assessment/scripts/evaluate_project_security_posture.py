@@ -22,7 +22,7 @@ import enum
 import json
 from typing import Any, TypedDict
 
-import cloud_rest_helpers_nodeps
+import cloud_rest_helpers_nodeps  # type: ignore # noqa
 
 _TIMEOUT_SECONDS = 5
 _STORAGE_API = "storage.googleapis.com"

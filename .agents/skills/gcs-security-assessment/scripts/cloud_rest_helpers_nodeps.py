@@ -27,7 +27,7 @@ import json as json_lib
 import logging
 import os
 import re
-import shutil
+import shutil  # type: ignore # noqa
 import subprocess
 import tempfile
 import time
