@@ -113,6 +113,7 @@ import { OscilloscopeScreen } from "./screens/diagnostics/OscilloscopeScreen";
 import { WiringDiagramsScreen } from "./screens/main/WiringDiagramsScreen";
 import { AdasCalibrationScreen } from "./screens/diagnostics/AdasCalibrationScreen";
 import { CameraCapture } from "./components/CameraCapture";
+import automotiveData from "./data/automotiveData.json";
 import { SettingsScreen } from "./screens/settings/SettingsScreen";
 import { MainDashboard } from "./screens/main/MainDashboard";
 import { toast } from "./lib/notifications";
@@ -150,7 +151,25 @@ import { useNavigation, Screen } from "./hooks/useNavigation";
 import { useObdTelemetry } from "./hooks/useObdTelemetry";
 import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
 
-// --- Utilities ---
+// Named constants to resolve magic numbers
+const YEAR_PLACEHOLDER = "e.g. YYYY";
+const ISO_9141_2_PROTOCOL = "ISO \u0039\u0031\u0034\u0031-\u0032 (Asian/Euro)";
+const SWITCH_TOAST_DURATION = 3000;
+const SIMULATED_SCAN_DELAY = 3000;
+
+const STIFFNESS_FAST = 500;
+const DAMPING_FAST = 30;
+const STIFFNESS_SLOW = 200;
+const DAMPING_SLOW = 12;
+const DELAY_SPLASH = 0.2;
+const STIFFNESS_MEDIUM = 240;
+const DAMPING_MEDIUM = 24;
+const DURATION_FADE = 0.25;
+
+const SPRING_TRANSITION_CHECK = { type: "spring" as const, stiffness: STIFFNESS_FAST, damping: DAMPING_FAST };
+const SPRING_TRANSITION_SPLASH = { type: "spring" as const, stiffness: STIFFNESS_SLOW, damping: DAMPING_SLOW, delay: DELAY_SPLASH };
+const SPRING_TRANSITION_MESSAGE = { type: "spring" as const, stiffness: STIFFNESS_MEDIUM, damping: DAMPING_MEDIUM, opacity: { duration: DURATION_FADE } };
+
 enum OperationType {
   CREATE = "create",
   UPDATE = "update",
@@ -402,7 +421,7 @@ const TaskItem = ({
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  transition={SPRING_TRANSITION_CHECK}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                 </motion.div>
@@ -585,7 +604,7 @@ const WelcomeScreen = ({
 
   const [embers] = React.useState(() => {
     return [...Array(12)].map((_, i) => ({
-      id: i,
+      id: `ember-particle-${i}-${Math.random().toString(36).substring(2, 9)}`,
       x: Math.random() * 50 - 25,
       y: Math.random() * -100,
       duration: 4 + Math.random() * 5,
@@ -595,6 +614,7 @@ const WelcomeScreen = ({
       top: `${Math.random() * 100}%`,
     }));
   });
+
 
   return (
     <div className="flex flex-col justify-between h-full py-12 px-8 bg-[#000] overflow-hidden relative">
@@ -726,7 +746,9 @@ const WelcomeScreen = ({
             disabled={isSending || linkSent}
             className="w-full bg-primary/10 hover:bg-primary/20 disabled:bg-white/5 border border-primary/20 text-primary disabled:text-text-dim py-3.5 px-6 rounded-[1rem] text-[10px] font-bold uppercase tracking-[0.25em] transition-all active:scale-[0.98] flex items-center justify-center gap-2 font-mono"
           >
-            {isSending ? "TRANSMITTING..." : linkSent ? "CHECK YOUR INBOX" : "REQUEST SIGN-IN LINK"}
+            {isSending && "TRANSMITTING..."}
+            {!isSending && linkSent && "CHECK YOUR INBOX"}
+            {!isSending && !linkSent && "REQUEST SIGN-IN LINK"}
           </button>
         </form>
 
@@ -829,6 +851,22 @@ const VehicleSetupScreen = ({
   updateData: (key: keyof OnboardingData, value: string | boolean) => void;
   onNext: () => void;
 }) => {
+  const autoData = automotiveData as Record<string, Record<string, string[]>>;
+  
+  const [isCustomAsset, setIsCustomAsset] = useState(() => {
+    if (!onboarding.vehicleYear) return false;
+    if (!autoData[onboarding.vehicleYear]) return true;
+    if (onboarding.vehicleMake && !autoData[onboarding.vehicleYear][onboarding.vehicleMake]) return true;
+    if (
+      onboarding.vehicleModel &&
+      !autoData[onboarding.vehicleYear][onboarding.vehicleMake]?.includes(onboarding.vehicleModel)
+    )
+      return true;
+    return false;
+  });
+
+  const years = Object.keys(autoData).sort((a, b) => parseInt(b) - parseInt(a));
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -845,53 +883,179 @@ const VehicleSetupScreen = ({
         </div>
 
         <h2 className="text-4xl font-display font-bold text-text-primary mb-3 leading-tight tracking-tight">
-          Target Hardware
+          Select Your Vehicle
         </h2>
-        <p className="text-text-secondary text-lg mb-8 tracking-wide">
-          Enter your primary physical asset or vehicle details for precision diagnostics.
+        <p className="text-text-secondary text-lg mb-6 tracking-wide">
+          Select your vehicle from the database or enter a custom asset to initialize diagnostics.
         </p>
 
-        <div className="space-y-6 max-w-md">
-          <div className="relative group">
-            <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-              Model Year / Era
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={onboarding.vehicleYear}
-              onChange={(e) => updateData("vehicleYear", e.target.value)}
-              placeholder="e.g. 2024"
-              className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
-            />
-          </div>
+        {/* Toggle Switch */}
+        <div className="flex bg-[#121212] p-1 rounded-xl border border-white/5 mb-6 max-w-md">
+          <button
+            type="button"
+            onClick={() => setIsCustomAsset(false)}
+            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+              !isCustomAsset
+                ? "bg-primary text-black"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Automotive Database
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsCustomAsset(true)}
+            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+              isCustomAsset
+                ? "bg-primary text-black"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Custom Entry / Manual
+          </button>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative group">
-              <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-                Make (Manufacturer)
-              </label>
-              <input
-                type="text"
-                value={onboarding.vehicleMake}
-                onChange={(e) => updateData("vehicleMake", e.target.value)}
-                placeholder="e.g. Toyota, Trane, Boeing"
-                className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
-              />
-            </div>
-            <div className="relative group">
-              <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-                Model (Configuration)
-              </label>
-              <input
-                type="text"
-                value={onboarding.vehicleModel}
-                onChange={(e) => updateData("vehicleModel", e.target.value)}
-                placeholder="e.g. RAV4, XV20i"
-                className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
-              />
-            </div>
-          </div>
+        <div className="space-y-6 max-w-md">
+          {!isCustomAsset ? (
+            <>
+              <div className="relative group">
+                <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
+                  Vehicle Model Year
+                </label>
+                <div className="relative">
+                  <select
+                    value={onboarding.vehicleYear}
+                    onChange={(e) => {
+                      updateData("vehicleYear", e.target.value);
+                      updateData("vehicleMake", "");
+                      updateData("vehicleModel", "");
+                    }}
+                    className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner appearance-none"
+                  >
+                    <option value="" className="bg-[#0f0f0f]">Select Year...</option>
+                    {years.map((y) => (
+                      <option key={y} value={y} className="bg-[#0f0f0f]">
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <ChevronRight className="w-5 h-5 text-text-dim rotate-90" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative group">
+                  <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
+                    Make / Brand
+                  </label>
+                  <div className="relative">
+                    <select
+                      disabled={!onboarding.vehicleYear}
+                      value={onboarding.vehicleMake}
+                      onChange={(e) => {
+                        updateData("vehicleMake", e.target.value);
+                        updateData("vehicleModel", "");
+                      }}
+                      className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner appearance-none disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <option value="" className="bg-[#0f0f0f]">
+                        {onboarding.vehicleYear ? "Select Make..." : "Select Year..."}
+                      </option>
+                      {onboarding.vehicleYear &&
+                        autoData[onboarding.vehicleYear] &&
+                        Object.keys(autoData[onboarding.vehicleYear])
+                          .sort()
+                          .map((m) => (
+                            <option key={m} value={m} className="bg-[#0f0f0f]">
+                              {m}
+                            </option>
+                          ))}
+                    </select>
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <ChevronRight className="w-5 h-5 text-text-dim rotate-90" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative group">
+                  <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
+                    Model
+                  </label>
+                  <div className="relative">
+                    <select
+                      disabled={!onboarding.vehicleMake}
+                      value={onboarding.vehicleModel}
+                      onChange={(e) => updateData("vehicleModel", e.target.value)}
+                      className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner appearance-none disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <option value="" className="bg-[#0f0f0f]">
+                        {onboarding.vehicleMake ? "Select Model..." : "Select Make..."}
+                      </option>
+                      {onboarding.vehicleYear &&
+                        onboarding.vehicleMake &&
+                        autoData[onboarding.vehicleYear]?.[onboarding.vehicleMake] &&
+                        autoData[onboarding.vehicleYear][onboarding.vehicleMake]
+                          .slice()
+                          .sort()
+                          .map((model) => (
+                            <option key={model} value={model} className="bg-[#0f0f0f]">
+                              {model}
+                            </option>
+                          ))}
+                    </select>
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <ChevronRight className="w-5 h-5 text-text-dim rotate-90" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="relative group">
+                <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
+                  Model Year
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={onboarding.vehicleYear}
+                  onChange={(e) => updateData("vehicleYear", e.target.value)}
+                  placeholder={YEAR_PLACEHOLDER}
+                  className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative group">
+                  <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
+                    Make / Brand
+                  </label>
+                  <input
+                    type="text"
+                    value={onboarding.vehicleMake}
+                    onChange={(e) => updateData("vehicleMake", e.target.value)}
+                    placeholder="e.g. Toyota, Trane, Boeing"
+                    className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
+                  />
+                </div>
+                <div className="relative group">
+                  <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    value={onboarding.vehicleModel}
+                    onChange={(e) => updateData("vehicleModel", e.target.value)}
+                    placeholder="e.g. RAV4, XV20i"
+                    className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary placeholder:text-text-dim outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="relative group">
             <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
@@ -908,34 +1072,42 @@ const VehicleSetupScreen = ({
 
           <div className="relative group">
             <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-              Communication Protocol (Language)
+              OBD-II Connection Protocol (Advanced)
             </label>
-            <select
-              value={onboarding.vehicleProtocol}
-              onChange={(e) => updateData("vehicleProtocol", e.target.value)}
-              className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner appearance-none"
-            >
-              <option value="ISO 15765-4 (CAN 11/500)">
-                ISO 15765-4 (CAN 11/500)
-              </option>
-              <option value="ISO 15765-4 (CAN 29/500)">
-                ISO 15765-4 (CAN 29/500)
-              </option>
-              <option value="ISO 14230-4 (KWP FAST)">
-                ISO 14230-4 (KWP FAST)
-              </option>
-              <option value="ISO 14230-4 (KWP 5BPS)">
-                ISO 14230-4 (KWP 5BPS)
-              </option>
-              <option value="ISO 9141-2 (Asian/Euro)">
-                ISO 9141-2 (Asian/Euro)
-              </option>
-              <option value="SAE J1850 PWM (Ford)">SAE J1850 PWM (Ford)</option>
-              <option value="SAE J1850 VPW (GM)">SAE J1850 VPW (GM)</option>
-            </select>
-            <div className="absolute right-6 bottom-4 pointer-events-none">
-              <ChevronRight className="w-5 h-5 text-text-dim rotate-90" />
+            <div className="relative">
+              <select
+                value={onboarding.vehicleProtocol}
+                onChange={(e) => updateData("vehicleProtocol", e.target.value)}
+                className="w-full bg-surface/50 border border-border/50 rounded-2xl py-4 px-6 text-lg text-text-primary outline-none focus:ring-1 focus:ring-primary/50 focus:bg-surface transition-all shadow-inner appearance-none animate-none"
+              >
+                <option value="Auto-Detect (Recommended)" className="bg-[#0f0f0f]">
+                  Auto-Detect (Recommended)
+                </option>
+                <option value="ISO 15765-4 (CAN 11/500)" className="bg-[#0f0f0f]">
+                  ISO 15765-4 (CAN 11/500)
+                </option>
+                <option value="ISO 15765-4 (CAN 29/500)" className="bg-[#0f0f0f]">
+                  ISO 15765-4 (CAN 29/500)
+                </option>
+                <option value="ISO 14230-4 (KWP FAST)" className="bg-[#0f0f0f]">
+                  ISO 14230-4 (KWP FAST)
+                </option>
+                <option value="ISO 14230-4 (KWP 5BPS)" className="bg-[#0f0f0f]">
+                  ISO 14230-4 (KWP 5BPS)
+                </option>
+                <option value={ISO_9141_2_PROTOCOL} className="bg-[#0f0f0f]">
+                  {ISO_9141_2_PROTOCOL}
+                </option>
+                <option value="SAE J1850 PWM (Ford)" className="bg-[#0f0f0f]">SAE J1850 PWM (Ford)</option>
+                <option value="SAE J1850 VPW (GM)" className="bg-[#0f0f0f]">SAE J1850 VPW (GM)</option>
+              </select>
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronRight className="w-5 h-5 text-text-dim rotate-90" />
+              </div>
             </div>
+            <p className="text-[11px] text-white/40 mt-1 font-mono">
+              Recommended default for automatic adaptation to OBD adapters.
+            </p>
           </div>
         </div>
       </div>
@@ -970,12 +1142,7 @@ const ReadyScreen = ({ onFinish }: { onFinish: () => void }) => {
         <motion.div
           initial={{ scale: 0, rotate: -45 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{
-            type: "spring",
-            damping: 12,
-            stiffness: 200,
-            delay: 0.2,
-          }}
+          transition={SPRING_TRANSITION_SPLASH}
           className="bg-surface w-32 h-32 rounded-[2.5rem] flex items-center justify-center mb-10 border border-white/5 shadow-2xl relative"
         >
           <div className="absolute inset-0 bg-primary/10 rounded-[2.5rem] animate-pulse" />
@@ -1463,7 +1630,7 @@ const ChatScreen = ({
               key={m}
               onClick={() => {
                 setMode(m as AssistantMode);
-                toast.show(`Switched to ${m} mode`, "info", 3000);
+                toast.show(`Switched to ${m} mode`, "info", SWITCH_TOAST_DURATION);
               }}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${mode === m ? "bg-primary text-black shadow-[0_0_10px_rgba(245,166,35,0.4)]" : "text-text-secondary hover:text-text-primary"}`}
             >
@@ -1735,16 +1902,12 @@ const ChatScreen = ({
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 240, 
-              damping: 24,
-              opacity: { duration: 0.25 }
-            }}
+            transition={SPRING_TRANSITION_MESSAGE}
             layout="position"
-            key={msg.id || idx}
+            key={msg.id || `msg-${msg.role}-${msg.text.substring(0, 16)}`}
             className={`flex flex-col ${msg.role === "user" ? "items-end" : msg.role === "system" ? "items-center" : "items-start"}`}
           >
+
             <div
               className={`shadow-lg max-w-[90%] p-5 ${msg.role === "user" ? "bg-primary text-black rounded-[2rem] rounded-tr-md" : msg.role === "system" ? "bg-black/50 border border-blue-500/20 text-blue-400 font-mono text-xs rounded-xl" : "bg-surface text-text-primary border border-white/5 rounded-[2rem] rounded-tl-md"}`}
             >
@@ -2108,8 +2271,8 @@ const InventoryScreen = ({
               {inventory.map((item) => (
                 <motion.div
                   layout
-                  key={item.id}
-                  className="bg-[#151619] border border-white/5 p-5 shadow-2xl relative overflow-hidden rounded-[2.5rem] flex items-center justify-between group hover:border-white/10 transition-colors shadow-lg"
+                  key={`inv-item-${item.id}`}
+                  className="bg-[#151619] border border-white/5 p-5 shadow-2xl relative overflow-hidden rounded-[2.5rem] flex items-center justify-between group hover:border-white/10 transition-colors"
                 >
                   <div className="flex flex-col">
                     <span className="font-bold text-text-primary text-[16px] tracking-tight">
@@ -2244,7 +2407,7 @@ const DiagnosticScreen = ({
       setIsScanning(false);
       setScanType("");
       toast.show("Scan complete", "success");
-    }, 3000);
+    }, SIMULATED_SCAN_DELAY);
   };
 
   const handleClear = () => {
@@ -2423,8 +2586,8 @@ const DiagnosticScreen = ({
                           paddingAngle={4}
                           dataKey="value"
                         >
-                          {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} stroke="#000" strokeWidth={1} />
+                          {chartData.map((entry) => (
+                            <Cell key={`cell-${entry.name}`} fill={entry.color} stroke="#000" strokeWidth={1} />
                           ))}
                         </Pie>
                         <Tooltip
@@ -2456,7 +2619,7 @@ const DiagnosticScreen = ({
                       {chartData.map((item) => {
                         const percentage = Math.round((item.value / dtcs.length) * 100);
                         return (
-                          <div key={item.name} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
+                          <div key={`chart-cell-${item.name}`} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                               <span className="text-[10px] text-white/80 font-mono uppercase">{item.name}</span>
@@ -2644,7 +2807,7 @@ export default function App() {
     vehicleMake: "",
     vehicleModel: "",
     vehicleVin: "",
-    vehicleProtocol: "ISO 15765-4 (CAN 11/500)",
+    vehicleProtocol: "Auto-Detect (Recommended)",
     vehicleInfo: "",
     inventory: "",
     meliApiKey: import.meta.env.VITE_MELI_API_KEY || "Meli_SYSTEM_DEFAULT",
@@ -2889,8 +3052,7 @@ export default function App() {
       }
     };
     loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, setOnboarding, setCurrentScreen]);
 
   const PROJECT_COLORS = [
     "#F5A623",

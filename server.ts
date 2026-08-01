@@ -193,7 +193,7 @@ async function startServer() {
       
       if (image) {
         const [mimeTypePart, base64Part] = image.split(',');
-        const mimeType = mimeTypePart.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const mimeType = mimeTypePart.match(/(?:^data:)?([^;]+)/)?.[1] || 'image/jpeg';
         contentParts.push({
           inlineData: {
             data: base64Part,
@@ -207,7 +207,7 @@ async function startServer() {
         role: msg.role === 'model' ? 'model' : 'user',
         parts: msg.image ? [
             { text: msg.text }, 
-            { inlineData: { data: msg.image.split(',')[1], mimeType: msg.image.split(',')[0].match(/:(.*?);/)?.[1] || 'image/jpeg' } }
+            { inlineData: { data: msg.image.split(',')[1], mimeType: msg.image.split(',')[0].match(/(?:^data:)?([^;]+)/)?.[1] || 'image/jpeg' } }
         ] : [{ text: msg.text }]
       }));
 

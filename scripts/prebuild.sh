@@ -130,6 +130,10 @@ case "${1:-validate}" in
     validate)
         if ! run_validation; then
             echo ""
+            if [ ! -t 0 ]; then
+                warn "Non-interactive environment detected. Skipping interactive auto-healing."
+                exit 1
+            fi
             read -p "Auto-heal issues? (y/n): " confirm
             if [ "$confirm" = "y" ]; then
                 auto_heal_issues

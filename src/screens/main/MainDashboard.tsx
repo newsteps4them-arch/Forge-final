@@ -215,7 +215,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   onChange={(e) => updateData("vehicleProtocol", e.target.value)}
                   className="bg-[#111] border border-white/10 rounded-xl text-[9px] px-3 py-2 text-white outline-none font-bold uppercase tracking-wider h-11"
                 >
-                  <option value="Auto">Auto Detect</option>
+                  <option value="Auto-Detect (Recommended)">Auto Detect</option>
                   <option value="ISO 15765-4 (CAN 11/500)">CAN 11-bit</option>
                   <option value="ISO 15765-4 (CAN 29/500)">CAN 29-bit</option>
                   <option value="ISO 14230-4 (KWP FAST)">KWP/Serial</option>
