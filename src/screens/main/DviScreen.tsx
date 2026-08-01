@@ -15,6 +15,8 @@ interface InspectionItem {
   media?: string;
 }
 
+const REPORT_TOAST_DURATION = 5000;
+
 export const DviScreen = ({ onBack }: { onBack: () => void }) => {
   const [items, setItems] = useState<InspectionItem[]>([
     { id: 1, category: "Tires & Brakes", name: "Front Brake Pads", status: "attention", notes: "3mm remaining, replace soon." },
@@ -81,7 +83,7 @@ export const DviScreen = ({ onBack }: { onBack: () => void }) => {
 
   const handleSendReport = () => {
     setShowSendModal(false);
-    toast.show("Digital Inspection PDF generated and shared with client.", "success", 5000);
+    toast.show("Digital Inspection PDF generated and shared with client.", "success", REPORT_TOAST_DURATION);
   };
 
   return (

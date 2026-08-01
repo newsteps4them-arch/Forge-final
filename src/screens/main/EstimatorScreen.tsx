@@ -21,6 +21,9 @@ interface EstimateItem {
   rate: number;
 }
 
+const TOAST_DURATION_SEND = 4000;
+const CATALOG_QUERY_DELAY = 2000;
+
 export const EstimatorScreen = ({
   onBack,
   vehicle,
@@ -106,7 +109,7 @@ export const EstimatorScreen = ({
     toast.show(
       "Estimate PDF generated and sent to customer via SMS.",
       "success",
-      4000,
+      TOAST_DURATION_SEND,
     );
   };
 
@@ -126,7 +129,7 @@ export const EstimatorScreen = ({
         },
       ]);
       toast.show("Added suggested parts from catalog.", "success");
-    }, 2000);
+    }, CATALOG_QUERY_DELAY);
   };
 
   return (

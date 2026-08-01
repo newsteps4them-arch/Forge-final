@@ -12,10 +12,15 @@ interface TimesheetLog {
   efficiency?: string;
 }
 
+const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_MINUTE = 60;
+const MOCK_BRAKE_PAD_SECONDS = 4325;
+const MOCK_SHOP_MAINT_SECONDS = 2700;
+
 export const TimeClockScreen = ({ onBack }: { onBack: () => void }) => {
   const [timesheet, setTimesheet] = useState<TimesheetLog[]>([
-    { id: 1, ro: "RO #4828", desc: "Brake Pad R&R", type: "Flagged: 1.5 Hrs", timeSeconds: 4325, efficiency: "125%" },
-    { id: 2, ro: "Shop Maint.", desc: "Shop Clean & Organize", type: "Hourly", timeSeconds: 2700 }
+    { id: 1, ro: "RO #4828", desc: "Brake Pad R&R", type: "Flagged: 1.5 Hrs", timeSeconds: MOCK_BRAKE_PAD_SECONDS, efficiency: "125%" },
+    { id: 2, ro: "Shop Maint.", desc: "Shop Clean & Organize", type: "Hourly", timeSeconds: MOCK_SHOP_MAINT_SECONDS }
   ]);
 
   // Active job states
@@ -30,7 +35,7 @@ export const TimeClockScreen = ({ onBack }: { onBack: () => void }) => {
 
   // Clock ticks every second if active and not paused
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isRunning && !isPaused) {
       interval = setInterval(() => {
         setTimeElapsed((prev) => prev + 1);
@@ -42,9 +47,9 @@ export const TimeClockScreen = ({ onBack }: { onBack: () => void }) => {
   }, [isRunning, isPaused]);
 
   const formatTime = (totalSeconds: number) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
+    const hrs = Math.floor(totalSeconds / SECONDS_PER_HOUR);
+    const mins = Math.floor((totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+    const secs = totalSeconds % SECONDS_PER_MINUTE;
     
     const hStr = hrs.toString().padStart(2, "0");
     const mStr = mins.toString().padStart(2, "0");
