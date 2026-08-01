@@ -25,7 +25,7 @@ from collections.abc import Mapping, MutableSequence, Sequence
 import json
 from typing import Any
 
-import cloud_rest_helpers_nodeps  # type: ignore # noqa
+import cloud_rest_helpers_nodeps
 
 _TIMEOUT_SECONDS = 10
 _SKILL = "gcs-security-assessment"
