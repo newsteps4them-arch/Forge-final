@@ -2845,7 +2845,6 @@ export default function App() {
       }
     });
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle Email Link Sign-in redirection
@@ -2898,7 +2897,6 @@ export default function App() {
       };
       performEmailSignIn();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch Projects and Tasks on login

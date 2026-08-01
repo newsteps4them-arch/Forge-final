@@ -564,14 +564,14 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                 {/* Power Distribution Feeds (B+) */}
                 {/* Power Distribution Point to ECU Pin 2 */}
                 <path
-                  d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_ECU_X} ${POWER_SPLIT_Y} L ${POWER_ECU_X} 120 L ${ECU_TERM_X_POS} 120`}
+                  d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y_POS} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_ECU_X} ${POWER_SPLIT_Y} L ${POWER_ECU_X} 120 L ${ECU_TERM_X_POS} 120`}
                   fill="none"
                   strokeWidth={STROKE_THICK}
                   style={getWireStyle("power", "#ef4444")}
                 />
                 {/* Power Distribution Point to Coil Pin 2 */}
                 <path
-                  d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_COIL_X} ${POWER_SPLIT_Y} L ${POWER_COIL_X} 140 L ${COIL_TERM_X_POS} 140`}
+                  d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y_POS} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_COIL_X} ${POWER_SPLIT_Y} L ${POWER_COIL_X} 140 L ${COIL_TERM_X_POS} 140`}
                   fill="none"
                   strokeWidth={STROKE_THICK}
                   style={getWireStyle("power", "#ef4444")}
@@ -677,7 +677,7 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                   <>
                     {/* Power 1 Pulse */}
                     <path
-                      d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_ECU_X} ${POWER_SPLIT_Y} L ${POWER_ECU_X} 120 L ${ECU_TERM_X_POS} 120`}
+                      d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y_POS} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_ECU_X} ${POWER_SPLIT_Y} L ${POWER_ECU_X} 120 L ${ECU_TERM_X_POS} 120`}
                       fill="none"
                       stroke="#ef4444"
                       strokeWidth={STROKE_THIN}
@@ -687,7 +687,7 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                     />
                     {/* Power 2 Pulse */}
                     <path
-                      d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_COIL_X} ${POWER_SPLIT_Y} L ${POWER_COIL_X} 140 L ${COIL_TERM_X_POS} 140`}
+                      d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y_POS} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_COIL_X} ${POWER_SPLIT_Y} L ${POWER_COIL_X} 140 L ${COIL_TERM_X_POS} 140`}
                       fill="none"
                       stroke="#ef4444"
                       strokeWidth={STROKE_THIN}
@@ -731,8 +731,8 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                 <path d={`M ${COIL_TERM_X_POS} ${GND_COIL_Y} L ${GND_RIGHT_X} ${GND_COIL_Y}`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("ground")} onMouseLeave={() => setHoveredWire(null)} />
                 <path d={`M ${THROTTLE_TERM_X_POS} ${GND_THROTTLE_Y} L ${GND_RIGHT_X} ${GND_THROTTLE_Y}`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("ground")} onMouseLeave={() => setHoveredWire(null)} />
 
-                <path d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_ECU_X} ${POWER_SPLIT_Y} L ${POWER_ECU_X} 120 L ${ECU_TERM_X_POS} 120`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("power")} onMouseLeave={() => setHoveredWire(null)} />
-                <path d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_COIL_X} ${POWER_SPLIT_Y} L ${POWER_COIL_X} 140 L ${COIL_TERM_X_POS} 140`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("power")} onMouseLeave={() => setHoveredWire(null)} />
+                <path d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y_POS} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_ECU_X} ${POWER_SPLIT_Y} L ${POWER_ECU_X} 120 L ${ECU_TERM_X_POS} 120`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("power")} onMouseLeave={() => setHoveredWire(null)} />
+                <path d={`M ${POWER_TERM_X_POS} ${POWER_TERM_Y_POS} L ${POWER_TERM_X_POS} ${POWER_SPLIT_Y} L ${POWER_COIL_X} ${POWER_SPLIT_Y} L ${POWER_COIL_X} 140 L ${COIL_TERM_X_POS} 140`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("power")} onMouseLeave={() => setHoveredWire(null)} />
 
                 <path d={`M ${ECU_TERM_X_POS} 240 L ${TRG_MID_X} 240 L ${TRG_MID_X} 100 L ${COIL_TERM_X_POS} 100`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("trigger")} onMouseLeave={() => setHoveredWire(null)} />
                 <path d={`M ${ECU_TERM_X_POS} 280 L ${TPS1_MID_X} 280 L ${TPS1_MID_X} 320 L ${THROTTLE_TERM_X_POS} 320`} fill="none" stroke="transparent" strokeWidth={HOVER_STROKE} className="cursor-crosshair" onMouseEnter={() => setHoveredWire("tps1")} onMouseLeave={() => setHoveredWire(null)} />
@@ -758,7 +758,7 @@ Return ONLY the raw JSON object, without any markdown formatting around it. Keep
                 >
                   <rect x={POWER_X_POS} y={POWER_Y_POS} width={POWER_W_VAL} height={POWER_H_VAL} rx={RX_SMALL} fill="#0c0e12" stroke="rgba(239,68,68,0.2)" strokeWidth="1.5" className="transition-all hover:fill-red-500/5 hover:stroke-red-500/50" />
                   <text x={POWER_TERM_X_POS} y="34" fill="#ef4444" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">12V POWER RELAY</text>
-                  <circle cx={POWER_TERM_X_POS} cy={POWER_TERM_Y} r={RADIUS_LARGE} fill="#ef4444" />
+                  <circle cx={POWER_TERM_X_POS} cy={POWER_TERM_Y_POS} r={RADIUS_LARGE} fill="#ef4444" />
                 </g>
 
                 {/* ECU Card Node */}
