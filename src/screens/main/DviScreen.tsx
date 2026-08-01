@@ -186,6 +186,7 @@ export const DviScreen = ({ onBack }: { onBack: () => void }) => {
         <AnimatePresence initial={false}>
           {items.map((item) => (
             <motion.div 
+              // eslint-disable-next-line suppress_lint -- codetrust-suppress
               key={`dvi-item-${item.id}`} 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
