@@ -186,7 +186,7 @@ export const DviScreen = ({ onBack }: { onBack: () => void }) => {
         <AnimatePresence initial={false}>
           {items.map((item) => (
             <motion.div 
-              key={item.id} 
+              key={`dvi-item-${item.id}`} 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
