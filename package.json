@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/camera": "^8.2.0",
+    "@capacitor/camera": "^8.2.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/preferences": "^8.0.1",
     "@google/genai": "^2.6.0",
