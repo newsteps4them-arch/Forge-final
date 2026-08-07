@@ -66,7 +66,7 @@ export async function generateChatResponse(
  * Analyzes an image using Gemini AI's multimodal capabilities.
  *
  * @param prompt - The instruction or question about the image.
- * @param base64Image - The image data encoded as a base64 string.
+ * @param imageDataUri - The image data formatted as a full data URI.
  * @param apiKey - Optional custom API key.
  * @param systemInstruction - Optional system prompt for the visual analysis persona.
  * @returns The textual analysis of the image.
@@ -74,7 +74,7 @@ export async function generateChatResponse(
  */
 export async function analyzeImage(
   prompt: string,
-  base64Image: string,
+  imageDataUri: string,
   apiKey?: string,
   systemInstruction?: string
 ) {
@@ -84,7 +84,7 @@ export async function analyzeImage(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: prompt,
-        image: `data:image/jpeg;base64,${base64Image}`,
+        image: imageDataUri,
         history: [],
         systemInstruction: systemInstruction || "You are an expert visual inspector.",
         customApiKey: apiKey

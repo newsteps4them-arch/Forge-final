@@ -56,8 +56,7 @@ export const VisualInspectorScreen = ({
     }
 
     try {
-      const base64Data = image.split(",")[1];
-      const result = await analyzeImage(prompt, base64Data, apiKey);
+      const result = await analyzeImage(prompt, image, apiKey);
       setAnalysis(result);
     } catch (error) {
       toast.show("Failed to analyze image", "error");
