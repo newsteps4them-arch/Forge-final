@@ -2818,12 +2818,7 @@ export default function App() {
   });
 
   // Auth Listener
-  // BUG FIX: The previous listener set the user but never navigated away from
-  // the Welcome screen on its own.  Navigation was delegated entirely to the
-  // profile-load effect, which fires in a separate useEffect after `user`
-  // changes.  If the profile-load effect threw (e.g. Firestore permission
-  // denied for anonymous users) the screen stayed on "Welcome" forever.
-  // We now also handle getRedirectResult here so that Google sign-in via
+  // We handle getRedirectResult here so that Google sign-in via
   // redirect (used as a fallback when popups are blocked) is processed on
   // every app mount.
   useEffect(() => {
