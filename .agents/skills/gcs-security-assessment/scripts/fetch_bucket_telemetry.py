@@ -27,7 +27,6 @@ _SKILL = "gcs-security-assessment"
 _SCRIPT = "fetch-bucket-telemetry"
 
 
-# TODO: Update scoring logic to be more robust.
 def _calculate_risk_score(telemetry: Sequence[Mapping[str, Any]]) -> str:
   """Calculates the risk score for a list of telemetry data.
 
@@ -44,16 +43,29 @@ def _calculate_risk_score(telemetry: Sequence[Mapping[str, Any]]) -> str:
       "versioning",
   ]
 
+  if not telemetry:
+    return "0/100"
+
   bucket_risk_score_total = 0
   for bucket in telemetry:
     for risky_missing_field in risky_missing_fields:
-      if not bucket[risky_missing_field]:
+      val = bucket.get(risky_missing_field)
+      is_secure = False
+      if isinstance(val, dict):
+        if "enabled" in val:
+          is_secure = bool(val["enabled"])
+        else:
+          is_secure = bool(val)
+      else:
+        is_secure = bool(val)
+
+      if not is_secure:
         bucket_risk_score_total += 1
 
   bucket_risk_score_average = int(
       (
           bucket_risk_score_total
-          / (len(risky_missing_fields) * (len(telemetry) or 1))
+          / (len(risky_missing_fields) * len(telemetry))
       )
       * 100
   )
