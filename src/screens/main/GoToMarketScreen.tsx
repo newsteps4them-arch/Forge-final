@@ -17,6 +17,25 @@ interface Lead {
   timestamp: any;
 }
 
+let cachedBrandConfig: {
+  name: string;
+  color: string;
+  currency: string;
+  tax: string;
+} | null = null;
+
+const getBrandConfig = () => {
+  if (!cachedBrandConfig) {
+    cachedBrandConfig = {
+      name: localStorage.getItem("forge_brand_name") || "Team Forge Motors",
+      color: localStorage.getItem("forge_brand_color") || "#F5A623",
+      currency: localStorage.getItem("forge_brand_currency") || "USD ($)",
+      tax: localStorage.getItem("forge_brand_tax") || "8.5"
+    };
+  }
+  return cachedBrandConfig;
+};
+
 export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
   const [activeTab, setActiveTab] = useState<"launch" | "leads" | "brand" | "future">("launch");
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -27,10 +46,11 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   // White label simulation configuration
-  const [brandName, setBrandName] = useState(() => localStorage.getItem("forge_brand_name") || "Team Forge Motors");
-  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem("forge_brand_color") || "#F5A623");
-  const [currency, setCurrency] = useState(() => localStorage.getItem("forge_brand_currency") || "USD ($)");
-  const [taxRate, setTaxRate] = useState(() => localStorage.getItem("forge_brand_tax") || "8.5");
+  const config = getBrandConfig();
+  const [brandName, setBrandName] = useState(config.name);
+  const [primaryColor, setPrimaryColor] = useState(config.color);
+  const [currency, setCurrency] = useState(config.currency);
+  const [taxRate, setTaxRate] = useState(config.tax);
 
   // Load leads from Firestore dynamically if available
   useEffect(() => {
@@ -99,6 +119,12 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
     localStorage.setItem("forge_brand_color", primaryColor);
     localStorage.setItem("forge_brand_currency", currency);
     localStorage.setItem("forge_brand_tax", taxRate);
+    if (cachedBrandConfig) {
+      cachedBrandConfig.name = brandName;
+      cachedBrandConfig.color = primaryColor;
+      cachedBrandConfig.currency = currency;
+      cachedBrandConfig.tax = taxRate;
+    }
     toast.show("White Label settings saved successfully!", "success");
   };
 
@@ -446,6 +472,7 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
                       localStorage.removeItem("forge_brand_color");
                       localStorage.removeItem("forge_brand_currency");
                       localStorage.removeItem("forge_brand_tax");
+                      cachedBrandConfig = null;
                       setBrandName("Team Forge Motors");
                       setPrimaryColor("#F5A623");
                       setCurrency("USD ($)");
