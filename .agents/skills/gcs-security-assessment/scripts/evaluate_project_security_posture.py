@@ -188,7 +188,6 @@ def check_secure_org_policies_enforced(
   return org_policy_results
 
 
-# TODO: Check org-level API as well for inherited policies.
 def check_project_data_access_audit_logs_enabled(
     project_id: str,
     authorized_session: Any,
@@ -204,36 +203,54 @@ def check_project_data_access_audit_logs_enabled(
       respective audit log type is enabled. Returns a mapping of "error" to a
       string if one occurs during the API request.
   """
-  try:
-    with authorized_session.request(
-        method="POST",
-        url=f"{_CLOUD_RESOURCE_MANAGER_API}/projects/{project_id}:getIamPolicy",
-        timeout=_TIMEOUT_SECONDS,
-    ) as iam_response:
-      iam_response.raise_for_status()
-      iam_response_json = iam_response.json()
-  except cloud_rest_helpers_nodeps.CloudRestError as e:
-    return {"error": str(e)}
-
   enabled_logs: MutableMapping[str, bool] = {
       _DATA_READ: False,
       _DATA_WRITE: False,
   }
 
-  audit_configs = iam_response_json.get("auditConfigs") or []
-  for config in audit_configs:
-    service = config.get("service", "")
-    if service not in (_STORAGE_API, _ALL_SERVICES):
-      continue
-    for audit_log_config in config.get("auditLogConfigs") or []:
-      audit_log_type = audit_log_config.get("logType")
-      if audit_log_type in enabled_logs:
-        enabled_logs[audit_log_type] = True
+  current_resource = f"projects/{project_id}"
 
-      # Terminate early if all logs are enabled. Rules may be split across
-      # storage and allServices.
-      if all(enabled_logs.values()):
-        return enabled_logs
+  while current_resource:
+    try:
+      with authorized_session.request(
+          method="POST",
+          url=f"{_CLOUD_RESOURCE_MANAGER_API}/{current_resource}:getIamPolicy",
+          timeout=_TIMEOUT_SECONDS,
+      ) as iam_response:
+        iam_response.raise_for_status()
+        iam_response_json = iam_response.json()
+    except cloud_rest_helpers_nodeps.CloudRestError as e:
+      return {"error": f"Failed to get IAM policy for {current_resource}: {e}"}
+
+    audit_configs = iam_response_json.get("auditConfigs") or []
+    for config in audit_configs:
+      service = config.get("service", "")
+      if service not in (_STORAGE_API, _ALL_SERVICES):
+        continue
+      for audit_log_config in config.get("auditLogConfigs") or []:
+        audit_log_type = audit_log_config.get("logType")
+        if audit_log_type in enabled_logs:
+          enabled_logs[audit_log_type] = True
+
+        # Terminate early if all logs are enabled.
+        if all(enabled_logs.values()):
+          return enabled_logs
+
+    if current_resource.startswith("organizations/"):
+      break
+
+    try:
+      with authorized_session.request(
+          method="GET",
+          url=f"{_CLOUD_RESOURCE_MANAGER_API}/{current_resource}",
+          timeout=_TIMEOUT_SECONDS,
+      ) as response:
+        response.raise_for_status()
+        resource_data = response.json()
+        current_resource = resource_data.get("parent", "")
+    except cloud_rest_helpers_nodeps.CloudRestError as e:
+      return {"error": f"Failed to get parent for {current_resource}: {e}"}
+
   return enabled_logs
 
 
