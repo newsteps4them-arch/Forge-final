@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   X, Wrench, Activity, Database, Calculator, 
   ScanEye, BarChart3, Zap, FileText, 
@@ -67,7 +67,7 @@ const MENU_GROUPS = [
       { id: "Index", label: "Documentation", icon: BookOpen, desc: "Manual & Docs" },
     ]
   }
-];
+] as const;
 
 export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   isOpen,

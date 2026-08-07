@@ -27,6 +27,8 @@ export interface ObdConnection {
  * Web Bluetooth Implementation
  * Targets BLE-based ELM327 adapters (e.g. HM-10, VLinker).
  */
+import { Capacitor } from '@capacitor/core';
+
 export class WebBluetoothObd implements ObdConnection {
   private device: any | null = null;
   private rxCharacteristic: any | null = null;
@@ -36,6 +38,10 @@ export class WebBluetoothObd implements ObdConnection {
   private resolver: ((value: string) => void) | null = null;
 
   async connect(): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      throw new Error("Native Bluetooth not yet fully implemented. Please use Simulated mode.");
+    }
+
     if (!('bluetooth' in navigator)) {
       throw new Error("Web Bluetooth API not supported in this environment. Please use Chrome or a compatible browser. For Android apps, specific plugins are required.");
     }
@@ -171,6 +177,10 @@ export class WebSerialObd implements ObdConnection {
   private resolver: ((value: string) => void) | null = null;
 
   async connect(): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      throw new Error("Native Serial not yet fully implemented. Please use Simulated mode.");
+    }
+
     if (!('serial' in navigator)) {
        throw new Error("Web Serial API not supported in this browser. Please use Chrome/Edge or enable flags.");
     }

@@ -84,7 +84,7 @@ export async function analyzeImage(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: prompt,
-        image: `data:image/jpeg;base64,${base64Image}`,
+        image: base64Image.startsWith('data:') ? base64Image : `data:image/jpeg;base64,${base64Image}`,
         history: [],
         systemInstruction: systemInstruction || "You are an expert visual inspector.",
         customApiKey: apiKey

@@ -3204,6 +3204,11 @@ export default function App() {
       return;
     }
 
+    if (Capacitor.isNativePlatform()) {
+      toast("Google Sign-In is not currently supported in the native app. Please use Email Link Sign-In.", "error");
+      return;
+    }
+
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {

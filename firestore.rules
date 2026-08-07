@@ -150,7 +150,7 @@ service cloud.firestore {
 
     // --- Leads Collection ---
     match /leads/{leadId} {
-      allow list: if isSignedIn();
+      allow list: if false;
       allow get: if isSignedIn() && isValidId(leadId);
       allow create: if isSignedIn() && isValidId(leadId) && isEmailVerified() && isValidLead(incoming());
 
