@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { 
   Terminal, Activity, Zap, Wifi, Cpu, MessageSquare, 
   Settings, User, BookOpen, LayoutGrid, Box
