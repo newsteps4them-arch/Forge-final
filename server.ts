@@ -6,15 +6,17 @@
  */
 
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
 import dotenv from "dotenv";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * Attempts to find a valid bash executable across different platforms (primarily Windows).
@@ -67,7 +69,16 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Configure rate limiting for /api/git endpoints
+  const gitApiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { error: "Too many requests from this IP, please try again after 15 minutes" },
+  });
+
   // --- GitHub Git Sync API Gateway ---
+
+  app.use("/api/git", gitApiLimiter);
 
   app.get("/api/git/status", async (req, res) => {
     try {
@@ -115,7 +126,9 @@ async function startServer() {
       }
       const sanitizedUrl = repoUrl.replace(/[^a-zA-Z0-9.:/@_-]/g, "");
       const bashCmd = await getBashCommand();
-      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --link "${sanitizedUrl}"`);
+      // Remove surrounding quotes from bashCmd for execFile
+      const unquotedBashCmd = bashCmd.replace(/^"|"$/g, "");
+      const { stdout, stderr } = await execFileAsync(unquotedBashCmd, ["scripts/sync.sh", "--link", sanitizedUrl]);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Link API Error:", error);
