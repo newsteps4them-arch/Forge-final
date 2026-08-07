@@ -3185,7 +3185,7 @@ export default function App() {
   }, [activeProject, user]);
 
   const handleLogin = async () => {
-    // BUG FIX: On native Capacitor (Android/iOS) and in browsers that block
+    // NOTE: On native Capacitor (Android/iOS) and in browsers that block
     // third-party popups, `signInWithPopup` throws auth/popup-blocked or
     // auth/cancelled-popup-request.  The previous code only showed an error
     // toast and left the user unable to sign in.
