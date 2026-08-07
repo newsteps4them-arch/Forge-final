@@ -3257,12 +3257,6 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    // BUG FIX: The previous implementation signed out of Firebase but did not
-    // reset the navigation state.  The user remained on "Main" (or wherever
-    // they were) with `user` set to null, causing Firestore listeners to fail
-    // and leaving the UI in an inconsistent state.
-    // We now navigate back to Welcome immediately after sign-out so the app
-    // re-enters the unauthenticated state cleanly.
     try {
       await signOut(auth);
       setCurrentScreen('Welcome');
