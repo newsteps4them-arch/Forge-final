@@ -572,7 +572,7 @@ const WelcomeScreen = ({
     }
     setIsSending(true);
     try {
-      // BUG FIX: The `url` in actionCodeSettings must exactly match one of the
+      // The `url` in actionCodeSettings must exactly match one of the
       // Authorized Domains configured in Firebase Console → Authentication →
       // Settings → Authorized domains.  Using `window.location.href` (which
       // may contain query params or hash) can cause auth/invalid-continue-uri
