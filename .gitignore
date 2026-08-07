@@ -10,3 +10,8 @@ gradle-8.13/
 *.gradle-*.zip
 android/gradle/wrapper/*.zip
 android/gradle/wrapper/*.jar
+
+# Keystores
+*.keystore
+*.jks
+keystore.properties
