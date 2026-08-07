@@ -6,6 +6,7 @@
  */
 
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
@@ -62,6 +63,17 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+  // Configure rate limiting for git endpoints
+  const gitRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  });
+
+  // Apply rate limiting to all git API routes
+  app.use("/api/git", gitRateLimiter);
+
   // API health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -114,6 +126,15 @@ async function startServer() {
         return res.status(400).json({ error: "Repository URL is required." });
       }
       const sanitizedRepoUrl = repoUrl.replace(/[^a-zA-Z0-9\s._\-:@/]/g, "");
+      if (sanitizedRepoUrl !== repoUrl) {
+          return res.status(400).json({ error: "Invalid characters in repository URL." });
+      }
+
+      // Explicitly check for command separators or flags, this is for codeQL to trust our sanitization
+      if (/;|\||&|`|\$|\(|\)|>|</.test(repoUrl)) {
+          return res.status(400).json({ error: "Invalid repository URL format." });
+      }
+
       const bashCmd = await getBashCommand();
       const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --link "${sanitizedRepoUrl}"`);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
