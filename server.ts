@@ -113,8 +113,9 @@ async function startServer() {
       if (!repoUrl) {
         return res.status(400).json({ error: "Repository URL is required." });
       }
+      const sanitizedUrl = repoUrl.replace(/[^a-zA-Z0-9.:/@_-]/g, "");
       const bashCmd = await getBashCommand();
-      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --link "${repoUrl}"`);
+      const { stdout, stderr } = await execAsync(`${bashCmd} scripts/sync.sh --link "${sanitizedUrl}"`);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Link API Error:", error);
