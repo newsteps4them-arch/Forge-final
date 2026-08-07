@@ -21,6 +21,7 @@ from collections.abc import Collection, Mapping, MutableMapping
 import enum
 import json
 from typing import Any, TypedDict
+import urllib.parse
 
 import cloud_rest_helpers_nodeps
 
@@ -285,7 +286,6 @@ def _get_project_number_and_org_id(
   return project_number_path, parent
 
 
-# TODO: Add support for pagination in the API calls.
 def check_vpc_sc_perimeter_enabled(
     *,
     project_id: str,
@@ -310,33 +310,55 @@ def check_vpc_sc_perimeter_enabled(
 
   project_number_path, org_id_path = result
 
-  try:
-    with authorized_session.request(
-        method="GET",
-        url=(
-            f"{_ACCESS_CONTEXT_MANAGER_API}/accessPolicies?parent={org_id_path}"
-        ),
-        timeout=_TIMEOUT_SECONDS,
-    ) as response:
-      response.raise_for_status()
-      policies_data = response.json()
-      policies = policies_data.get("accessPolicies") or []
-  except cloud_rest_helpers_nodeps.CloudRestError as e:
-    return {"error": f"Failed to list access policies: {e}"}
+  policies = []
+  next_page_token = None
 
-  for policy in policies:
-    policy_name = policy.get("name", "")
+  while True:
+    url = f"{_ACCESS_CONTEXT_MANAGER_API}/accessPolicies?parent={org_id_path}"
+    if next_page_token:
+        url += f"&pageToken={urllib.parse.quote(next_page_token, safe='')}"
+
     try:
       with authorized_session.request(
           method="GET",
-          url=f"{_ACCESS_CONTEXT_MANAGER_API}/{policy_name}/servicePerimeters",
+          url=url,
           timeout=_TIMEOUT_SECONDS,
       ) as response:
         response.raise_for_status()
-        perimeters_data = response.json()
-        perimeters = perimeters_data.get("servicePerimeters") or []
+        policies_data = response.json()
+        policies.extend(policies_data.get("accessPolicies") or [])
+        next_page_token = policies_data.get("nextPageToken")
     except cloud_rest_helpers_nodeps.CloudRestError as e:
-      return {"error": f"Failed to list perimeters for {policy_name}: {e}"}
+      return {"error": f"Failed to list access policies: {e}"}
+
+    if not next_page_token:
+      break
+
+  for policy in policies:
+    policy_name = policy.get("name", "")
+    perimeters = []
+    next_page_token = None
+
+    while True:
+      url = f"{_ACCESS_CONTEXT_MANAGER_API}/{policy_name}/servicePerimeters"
+      if next_page_token:
+          url += f"?pageToken={urllib.parse.quote(next_page_token, safe='')}"
+
+      try:
+        with authorized_session.request(
+            method="GET",
+            url=url,
+            timeout=_TIMEOUT_SECONDS,
+        ) as response:
+          response.raise_for_status()
+          perimeters_data = response.json()
+          perimeters.extend(perimeters_data.get("servicePerimeters") or [])
+          next_page_token = perimeters_data.get("nextPageToken")
+      except cloud_rest_helpers_nodeps.CloudRestError as e:
+        return {"error": f"Failed to list perimeters for {policy_name}: {e}"}
+
+      if not next_page_token:
+        break
 
     for perimeter in perimeters:
       status = perimeter.get("status")
