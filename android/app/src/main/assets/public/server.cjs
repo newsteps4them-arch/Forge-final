@@ -1,25 +1,45 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
-import path from "path";
-import dotenv from "dotenv";
-import { exec } from "child_process";
-import { promisify } from "util";
-import fs from "fs/promises";
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 
-const execAsync = promisify(exec);
-
-dotenv.config();
-
-function generateIntelligentFallback(message: string, systemInstruction: string): string {
+// server.ts
+var import_express = __toESM(require("express"), 1);
+var import_vite = require("vite");
+var import_genai = require("@google/genai");
+var import_path = __toESM(require("path"), 1);
+var import_dotenv = __toESM(require("dotenv"), 1);
+var import_child_process = require("child_process");
+var import_util = require("util");
+var import_promises = __toESM(require("fs/promises"), 1);
+var execAsync = (0, import_util.promisify)(import_child_process.exec);
+import_dotenv.default.config();
+function generateIntelligentFallback(message, systemInstruction) {
   const cleanMsg = (message || "").toUpperCase();
-  
-  // 1. Check for standard DTC codes
   const dtcRegex = /[PBUC]\d{4}/i;
   const match = message ? message.match(dtcRegex) : null;
-  
-  const header = `[⚙️ STAGING TELEMETRY FAILOVER ACTIVE — CALIBRATION DEPLOYED]\n\n`;
-  
+  const header = `[\u2699\uFE0F STAGING TELEMETRY FAILOVER ACTIVE \u2014 CALIBRATION DEPLOYED]
+
+`;
   if (match) {
     const code = match[0].toUpperCase();
     let dtcData = {
@@ -34,7 +54,6 @@ function generateIntelligentFallback(message: string, systemInstruction: string)
         "3. Review live data fuel trims and O2 sensor sweep voltage values."
       ]
     };
-
     if (code.startsWith("P0300")) {
       dtcData = {
         title: "Random/Multiple Cylinder Misfire Detected",
@@ -72,7 +91,7 @@ function generateIntelligentFallback(message: string, systemInstruction: string)
         causes: ["Degraded or damaged catalytic converter catalytic bed", "Exhaust manifold or pipe leak upstream of converter", "Engine misfiring or burning oil (poisoning substrate)"],
         steps: [
           "1. Run the engine to operating temperature, then compare Upstream (Sensor 1) and Downstream (Sensor 2) O2 sensors. Upstream should cycle (0.1V - 0.9V); Downstream should remain flat (~0.5V - 0.7V) if catalytic efficiency is high.",
-          "2. Use an infrared laser thermometer to check entry and exit temp of the catalytic converter. Exit should be 50-100°F hotter than entrance.",
+          "2. Use an infrared laser thermometer to check entry and exit temp of the catalytic converter. Exit should be 50-100\xB0F hotter than entrance.",
           "3. Smoke test the exhaust system to confirm zero ambient air is entering upstream."
         ]
       };
@@ -90,27 +109,24 @@ function generateIntelligentFallback(message: string, systemInstruction: string)
         ]
       };
     }
-
-    return `${header}### 🛠️ Diagnostic Blueprint: ${code} - ${dtcData.title}
+    return `${header}### \u{1F6E0}\uFE0F Diagnostic Blueprint: ${code} - ${dtcData.title}
 * **Domain Structure:** ${dtcData.domain}
 * **Severity Rating:** \`${dtcData.severity}\`
 
-#### ⚠️ Observed Code Symptoms:
-${dtcData.symptoms.map(s => `- ${s}`).join("\n")}
+#### \u26A0\uFE0F Observed Code Symptoms:
+${dtcData.symptoms.map((s) => `- ${s}`).join("\n")}
 
-#### 🔍 Root Causes Analysis:
-${dtcData.causes.map(c => `- ${c}`).join("\n")}
+#### \u{1F50D} Root Causes Analysis:
+${dtcData.causes.map((c) => `- ${c}`).join("\n")}
 
-#### 📋 Professional Action Plan:
+#### \u{1F4CB} Professional Action Plan:
 ${dtcData.steps.join("\n")}
 
 ---
 *Note: This is an automated diagnostic path provided by the secondary on-board telemetry model. To reactivate real-time global cloud diagnostics, verify your **Gemini Key** in the **Settings** workspace.*`;
   }
-
-  // 2. Schedule or general Meli system query
   if (cleanMsg.includes("MELI") || cleanMsg.includes("SCHEDULE") || cleanMsg.includes("MEETING") || cleanMsg.includes("CALENDAR")) {
-    return `${header}### 📅 Meli Scheduling Assistant Link
+    return `${header}### \u{1F4C5} Meli Scheduling Assistant Link
 *Forge neural telemetry indicates a request related to coordinating with scheduling services or Meli (Chief of Staff).*
 
 I am happy to simulate any logistics coordination for your fleet:
@@ -120,10 +136,8 @@ I am happy to simulate any logistics coordination for your fleet:
 
 *To activate live, real-time sync with Meli's global network, configure your valid **Meli Key** or authentication credentials in the **Settings** layout.*`;
   }
-
-  // 3. Wiring diagrams or databases
   if (cleanMsg.includes("WIRING") || cleanMsg.includes("DIAGRAM") || cleanMsg.includes("SCHEMATIC") || cleanMsg.includes("ALLDATA")) {
-    return `${header}### ⚡ Onboard Wiring Schematic Service
+    return `${header}### \u26A1 Onboard Wiring Schematic Service
 *Forge system databases are currently utilizing fallback high-fidelity schematic simulator pathways.*
 
 * **Target Unit:** Powertrain Controller Junction (CAN High/Low)
@@ -137,9 +151,7 @@ I am happy to simulate any logistics coordination for your fleet:
 
 *To populate real OEM complex schematic images directly from commercial vehicle databases, bind your **AllData Partner ID** key from the settings console.*`;
   }
-
-  // 4. Default general assistant persona response
-  return `${header}### 🛰️ Team Forge Terminal Assistant
+  return `${header}### \u{1F6F0}\uFE0F Team Forge Terminal Assistant
 Greetings! I am the **Team Forge Onboard Diagnostic Assistant**, running in a high-fidelity staging container environment.
 
 I am optimized for DIY engineering, precision hardware-software setups, and fleet telemetry monitoring.
@@ -151,58 +163,51 @@ I am optimized for DIY engineering, precision hardware-software setups, and flee
 
 *To unlock unlimited semantic reasoning and full-range multimodal image analysis using Gemini 2.0, verify your **Gemini API Key** or select **Automated Sandbox** in the **Settings** menu. Our system automatically manages credentials in the background once linked!*`;
 }
-
 async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  // Enhance payload limits for images
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-  // API endpoints
+  const app = (0, import_express.default)();
+  const PORT = 3e3;
+  app.use(import_express.default.json({ limit: "50mb" }));
+  app.use(import_express.default.urlencoded({ extended: true, limit: "50mb" }));
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
-
-  // GitHub Git Sync API Gateway
   app.get("/api/git/status", async (req, res) => {
     try {
       const { stdout } = await execAsync("bash scripts/sync.sh --check");
       let isInitialized = false;
       try {
-        await fs.access(path.join(process.cwd(), ".git"));
+        await import_promises.default.access(import_path.default.join(process.cwd(), ".git"));
         isInitialized = true;
-      } catch (err) {}
-
+      } catch (err) {
+      }
       let lastLogs = "";
       try {
-        lastLogs = await fs.readFile(path.join(process.cwd(), ".sync-log"), "utf8");
+        lastLogs = await import_promises.default.readFile(import_path.default.join(process.cwd(), ".sync-log"), "utf8");
         lastLogs = lastLogs.split("\n").slice(-30).join("\n");
-      } catch (e) {}
-
-      res.json({ 
-        success: true, 
-        initialized: isInitialized, 
+      } catch (e) {
+      }
+      res.json({
+        success: true,
+        initialized: isInitialized,
         statusOutput: stdout,
         logs: lastLogs
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Git Status API Error:", error);
       let isInitialized = false;
       try {
-        await fs.access(path.join(process.cwd(), ".git"));
+        await import_promises.default.access(import_path.default.join(process.cwd(), ".git"));
         isInitialized = true;
-      } catch (err) {}
-      res.json({ 
-        success: false, 
-        initialized: isInitialized, 
+      } catch (err) {
+      }
+      res.json({
+        success: false,
+        initialized: isInitialized,
         error: error.message || "Git not initialized or not accessible.",
         statusOutput: error.stdout || error.message || ""
       });
     }
   });
-
   app.post("/api/git/link", async (req, res) => {
     try {
       const { repoUrl, githubToken } = req.body;
@@ -218,57 +223,52 @@ async function startServer() {
       }
       const { stdout, stderr } = await execAsync(`bash scripts/sync.sh --link "${finalUrl}"`);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Git Link API Error:", error);
       res.status(500).json({ error: error.message || "Failed to link repository.", output: error.stdout || error.stderr || "" });
     }
   });
-
   app.post("/api/git/sync", async (req, res) => {
     try {
       const { commitMessage } = req.body;
       const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
       const { stdout, stderr } = await execAsync(`bash scripts/sync.sh sync ${msg}`);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Git Sync API Error:", error);
       res.status(500).json({ error: error.message || "Failed to sync codebase.", output: error.stdout || error.stderr || "" });
     }
   });
-
   app.post("/api/git/pull", async (req, res) => {
     try {
       const { stdout, stderr } = await execAsync("bash scripts/sync.sh --pull-only");
       res.json({ success: true, message: "Remote repository updates pulled successfully.", output: stdout || stderr });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Git Pull API Error:", error);
       res.status(500).json({ error: error.message || "Failed to pull updates.", output: error.stdout || error.stderr || "" });
     }
   });
-
   app.post("/api/git/push", async (req, res) => {
     try {
       const { stdout, stderr } = await execAsync("bash scripts/sync.sh --push-only");
       res.json({ success: true, message: "Local workspace updates pushed to remote successfully.", output: stdout || stderr });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Git Push API Error:", error);
       res.status(500).json({ error: error.message || "Failed to push updates.", output: error.stdout || error.stderr || "" });
     }
   });
-
   app.post("/api/git/health-check", async (req, res) => {
     try {
       const { stdout, stderr } = await execAsync("bash scripts/sync.sh --health");
       res.json({ success: true, message: "Integrity check done.", output: stdout || stderr });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Git Health API Error:", error);
       res.status(500).json({ error: error.message || "Failed workspace integrity check.", output: error.stdout || error.stderr || "" });
     }
   });
-
   app.get("/api/staging/verify-all", async (req, res) => {
-    const report: any = {
-      timestamp: new Date().toISOString(),
+    const report = {
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       environment: {
         GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "CONFIGURED (MASKED)" : "NOT_FOUND",
         ALLDATA_API_KEY: process.env.ALLDATA_API_KEY ? "CONFIGURED (MASKED)" : "NOT_FOUND",
@@ -286,8 +286,6 @@ async function startServer() {
         memoryUsage: process.memoryUsage()
       }
     };
-
-    // 1. Critical File Verification
     const criticalFiles = [
       "package.json",
       "tsconfig.json",
@@ -297,10 +295,9 @@ async function startServer() {
       "src/App.tsx",
       "src/screens/settings/SettingsScreen.tsx"
     ];
-
     for (const file of criticalFiles) {
       try {
-        const stats = await fs.stat(path.join(process.cwd(), file));
+        const stats = await import_promises.default.stat(import_path.default.join(process.cwd(), file));
         report.fileChecks[file] = {
           exists: true,
           sizeBytes: stats.size,
@@ -313,12 +310,9 @@ async function startServer() {
         };
       }
     }
-
-    // 2. Integration / External API Connectivity Verification
-    // A. NHTSA Recalls API Check
     try {
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 4000);
+      const id = setTimeout(() => controller.abort(), 4e3);
       const start = Date.now();
       const nhtsaRes = await fetch("https://api.nhtsa.gov/recalls/recallsByVehicle?make=Ford&model=F-150&modelYear=2020", { signal: controller.signal });
       clearTimeout(id);
@@ -327,17 +321,15 @@ async function startServer() {
         statusCode: nhtsaRes.status,
         latencyMs: Date.now() - start
       };
-    } catch (err: any) {
+    } catch (err) {
       report.apiConnectivity["NHTSA Recalls API (Vehicle Safety)"] = {
         reachable: false,
         error: err.name === "AbortError" ? "TIMEOUT_EXCEEDED" : err.message || "CONNECTION_FAILED"
       };
     }
-
-    // B. NHTSA VPIC Decoder API Check
     try {
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 4000);
+      const id = setTimeout(() => controller.abort(), 4e3);
       const start = Date.now();
       const vpicRes = await fetch("https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/5UM?format=json", { signal: controller.signal });
       clearTimeout(id);
@@ -346,58 +338,50 @@ async function startServer() {
         statusCode: vpicRes.status,
         latencyMs: Date.now() - start
       };
-    } catch (err: any) {
+    } catch (err) {
       report.apiConnectivity["NHTSA VPIC VIN Decoder (Assets Sourcing)"] = {
         reachable: false,
         error: err.name === "AbortError" ? "TIMEOUT_EXCEEDED" : err.message || "CONNECTION_FAILED"
       };
     }
-
-    // C. Gemini API Gateway Endpoint Check
     try {
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 4000);
+      const id = setTimeout(() => controller.abort(), 4e3);
       const start = Date.now();
       const geminiRes = await fetch("https://generativedecoding.googleapis.com", { signal: controller.signal });
       clearTimeout(id);
       report.apiConnectivity["Google Gemini AI Gateway Stream Engine"] = {
-        reachable: true, // If it replies even with 404/403, DNS is up and service is reachable
+        reachable: true,
+        // If it replies even with 404/403, DNS is up and service is reachable
         statusCode: geminiRes.status,
         latencyMs: Date.now() - start
       };
-    } catch (err: any) {
+    } catch (err) {
       report.apiConnectivity["Google Gemini AI Gateway Stream Engine"] = {
         reachable: false,
         error: err.name === "AbortError" ? "TIMEOUT_EXCEEDED" : err.message || "CONNECTION_FAILED"
       };
     }
-
     res.json(report);
   });
-
   app.post("/api/chat", async (req, res) => {
     try {
       const { message, image, history, systemInstruction, customApiKey } = req.body;
-      
       let apiKey = customApiKey;
       if (!apiKey || apiKey === "AIzaSy_SYSTEM_DEFAULT") {
         apiKey = process.env.GEMINI_API_KEY;
       }
-      
       if (!apiKey) {
         return res.status(400).json({ error: "Gemini API Key is missing. Provide it in the API Keys screen or set GEMINI_API_KEY in the environment." });
       }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const contentParts: any[] = [];
+      const ai = new import_genai.GoogleGenAI({ apiKey });
+      const contentParts = [];
       if (message) {
         contentParts.push(message);
       }
-      
       if (image) {
-        const [mimeTypePart, base64Part] = image.split(',');
-        const mimeType = mimeTypePart.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const [mimeTypePart, base64Part] = image.split(",");
+        const mimeType = mimeTypePart.match(/:(.*?);/)?.[1] || "image/jpeg";
         contentParts.push({
           inlineData: {
             data: base64Part,
@@ -405,74 +389,61 @@ async function startServer() {
           }
         });
       }
-
-      // Convert history
-      const contents = (history || []).map((msg: any) => ({
-        role: msg.role === 'model' ? 'model' : 'user',
+      const contents = (history || []).map((msg) => ({
+        role: msg.role === "model" ? "model" : "user",
         parts: msg.image ? [
-            { text: msg.text }, 
-            { inlineData: { data: msg.image.split(',')[1], mimeType: msg.image.split(',')[0].match(/:(.*?);/)?.[1] || 'image/jpeg' } }
+          { text: msg.text },
+          { inlineData: { data: msg.image.split(",")[1], mimeType: msg.image.split(",")[0].match(/:(.*?);/)?.[1] || "image/jpeg" } }
         ] : [{ text: msg.text }]
       }));
-
       if (contentParts.length > 0) {
         contents.push({
-          role: 'user',
-          parts: contentParts.map(p => typeof p === 'string' ? { text: p } : p)
+          role: "user",
+          parts: contentParts.map((p) => typeof p === "string" ? { text: p } : p)
         });
       }
-
       let apiResponseText = "";
       try {
         const response = await ai.models.generateContent({
           model: "gemini-2.0-flash",
-          contents: contents,
+          contents,
           config: {
-            systemInstruction,
+            systemInstruction
           }
         });
         apiResponseText = response.text || "";
-      } catch (geminiError: any) {
+      } catch (geminiError) {
         console.warn("Active Gemini query failed, routing to local staging diagnostics analyzer:", geminiError);
-        
-        // Check if it's an API key issue or generic API failure
         const errStr = String(geminiError.message || geminiError);
         const isKeyIssue = errStr.includes("API key") || errStr.includes("API_KEY") || errStr.includes("KEY_INVALID") || errStr.includes("not valid") || errStr.includes("400");
-        
         if (isKeyIssue) {
           apiResponseText = generateIntelligentFallback(message || "", systemInstruction || "");
         } else {
-          // Pass regular error along if it's unrelated to credentials
           throw geminiError;
         }
       }
-
       res.json({ text: apiResponseText });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Chat API Error:", error);
       res.status(500).json({ error: error.message || "An error occurred during generating content." });
     }
   });
-
-  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
+    const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    // Serve static files in production
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    const distPath = import_path.default.join(process.cwd(), "dist");
+    app.use(import_express.default.static(distPath));
+    app.get("*all", (req, res) => {
+      res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }
-
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
-
 startServer();
+//# sourceMappingURL=server.cjs.map

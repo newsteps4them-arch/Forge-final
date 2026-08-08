@@ -8,8 +8,6 @@ export type Screen =
   | "AboutYou"
   | "Inventory"
   | "Vehicles"
-  | "Garage"
-  | "KnowledgeBase"
   | "Ready"
   | "Settings"
   | "Main"
@@ -26,13 +24,8 @@ export type Screen =
   | "GuidedDiagnostics"
   | "Oscilloscope"
   | "WiringDiagrams"
-  | "Index"
-  | "PartsCatalog"
-  | "CrmDashboard"
-  | "DviModule"
-  | "TimeClock"
   | "GoToMarket"
-  | "AdasCalibration";
+  | "Index";
 
 export function useNavigation(initialScreen: Screen = "Welcome") {
   const [stack, setStack] = useState<Screen[]>([initialScreen]);
@@ -43,7 +36,7 @@ export function useNavigation(initialScreen: Screen = "Welcome") {
     setStack((prev) => {
       if (prev[prev.length - 1] === screen) return prev;
       
-      const newStack: Screen[] = screen === "Main" ? ["Main"] : [...prev, screen];
+      const newStack = screen === "Main" ? ["Main"] : [...prev, screen];
       
       // Push history state to enable hardware back button
       if (typeof window !== "undefined") {
@@ -82,7 +75,7 @@ export function useNavigation(initialScreen: Screen = "Welcome") {
     const handlePopState = () => {
        setStack(prev => {
          if (prev.length <= 1) {
-           return ["Main"] as Screen[];
+           return ["Main"];
          }
          return prev.slice(0, -1);
        });

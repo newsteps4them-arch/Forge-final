@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, X, RefreshCcw, Upload, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { toast } from "../lib/notifications";
 import { motion, AnimatePresence } from "framer-motion";
-import { Capacitor } from "@capacitor/core";
-import { Camera as NativeCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export interface CameraCaptureProps {
   onCapture: (imageDataUrl: string) => void;
@@ -19,7 +17,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   assistantMode,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [hasCamera, setHasCamera] = useState<boolean>(true);
@@ -33,25 +30,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
   }, [stream]);
 
   const startCamera = useCallback(async () => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const image = await NativeCamera.getPhoto({
-          quality: 90,
-          allowEditing: false,
-          resultType: CameraResultType.DataUrl,
-          source: CameraSource.Camera,
-        });
-        if (image.dataUrl) {
-          onCapture(image.dataUrl);
-        }
-        onClose();
-      } catch (e) {
-        console.error("Native camera access denied or failed", e);
-        setHasCamera(false);
-      }
-      return;
-    }
-
     stopCamera();
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -70,12 +48,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
         "info"
       );
     }
-  }, [facingMode, stopCamera, onCapture, onClose]);
+  }, [facingMode, stopCamera]);
 
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      setTimeout(() => startCamera(), 0);
-    } else if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'undefined') {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia !== 'undefined') {
       setTimeout(() => startCamera(), 0);
     } else {
       setTimeout(() => setHasCamera(false), 0);
@@ -83,11 +59,12 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
     return () => {
       stopCamera();
     };
-  }, [startCamera, stopCamera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facingMode]);
 
   const handleCapture = () => {
-    if (videoRef.current && canvasRef.current && stream) {
-      const canvas = canvasRef.current;
+    if (videoRef.current && stream) {
+      const canvas = document.createElement("canvas");
       canvas.width = videoRef.current.videoWidth || 1080;
       canvas.height = videoRef.current.videoHeight || 1920;
       const ctx = canvas.getContext("2d");
@@ -175,11 +152,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({
             autoPlay
             playsInline
             className="absolute inset-0 w-full h-full object-cover"
-          />
-          <canvas
-            ref={canvasRef}
-            className="hidden"
-            style={{ display: "none" }}
           />
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
              <div className="w-64 h-64 border-2 border-white/20 rounded-3xl relative">

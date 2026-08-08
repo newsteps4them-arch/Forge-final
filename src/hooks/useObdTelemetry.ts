@@ -1,18 +1,5 @@
-/**
- * useObdTelemetry Hook
- *
- * Manages the connection and data streaming from an OBD-II interface.
- * Supports Bluetooth, USB (Serial), and Simulated modes.
- * Includes automatic polling of engine data (RPM, etc.) and handles
- * application lifecycle events (pausing on background).
- */
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "../lib/obdConnection";
-
-const OBD_RPM_FACTOR = 256;
-const OBD_RPM_DIVISOR = 4;
-const OBD_POLLING_MS = 2000;
 
 export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   const [obdConnected, setObdConnected] = useState(false);
@@ -28,9 +15,8 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   const [telemetry, setTelemetry] = useState<any[]>([]);
   
   // Background polling interval reference
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync logs to localStorage for persistence across reloads
   useEffect(() => {
     try {
       localStorage.setItem("forge_terminal_logs", JSON.stringify(logs));
@@ -39,17 +25,11 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     }
   }, [logs]);
 
-  /**
-   * Adds a new entry to the diagnostic terminal log.
-   */
   const addLog = useCallback((log: string) => {
-    setLogs((prev) => [log, ...prev].slice(0, 50));
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    setLogs((prev) => [`[${now}] ${log}`, ...prev].slice(0, 150));
   }, []);
 
-  /**
-   * Initiates a connection to the OBD-II device based on the active mode.
-   * If already connected, it will disconnect.
-   */
   const connect = useCallback(async () => {
     if (obdConnected && obdRef.current) {
       try {
@@ -78,16 +58,13 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
       addLog(`[sys] RX: ${res}`);
       
       return true; // connected
-    } catch (err: unknown) {
+    } catch (err: any) {
       obdRef.current = null;
       setObdConnected(false);
       throw err;
     }
   }, [mode, obdConnected, addLog]);
 
-  /**
-   * Sends a raw OBD-II PID command and adds it to the logs.
-   */
   const sendCommand = useCallback(async (cmd: string) => {
     if (!obdRef.current || !obdConnected) throw new Error("Not connected");
     const res = await obdRef.current.sendCommand(cmd);
@@ -96,9 +73,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     return res;
   }, [obdConnected, addLog]);
 
-  /**
-   * Starts a background polling service to fetch live telemetry data.
-   */
+  // Implement the background "Service" for polling PIDs
   const startPolling = useCallback(() => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     
@@ -120,7 +95,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
                  A = parseInt(hexParts[2], 16);
                  B = parseInt(hexParts[3], 16);
                }
-               const rpm = ((A * OBD_RPM_FACTOR) + B) / OBD_RPM_DIVISOR;
+               const rpm = ((A * 256) + B) / 4;
                
                setTelemetry(prev => {
                    const currTime = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -132,12 +107,9 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
        } catch (err) {
            console.error("Polling error", err);
        }
-    }, OBD_POLLING_MS); // Poll every 2 seconds
+    }, 2000); // Poll every 2 seconds
   }, []);
 
-  /**
-   * Stops the background telemetry polling.
-   */
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
