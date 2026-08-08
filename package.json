@@ -9,7 +9,8 @@
     "static-build": "vite build",
     "start": "node dist/server.cjs",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "scan:code": "node scripts/local-code-scan.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.3.4",
