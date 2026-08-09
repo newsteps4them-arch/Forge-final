@@ -120,6 +120,7 @@ import {
   deleteDoc,
   onSnapshot,
   serverTimestamp,
+  writeBatch,
 } from "./lib/firebase";
 import type { User as FirebaseUser } from "firebase/auth";
 import { generateChatResponse } from "./services/geminiService";
@@ -1075,7 +1076,20 @@ const ChatScreen = ({
         where("projectId", "==", activeProject),
       );
       const snapshot = await getDocs(q);
-      await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+
+      const chunks = [];
+      for (let i = 0; i < snapshot.docs.length; i += 500) {
+        chunks.push(snapshot.docs.slice(i, i + 500));
+      }
+
+      await Promise.all(
+        chunks.map(async (chunk) => {
+          const batch = writeBatch(db);
+          chunk.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+        })
+      );
+
       toast.show("Chat history cleared", "success");
     } catch (e) {
       toast.show("Failed to clear chat", "error");
