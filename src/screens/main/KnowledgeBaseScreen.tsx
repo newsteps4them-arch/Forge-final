@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, BookOpen, Search, Filter, FileText } from "lucide-react";
 
@@ -10,6 +10,14 @@ export const KnowledgeBaseScreen = ({ onBack, vehicle }: { onBack: () => void, v
     { id: 3, type: "Service", title: "Transmission Fluid Exchange Procedure", date: "2020-01-20", relevance: "Routine" },
     { id: 4, type: "TSB", title: "TSB 21-2051: Sync 3 Display Blank", date: "2021-03-10", relevance: "Medium" }
   ]);
+
+  const filteredDocs = useMemo(() => {
+    const searchLower = search.toLowerCase();
+    return docs.filter(d =>
+      d.title.toLowerCase().includes(searchLower) ||
+      d.type.toLowerCase().includes(searchLower)
+    );
+  }, [docs, search]);
 
   return (
     <motion.div
@@ -54,7 +62,7 @@ export const KnowledgeBaseScreen = ({ onBack, vehicle }: { onBack: () => void, v
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 space-y-3 no-scrollbar pb-10">
-        {docs.filter(d => d.title.toLowerCase().includes(search.toLowerCase()) || d.type.toLowerCase().includes(search.toLowerCase())).map((doc) => (
+        {filteredDocs.map((doc) => (
           <div key={doc.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-2 hover:border-primary/30 transition-colors cursor-pointer group">
             <div className="flex justify-between items-start">
               <span className={`text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded ${

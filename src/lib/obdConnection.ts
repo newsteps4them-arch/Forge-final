@@ -31,7 +31,6 @@ export class WebBluetoothObd implements ObdConnection {
 
       this.device.addEventListener('gattserverdisconnected', () => {
         this.connected = false;
-        console.log('Bluetooth disconnected');
       });
 
       const server = await this.device.gatt?.connect();
