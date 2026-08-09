@@ -78,11 +78,13 @@ service cloud.firestore {
       
       allow create: if isSignedIn() && isValidId(taskId) && 
                       incoming().userId == request.auth.uid && 
-                      isValidTask(incoming());
+                      isValidTask(incoming()) &&
+                      isValidCreationTime(incoming());
                       
       allow update: if isSignedIn() && isValidId(taskId) && 
                       existing().userId == request.auth.uid && 
                       incoming().userId == request.auth.uid && 
+                      isValidUpdateTime(incoming()) &&
                       isValidTask(incoming()) && (
                         // Action: Edit Task
                         incoming().diff(existing()).affectedKeys().hasOnly(['text', 'completed', 'category', 'priority', 'dueDate', 'updatedAt'])
@@ -100,6 +102,14 @@ service cloud.firestore {
                (data.dueDate == null || (data.dueDate is string && data.dueDate.size() <= 20)) &&
                (data.createdAt == null || data.createdAt is int || data.createdAt is timestamp) &&
                (data.updatedAt == null || data.updatedAt is timestamp);
+      }
+
+      function isValidCreationTime(data) {
+        return data.createdAt == null || (data.createdAt is int && data.createdAt <= request.time.toMillis() + 300000 && data.createdAt >= request.time.toMillis() - 300000) || (data.createdAt is timestamp && data.createdAt == request.time);
+      }
+
+      function isValidUpdateTime(data) {
+        return !data.diff(existing()).affectedKeys().hasAny(['updatedAt']) || (data.updatedAt is timestamp && data.updatedAt == request.time);
       }
     }
 
