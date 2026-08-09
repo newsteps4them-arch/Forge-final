@@ -69,7 +69,6 @@ import {
   Thermometer,
   Plug,
   ScanEye,
-  Mail,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { NotificationContainer } from "./components/NotificationContainer";
@@ -107,11 +106,6 @@ import {
   googleProvider,
   signInWithPopup,
   signInAnonymously,
-  signInWithRedirect,
-  getRedirectResult,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
   signOut,
   onAuthStateChanged,
   doc,
@@ -142,29 +136,6 @@ enum OperationType {
   GET = "get",
   WRITE = "write",
 }
-
-const getFirebaseAuthErrorMessage = (error: unknown) => {
-  const firebaseError = error as { code?: string; message?: string };
-
-  switch (firebaseError.code) {
-    case "auth/operation-not-allowed":
-      return "This sign-in method is disabled in Firebase Auth. Enable Google and Email link sign-in for this Firebase project, then try again.";
-    case "auth/unauthorized-domain":
-      return "This domain is not authorized in Firebase Auth. Add the Vercel app domain to Firebase Authorized domains.";
-    case "auth/invalid-email":
-      return "Enter a valid email address.";
-    case "auth/expired-action-code":
-      return "That sign-in link expired. Request a new link.";
-    case "auth/invalid-action-code":
-      return "That sign-in link is invalid or already used. Request a new link.";
-    case "auth/popup-blocked":
-    case "auth/cancelled-popup-request":
-    case "auth/popup-closed-by-user":
-      return "The Google popup was blocked or closed. Redirecting through Google sign-in works better on mobile.";
-    default:
-      return firebaseError.message ? `Login failed: ${firebaseError.message}` : "Login failed. Try again.";
-  }
-};
 
 interface FirestoreErrorInfo {
   error: string;
@@ -571,17 +542,14 @@ const TaskItem = ({
 };
 
 const WelcomeScreen = ({
+  onNext,
   onLogin,
-  onLoginEmail,
   onLoginAnon,
 }: {
   onNext: () => void;
   onLogin: () => void;
-  onLoginEmail: (email: string) => Promise<void>;
   onLoginAnon: () => void;
 }) => {
-  const [email, setEmail] = React.useState("");
-  const [sendingLink, setSendingLink] = React.useState(false);
   const [embers] = React.useState(() => {
     return [...Array(12)].map((_, i) => ({
       id: i,
@@ -595,23 +563,9 @@ const WelcomeScreen = ({
     }));
   });
 
-  const requestEmailLink = async () => {
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      toast.show("Enter a valid email address.", "error");
-      return;
-    }
-
-    setSendingLink(true);
-    try {
-      await onLoginEmail(normalizedEmail);
-    } finally {
-      setSendingLink(false);
-    }
-  };
-
   return (
     <div className="flex flex-col justify-between h-full py-12 px-8 bg-[#000] overflow-hidden relative">
+      {/* Cinematic Grid Background */}
       <div
         className="absolute inset-0 opacity-10"
         style={{
@@ -620,6 +574,7 @@ const WelcomeScreen = ({
         }}
       />
 
+      {/* Ember decoration */}
       <div className="absolute inset-0 pointer-events-none">
         {embers.map((ember) => (
           <motion.div
@@ -645,6 +600,7 @@ const WelcomeScreen = ({
             }}
           />
         ))}
+        {/* Glow ambient */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full" />
       </div>
 
@@ -652,7 +608,7 @@ const WelcomeScreen = ({
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: [0.2, 1, 0.3, 1] }}
-        className="flex-1 flex flex-col items-center justify-center text-center space-y-12 relative z-10"
+        className="flex-1 flex flex-col items-center justify-center text-center space-y-16 relative z-10"
       >
         <div className="flex flex-col items-center">
           <motion.div
@@ -712,30 +668,6 @@ const WelcomeScreen = ({
           />
           Authenticate User
         </button>
-
-        <div className="bg-[#111]/95 rounded-[1.5rem] border border-white/10 p-4 space-y-3">
-          <label className="relative block">
-            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-dim" />
-            <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && requestEmailLink()}
-              placeholder="email@example.com"
-              className="w-full bg-black/60 border border-white/10 rounded-[1.25rem] py-5 pl-14 pr-5 text-white font-mono text-[13px] uppercase tracking-[0.2em] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 placeholder:text-text-dim/70"
-            />
-          </label>
-          <button
-            onClick={requestEmailLink}
-            disabled={sendingLink}
-            className="w-full bg-primary/25 hover:bg-primary/35 border border-primary/40 py-4 px-6 rounded-[1.25rem] text-primary font-black text-[12px] uppercase tracking-[0.25em] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {sendingLink ? "Sending Link..." : "Request Sign-In Link"}
-          </button>
-        </div>
-
         <div className="flex items-center gap-4 px-4">
           <div className="h-[2px] bg-white/5 flex-1" />
           <span className="text-[10px] text-text-dim uppercase tracking-[0.4em] font-black">
@@ -2718,36 +2650,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Complete redirect and email-link sign-in after Firebase returns to the app.
-  useEffect(() => {
-    getRedirectResult(auth).catch((error) => {
-      toast.show(getFirebaseAuthErrorMessage(error), "error");
-    });
-
-    const finishEmailLinkSignIn = async () => {
-      if (!isSignInWithEmailLink(auth, window.location.href)) return;
-
-      const storedEmail = localStorage.getItem("forge_email_for_sign_in");
-      const email = storedEmail || window.prompt("Confirm your email address to finish signing in.");
-
-      if (!email) {
-        toast.show("Email confirmation is required to finish sign-in.", "error");
-        return;
-      }
-
-      try {
-        await signInWithEmailLink(auth, email, window.location.href);
-        localStorage.removeItem("forge_email_for_sign_in");
-        window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
-        toast.show("Signed in with email link", "success");
-      } catch (error) {
-        toast.show(getFirebaseAuthErrorMessage(error), "error");
-      }
-    };
-
-    finishEmailLinkSignIn();
-  }, []);
-
   // Fetch Projects and Tasks on login
   useEffect(() => {
     if (!user) {
@@ -3009,47 +2911,14 @@ export default function App() {
   }, [activeProject, user]);
 
   const handleLogin = async () => {
-    const shouldUseRedirect =
-      /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent) ||
-      window.matchMedia("(display-mode: standalone)").matches;
-
     try {
-      if (shouldUseRedirect) {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
-      if (
-        error.code === "auth/popup-blocked" ||
-        error.code === "auth/cancelled-popup-request" ||
-        error.code === "auth/popup-closed-by-user"
-      ) {
-        try {
-          await signInWithRedirect(auth, googleProvider);
-        } catch (redirectError) {
-          toast.show(getFirebaseAuthErrorMessage(redirectError), "error");
-        }
-        return;
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        toast.show("Login popup was blocked or closed. Please allow popups.", "error");
+      } else {
+        toast.show(`Login failed: ${error.message}`, "error");
       }
-
-      toast.show(getFirebaseAuthErrorMessage(error), "error");
-    }
-  };
-
-  const handleEmailLinkLogin = async (email: string) => {
-    try {
-      localStorage.setItem("forge_email_for_sign_in", email);
-      await sendSignInLinkToEmail(auth, email, {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true,
-      });
-      toast.show("Sign-in link sent. Check your email on this device.", "success");
-    } catch (error) {
-      localStorage.removeItem("forge_email_for_sign_in");
-      toast.show(getFirebaseAuthErrorMessage(error), "error");
-      throw error;
     }
   };
 
@@ -3448,7 +3317,6 @@ export default function App() {
                   key="welcome"
                   onNext={handleNext}
                   onLogin={handleLogin}
-                  onLoginEmail={handleEmailLinkLogin}
                   onLoginAnon={handleLoginAnon}
                 />
               )}

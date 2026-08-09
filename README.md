@@ -53,9 +53,3 @@ A fully functional GitHub Actions pipeline is declared in `.github/workflows/bui
 2. **Open Native UI**: `npx cap open android`
 3. **Release Build**: Inside Android Studio, use **Build > Generate Signed Bundle / APK** to get your Google Play distribution key.
 
-
----
-
-## Automated code scans
-
-Vercel-hosted code scanning is documented in [docs/code-scans.md](docs/code-scans.md). It can open report issues/discussions and safe-fix pull requests when configured with repository credentials.
