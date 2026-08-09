@@ -269,7 +269,7 @@ function applySafeFixes(path: string, content: string): string | null {
 }
 
 async function createFixPullRequest(ctx: GitHubContext, files: Map<string, string>, findings: Finding[]): Promise<string> {
-  const base = await github<{ commit: { sha: string } }>(ctx, `/repos/${ctx.owner}/${ctx.repo}/branches/${ctx.branch}`);
+  const base = await github<{ commit: { sha: string; commit: { tree: { sha: string } } } }>(ctx, `/repos/${ctx.owner}/${ctx.repo}/branches/${ctx.branch}`);
   const branchName = `vercel-agent/code-scan-fixes-${Date.now()}`;
   await github(ctx, `/repos/${ctx.owner}/${ctx.repo}/git/refs`, {
     method: "POST",
@@ -289,7 +289,7 @@ async function createFixPullRequest(ctx: GitHubContext, files: Map<string, strin
   const newTree = await github<{ sha: string }>(ctx, `/repos/${ctx.owner}/${ctx.repo}/git/trees`, {
     method: "POST",
     body: JSON.stringify({
-      base_tree: base.commit.sha,
+      base_tree: base.commit.commit.tree.sha,
       tree: treeItems,
     }),
   });
