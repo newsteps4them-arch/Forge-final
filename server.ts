@@ -3,11 +3,13 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
 import dotenv from "dotenv";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
+import rateLimit from "express-rate-limit";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 dotenv.config();
 
@@ -165,10 +167,20 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  const gitLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: "Too many Git operations from this IP, please try again after 15 minutes",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use("/api/git/", gitLimiter);
+
   // GitHub Git Sync API Gateway
   app.get("/api/git/status", async (req, res) => {
     try {
-      const { stdout } = await execAsync("bash scripts/sync.sh --check");
+      const { stdout } = await execFileAsync("bash", ["scripts/sync.sh", "--check"]);
       let isInitialized = false;
       try {
         await fs.access(path.join(process.cwd(), ".git"));
@@ -216,7 +228,7 @@ async function startServer() {
         const cleanUrlPart = withoutProto.includes("@") ? withoutProto.split("@")[1] : withoutProto;
         finalUrl = `https://${cleanToken}@${cleanUrlPart}`;
       }
-      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh --link "${finalUrl}"`);
+      const { stdout, stderr } = await execFileAsync("bash", ["scripts/sync.sh", "--link", finalUrl]);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Link API Error:", error);
@@ -227,8 +239,11 @@ async function startServer() {
   app.post("/api/git/sync", async (req, res) => {
     try {
       const { commitMessage } = req.body;
-      const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
-      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh sync ${msg}`);
+      const args = ["scripts/sync.sh", "sync"];
+      if (commitMessage) {
+        args.push(commitMessage);
+      }
+      const { stdout, stderr } = await execFileAsync("bash", args);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Sync API Error:", error);
@@ -238,7 +253,7 @@ async function startServer() {
 
   app.post("/api/git/pull", async (req, res) => {
     try {
-      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --pull-only");
+      const { stdout, stderr } = await execFileAsync("bash", ["scripts/sync.sh", "--pull-only"]);
       res.json({ success: true, message: "Remote repository updates pulled successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Pull API Error:", error);
@@ -248,7 +263,7 @@ async function startServer() {
 
   app.post("/api/git/push", async (req, res) => {
     try {
-      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --push-only");
+      const { stdout, stderr } = await execFileAsync("bash", ["scripts/sync.sh", "--push-only"]);
       res.json({ success: true, message: "Local workspace updates pushed to remote successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Push API Error:", error);
@@ -258,7 +273,7 @@ async function startServer() {
 
   app.post("/api/git/health-check", async (req, res) => {
     try {
-      const { stdout, stderr } = await execAsync("bash scripts/sync.sh --health");
+      const { stdout, stderr } = await execFileAsync("bash", ["scripts/sync.sh", "--health"]);
       res.json({ success: true, message: "Integrity check done.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Health API Error:", error);
