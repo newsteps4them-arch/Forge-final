@@ -12,6 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor-firebase/app": "^8.3.0",
+    "@capacitor-firebase/authentication": "^8.3.0",
     "@capacitor/core": "^8.3.4",
     "@google/genai": "^2.6.0",
     "@google/generative-ai": "^0.24.1",

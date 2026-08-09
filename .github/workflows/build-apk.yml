@@ -29,7 +29,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Synchronize Env Secrets
         run: |
@@ -50,50 +50,37 @@ jobs:
       - name: Capacitor Sync
         run: npx cap sync android
 
-      - name: Fix Gradle Wrapper
-        run: |
-          cd android
-          rm -rf gradle/wrapper/gradle-wrapper.jar
-          chmod +x ./gradlew
-          ./gradlew wrapper --gradle-version 8.7
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
+          gradle-version: '8.7'
           cache-disabled: false
 
       - name: Run Gradle Compile (All Targets)
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew clean assembleDebug assembleRelease bundleRelease
+          ./gradlew assembleDebug assembleRelease bundleRelease
 
-      - name: Generate timestamp
-        id: timestamp
-        run: echo "date=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
-
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
-        if: success()
-        with:
-          files: |
-            android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/bundle/release/*.aab
-          tag_name: apk-${{ steps.timestamp.outputs.date }}-${{ github.sha }}
-          body: |
-            Automated APK build for commit ${{ github.sha }}
-            Branch: ${{ github.ref_name }}
-            Timestamp: ${{ steps.timestamp.outputs.date }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Organize Artifacts
+        run: |
+          mkdir -p artifacts
+          
+          # Debug APK
+          DEBUG_APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -n "$DEBUG_APK" ]; then cp "$DEBUG_APK" "artifacts/Forge-debug.apk"; fi
+          
+          # Release APK
+          RELEASE_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ]; then cp "$RELEASE_APK" "artifacts/Forge-release-unsigned.apk"; fi
+          
+          # Release AAB (App Bundle)
+          RELEASE_AAB=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          if [ -n "$RELEASE_AAB" ]; then cp "$RELEASE_AAB" "artifacts/Forge-production-release.aab"; fi
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: app-ci-build-artifacts
-          path: |
-            android/app/build/outputs/apk/**/*.apk
-            android/app/build/outputs/bundle/**/*.aab
+          path: artifacts/*
           retention-days: 14
