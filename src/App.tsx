@@ -125,7 +125,7 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { generateChatResponse } from "./services/geminiService";
 import { useNavigation, Screen } from "./hooks/useNavigation";
 import { useObdTelemetry } from "./hooks/useObdTelemetry";
-import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
+import { WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
 
 // --- Utilities ---
 enum OperationType {
