@@ -31,6 +31,7 @@
     "@capacitor/cli": "^8.3.4",
     "@eslint/js": "^10.0.1",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "@types/react": "^18.2.66",
