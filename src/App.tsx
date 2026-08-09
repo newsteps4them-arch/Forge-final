@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { AssistantMode } from "./types";
 import {
   AreaChart,
   Area,
@@ -230,21 +231,7 @@ type Screen =
   | "TimeClock"
   | "GoToMarket"
   | "AdasCalibration";
-type AssistantMode =
-  | "Operations"
-  | "Diagnostics Lead"
-  | "Performance Tuner"
-  | "Electrical Eng."
-  | "Estimator"
-  | "Forge Coder"
-  | "Forge Developer"
-  | "Fleet Manager"
-  | "Parts Specialist"
-  | "Quality Inspector"
-  | "Heavy Equip. Tech"
-  | "HVAC Technician"
-  | "Field Welder"
-  | "Master Electrician";
+
 type ChatMessage = { role: "user" | "model" | "system"; text: string; image?: string; id?: string };
 
 type Task = {

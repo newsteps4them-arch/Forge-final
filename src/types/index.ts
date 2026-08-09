@@ -1,0 +1,15 @@
+export type AssistantMode =
+  | "Operations"
+  | "Diagnostics Lead"
+  | "Performance Tuner"
+  | "Electrical Eng."
+  | "Estimator"
+  | "Forge Coder"
+  | "Forge Developer"
+  | "Fleet Manager"
+  | "Parts Specialist"
+  | "Quality Inspector"
+  | "Heavy Equip. Tech"
+  | "HVAC Technician"
+  | "Field Welder"
+  | "Master Electrician";

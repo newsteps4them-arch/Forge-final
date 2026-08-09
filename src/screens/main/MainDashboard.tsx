@@ -4,6 +4,7 @@ import {
   Terminal, Activity, Zap, Wifi, Cpu, MessageSquare, 
   Settings, User, BookOpen, LayoutGrid, Box
 } from "lucide-react";
+import { AssistantMode } from "../../types";
 
 interface MainDashboardProps {
   onboarding: any;
@@ -11,12 +12,12 @@ interface MainDashboardProps {
   activeProject: string;
   projects: any[];
   obdMode: string;
-  setObdMode: (mode: any) => void;
+  setObdMode: (mode: string) => void;
   updateData: (key: string, val: string) => void;
   obdConnected: boolean;
   handleConnect: () => void;
   setCurrentScreen: (screen: string) => void;
-  setChatMode: (mode: any) => void;
+  setChatMode: (mode: AssistantMode) => void;
   setChatInitialQuery: (query: string) => void;
   projectPicker: React.ReactNode;
   chatHistoryWidget: React.ReactNode;
@@ -47,7 +48,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const lower = omniInput.toLowerCase();
     
     // Auto-categorize based on heuristics
-    let targetCategory: any = "Operations";
+    let targetCategory: AssistantMode = "Operations";
     let targetScreen = "Chat";
 
     if (lower.includes("code") || lower.includes("scan") || lower.includes("dtc") || lower.includes("diagnose") || lower.includes("fault") || lower.includes("check engine")) {
