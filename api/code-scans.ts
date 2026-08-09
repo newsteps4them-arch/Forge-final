@@ -333,7 +333,7 @@ export default async function handler(req: any, res: any) {
     token,
     owner: body.owner || process.env.GITHUB_OWNER || DEFAULT_OWNER,
     repo: body.repo || process.env.GITHUB_REPO || DEFAULT_REPO,
-    branch: body.branch || process.env.GITHUB_BRANCH || DEFAULT_BRANCH,
+    branch: body.branch || process.env.GITHUB_BRANCH || "",
   };
   ctx.branch = await getDefaultBranch(ctx);
 
