@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Gauge, Activity, Zap, Search, CheckCircle } from "lucide-react";
+import { D3StreamChart } from "../../components/D3StreamChart";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -222,52 +223,15 @@ export const LiveDataScreen = ({
               ))}
             </div>
 
-            <div className="h-64 bg-white/5 border border-white/10 rounded-3xl p-4 overflow-hidden relative">
-              <div className="flex items-center justify-between mb-4 px-2">
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                  {activePidDef.name} Log
-                </h3>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  <span className="text-[8px] text-primary/60 font-mono uppercase tracking-widest">
-                    Recording
-                  </span>
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height="90%">
-                <AreaChart
-                  data={localData.length ? localData : [{ time: "0", [selectedChartPid]: 0 }]}
-                >
-                  <defs>
-                    <linearGradient id="colorRPM" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F5A623" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#F5A623" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="time" hide />
-                  <YAxis hide domain={["auto", "auto"]} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#111",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "12px",
-                      fontSize: "10px",
-                      fontWeight: "bold",
-                    }}
-                    itemStyle={{ color: "#F5A623" }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey={selectedChartPid}
-                    stroke="#F5A623"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorRPM)"
-                    isAnimationActive={!!telemetry.length}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {/* Live D3 Stream Chart */}
+            <D3StreamChart
+              data={localData.length ? localData : [{ time: "0", [selectedChartPid]: 0 }]}
+              dataKey={selectedChartPid}
+              unit={activePidDef.unit}
+              label={activePidDef.name}
+              color="#F5A623"
+              height={260}
+            />
 
             {/* PID Selection List */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-4 relative flex flex-col">

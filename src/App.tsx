@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -104,7 +106,7 @@ import {
   auth,
   db,
   googleProvider,
-  signInWithPopup,
+  signInWithPopup, signInWithCredential, GoogleAuthProviderClass,
   signInAnonymously,
   signOut,
   onAuthStateChanged,
@@ -2912,7 +2914,15 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        if (result.credential?.idToken) {
+          const credential = GoogleAuthProviderClass.credential(result.credential.idToken);
+          await signInWithCredential(auth, credential);
+        }
+      } else {
+        await signInWithPopup(auth, googleProvider);
+      }
     } catch (error: any) {
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
         toast.show("Login popup was blocked or closed. Please allow popups.", "error");
