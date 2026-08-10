@@ -98,6 +98,7 @@ import { WiringDiagramsScreen } from "./screens/main/WiringDiagramsScreen";
 import { AdasCalibrationScreen } from "./screens/diagnostics/AdasCalibrationScreen";
 import { CameraCapture } from "./components/CameraCapture";
 import { SettingsScreen } from "./screens/settings/SettingsScreen";
+import { Analytics } from "@vercel/analytics/react";
 import { MainDashboard } from "./screens/main/MainDashboard";
 import { toast } from "./lib/notifications";
 import {
@@ -3290,6 +3291,8 @@ export default function App() {
   };
 
   return (
+    <>
+      <Analytics />
     <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern">
       <TopStatusBar 
         onSettingsClick={onboarding.onboardingComplete ? () => setCurrentScreen("Settings") : undefined} 
@@ -3662,5 +3665,6 @@ export default function App() {
         </div>
       </div>
     </div>
+    </>
   );
 }
