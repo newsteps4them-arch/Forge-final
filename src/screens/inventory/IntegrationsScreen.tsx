@@ -173,25 +173,10 @@ export const IntegrationsScreen = ({
         }
       } catch (e) {
         console.error(e);
-        toast.show("Offline or network restriction. Utilizing backup onboard database simulator.", "info");
-        
-        // standard fallback
-        setRecalls([
-          {
-            Component: "ELECTRICAL SYSTEM / ECU FIRMWARE",
-            CampaignNumber: "24V-FORGE-921",
-            Summary: "Potential clock synchronization jitter in ECU interface under heavy controller telemetry streaming. Could result in diagnostic packet drops.",
-            Remedy: "Dealers will update internal communication line filters. Service action is 100% free.",
-          },
-          {
-            Component: "SERVICE BRAKES, HYDRAULIC:BACKING PLATE",
-            CampaignNumber: "23V-CORP-401",
-            Summary: "Overpressurization warning threshold configured slightly lower than standard SAE guidelines.",
-            Remedy: "Readjust limit configuration within active dashboard settings panel.",
-          }
-        ]);
-        setRecallsLoadedFor(`${year || "2024"} ${make || "Simulated"} ${model || "Concept"}`);
+        setRecalls([]);
+        setRecallsLoadedFor(`${year} ${make} ${model}`);
         setShowRecallsPanel(true);
+        toast.show("NHTSA recall sync unavailable. No synthetic recall data was loaded.", "error");
       } finally {
         setSyncingId(null);
       }

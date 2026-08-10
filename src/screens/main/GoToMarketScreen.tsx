@@ -26,7 +26,7 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
   const [leadInterest, setLeadInterest] = useState("Enterprise Workshop");
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // White label simulation configuration
+  // White label production configuration
   const [brandName, setBrandName] = useState(() => localStorage.getItem("forge_brand_name") || "Team Forge Motors");
   const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem("forge_brand_color") || "#F5A623");
   const [currency, setCurrency] = useState(() => localStorage.getItem("forge_brand_currency") || "USD ($)");
@@ -43,12 +43,9 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
         });
         setLeads(list);
       }, (err) => {
-        console.warn("Firestore leads collection sync failed (using local fallback):", err);
-        // Fallback mock leads
-        setLeads([
-          { id: "1", name: "Marcello Vance", email: "marcello@vancetech.com", business: "Vance Performance LLC", interest: "Fleet Manager License", timestamp: "Just Now" },
-          { id: "2", name: "Diana Fox", email: "dfox@apexdiagnostics.org", business: "Apex Tuning Hub", interest: "Enterprise Workshop", timestamp: "2 Hours ago" }
-        ]);
+        console.warn("Firestore leads collection sync failed:", err);
+        setLeads([]);
+        toast.show("Lead database sync unavailable. New entries will be kept locally until Firestore is reachable.", "info");
       });
       return () => unsubscribe();
     } catch (e) {
@@ -85,7 +82,7 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
         { id: Math.random().toString(), ...newLead },
         ...prev
       ]);
-      toast.show("Lead recorded locally (Offline Sandbox Model)", "success");
+      toast.show("Lead saved locally; Firestore sync unavailable", "success");
       setLeadName("");
       setLeadEmail("");
       setLeadBusiness("");
@@ -200,7 +197,7 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-white text-xs font-bold font-mono">Datastore Integrity (Firestore)</h4>
-                        <p className="text-[10px] text-text-dim">Secure Firestore database rules fully prepared to sandbox user documents & leads pipelines.</p>
+                        <p className="text-[10px] text-text-dim">Secure Firestore database rules isolate user documents and leads pipelines.</p>
                       </div>
                     </div>
                     <span className="text-[9px] font-mono bg-emerald-500/10 text-emerald-500 px-2.5 py-1 rounded-full font-bold">ACTIVE</span>
@@ -253,7 +250,7 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
                   <div className="flex items-center gap-2 mb-2">
                     <Mail className="w-4 h-4 text-primary" />
                     <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide">
-                      Lead Acquisition sandbox
+                      Lead Acquisition
                     </h3>
                   </div>
                   <p className="text-xs text-text-dim mb-4">
@@ -341,7 +338,7 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
                     <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/5 rounded-2xl">
                       <Users className="w-8 h-8 text-text-dim mb-2 opacity-50" />
                       <p className="text-xs text-text-dim">No submissions yet.</p>
-                      <p className="text-[10px] text-text-dim/60">Fill out the sandbox form to generate a live entry.</p>
+                      <p className="text-[10px] text-text-dim/60">Fill out the lead form to generate a live entry.</p>
                     </div>
                   ) : (
                     leads.map((lead) => (

@@ -47,12 +47,17 @@ export const CodingScreen = ({
   };
 
   const handleService = (id: string, name: string) => {
+    const serviceCommandMap: Record<string, string> = {
+      oil: "31 01 FF 00",
+      dpf: "31 01 FF 01",
+      bms: "31 01 FF 02",
+      keys: "27 01",
+      abs: "31 01 FF 03",
+    };
     setActiveTest(id);
-    toast.show(`Initiating ${name}...`, "info");
-    setTimeout(() => {
-      setActiveTest(null);
-      toast.show(`${name} completed successfully`, "success");
-    }, 2500);
+    onCommand(serviceCommandMap[id]);
+    toast.show(`${name} command sent to connected vehicle`, "info");
+    setTimeout(() => setActiveTest(null), 2000);
   };
 
   return (
@@ -112,7 +117,10 @@ export const CodingScreen = ({
               FORScan AS-BUILT Format
             </div>
             <button
-              onClick={() => toast.show("AS-BUILT Backup initiated", "info")}
+              onClick={() => {
+                onCommand("22 F1 90");
+                toast.show("AS-BUILT module identification request sent", "info");
+              }}
               className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -171,9 +179,10 @@ export const CodingScreen = ({
                     </span>
                   </div>
                   <button
-                    onClick={() =>
-                      toast.show("Action restricted in preview", "info")
-                    }
+                    onClick={() => {
+                      onCommand("22 F1 90");
+                      toast.show(`${mod.name} requires a manufacturer-specific as-built write payload; module read request sent first.`, "info");
+                    }}
                     className="w-12 h-6 bg-white/10 rounded-full relative flex-shrink-0"
                   >
                     <div className="w-5 h-5 bg-white/40 rounded-full absolute left-0.5 top-0.5 transition-transform" />
