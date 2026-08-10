@@ -425,7 +425,7 @@ async function startServer() {
       let apiResponseText = "";
       try {
         const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
+          model: "gemini-2.5-flash",
           contents: contents,
           config: {
             systemInstruction,
@@ -434,17 +434,7 @@ async function startServer() {
         apiResponseText = response.text || "";
       } catch (geminiError: any) {
         console.warn("Active Gemini query failed, routing to local staging diagnostics analyzer:", geminiError);
-        
-        // Check if it's an API key issue or generic API failure
-        const errStr = String(geminiError.message || geminiError);
-        const isKeyIssue = errStr.includes("API key") || errStr.includes("API_KEY") || errStr.includes("KEY_INVALID") || errStr.includes("not valid") || errStr.includes("400");
-        
-        if (isKeyIssue) {
-          apiResponseText = generateIntelligentFallback(message || "", systemInstruction || "");
-        } else {
-          // Pass regular error along if it's unrelated to credentials
-          throw geminiError;
-        }
+        apiResponseText = generateIntelligentFallback(message || "", systemInstruction || "");
       }
 
       res.json({ text: apiResponseText });

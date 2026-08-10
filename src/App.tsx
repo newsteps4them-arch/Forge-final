@@ -3440,6 +3440,7 @@ export default function App() {
                   handleConnect={handleConnect}
                   setCurrentScreen={setCurrentScreen}
                   setChatMode={setChatMode}
+                  setChatInitialQuery={setChatInitialQuery}
                   projectPicker={renderProjectPicker()}
                   chatHistoryWidget={
                     <ChatHistoryWidget

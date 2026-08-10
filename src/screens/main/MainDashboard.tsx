@@ -17,7 +17,7 @@ interface MainDashboardProps {
   handleConnect: () => void;
   setCurrentScreen: (screen: string) => void;
   setChatMode: (mode: any) => void;
-  setChatInitialQuery: (query: string) => void;
+  setChatInitialQuery?: (query: string) => void;
   projectPicker: React.ReactNode;
   chatHistoryWidget: React.ReactNode;
 }
@@ -83,14 +83,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
     if (targetScreen === "Chat") {
       setChatMode(targetCategory);
-      setChatInitialQuery(omniInput);
+      setChatInitialQuery?.(omniInput);
       setCurrentScreen("Chat");
     } else {
       // If it's a specific screen like Inventory or Estimator
       // we navigate there. For Estimator we might want to pass the context, but for now just navigate.
       if (targetScreen === "Estimator") {
          setChatMode("Estimator");
-         setChatInitialQuery(omniInput);
+         setChatInitialQuery?.(omniInput);
          setCurrentScreen("Chat"); // Route through chat for estimator too
       } else {
          setCurrentScreen(targetScreen);
