@@ -224,7 +224,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   onChange={(e) => setObdMode(e.target.value as any)}
                   className="bg-[#111] border border-white/10 rounded-lg text-[10px] px-3 py-2 text-white outline-none font-bold uppercase tracking-wider h-10"
                 >
-                  <option value="Simulated">Demo Sim</option>
                   <option value="Bluetooth">Bluetooth/BLE</option>
                   <option value="USB">USB OTG Cable</option>
                 </select>

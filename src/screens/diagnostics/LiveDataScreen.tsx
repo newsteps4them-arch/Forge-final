@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Gauge, Activity, Zap, Search, CheckCircle } from "lucide-react";
 import {
@@ -87,44 +87,15 @@ export const LiveDataScreen = ({
   onBack: () => void;
   telemetry?: any[];
 }) => {
-  const [localData, setLocalData] = useState<any[]>(telemetry);
+  const localData = telemetry;
   const [selectedChartPid, setSelectedChartPid] = useState<string>("RPM");
   const [searchPid, setSearchPid] = useState("");
   const [filterGroup, setFilterGroup] = useState("All");
 
-  // Simulate live data if no real telemetry is provided via props
-  useEffect(() => {
-    let interval: any;
-    if (telemetry.length === 0) {
-      interval = setInterval(() => {
-        setLocalData((prev) => {
-          const lastVal = prev.length ? (prev[prev.length - 1][selectedChartPid] || (selectedChartPid === "RPM" ? 800 : 50)) : (selectedChartPid === "RPM" ? 800 : 50);
-          const newVal = Math.max(
-            0,
-            lastVal + (Math.random() - 0.5) * (selectedChartPid === "RPM" ? 500 : 5),
-          );
-          const newData = {
-            time: new Date().toLocaleTimeString(),
-            [selectedChartPid]: Math.round(newVal * 10) / 10,
-            RPM: selectedChartPid !== "RPM" 
-              ? Math.max(700, prev.length ? prev[prev.length - 1].RPM + (Math.random() - 0.5) * 500 : 800)
-              : Math.round(newVal),
-          };
-          return [...prev.slice(-40), newData];
-        });
-      }, 800);
-    } else {
-      // Defer state update to avoid cascading effect warning
-      setTimeout(() => setLocalData(telemetry), 0);
-    }
-    return () => clearInterval(interval);
-  }, [telemetry, selectedChartPid]);
+  const latestSample = localData.length > 0 ? localData[localData.length - 1] : {};
+  const currentRpm = latestSample.RPM || 0;
+  const currentChartVal = latestSample[selectedChartPid] || 0;
 
-  const currentRpm =
-    localData.length > 0 ? localData[localData.length - 1].RPM || 0 : 0;
-  const currentChartVal = 
-    localData.length > 0 ? localData[localData.length - 1][selectedChartPid] || 0 : 0;
-    
   const activePidDef = AVAILABLE_PIDS.find(p => p.id === selectedChartPid) || AVAILABLE_PIDS[0];
 
   const filteredPids = AVAILABLE_PIDS.filter(pid => {
@@ -197,10 +168,10 @@ export const LiveDataScreen = ({
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "Coolant", value: "185", unit: "°F", icon: Zap },
-                { label: "Boost", value: "14.2", unit: "psi", icon: Gauge },
-                { label: "Voltage", value: "13.8", unit: "V", icon: Zap },
-                { label: "Load", value: "24", unit: "%", icon: Activity },
+                { label: "Coolant", value: latestSample.ECT ?? "--", unit: "°F", icon: Zap },
+                { label: "MAP", value: latestSample.MAP ?? "--", unit: "psi", icon: Gauge },
+                { label: "Speed", value: latestSample.VSS ?? "--", unit: "mph", icon: Activity },
+                { label: "Load", value: latestSample.Load ?? "--", unit: "%", icon: Activity },
               ].map((metric) => (
                 <div
                   key={metric.label}
@@ -390,7 +361,7 @@ export const LiveDataScreen = ({
                     {map.name}
                   </h4>
 
-                  {/* Fake Grid Map */}
+                  {/* Calibration table preview */}
                   <div className="grid grid-cols-4 gap-1 opacity-50 group-hover:opacity-100 transition-opacity mt-auto">
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div
@@ -403,8 +374,12 @@ export const LiveDataScreen = ({
               ))}
             </div>
 
-            <button className="w-full mt-4 bg-primary text-black py-4 rounded-xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 hover:bg-primary/90 shadow-[0_4px_15px_rgba(245,166,35,0.3)]">
-              Write Flash Data
+            <button
+              disabled
+              className="w-full mt-4 bg-white/10 text-white/40 py-4 rounded-xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+              title="Flash writing requires a validated vendor-specific ECU programming interface."
+            >
+              Flash Writer Requires Vendor Interface
             </button>
           </motion.div>
         )}

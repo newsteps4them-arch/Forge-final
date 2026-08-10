@@ -24,9 +24,9 @@ export const SettingsScreen = ({
   onSave: (api: string, meli: string, alldata: string, obd: string, openai: string) => void;
   onBack: () => void;
 }) => {
-  // Modes: "sandbox" (easy, pre-configured defaults) vs "custom" (their own developer API keys)
-  const [configMode, setConfigMode] = useState<"sandbox" | "custom">(
-    (!apiKey && !meliApiKey && !alldataKey && !obdKey && !openAiKey) ? "sandbox" : "custom"
+  // Modes: hosted defaults vs custom developer API keys
+  const [configMode, setConfigMode] = useState<"hosted" | "custom">(
+    (!apiKey && !meliApiKey && !alldataKey && !obdKey && !openAiKey) ? "hosted" : "custom"
   );
 
   const [geminiKey, setGeminiKey] = useState(apiKey);
@@ -202,32 +202,32 @@ export const SettingsScreen = ({
     }
   };
 
-  // --- Staging Diagnostic Suite State ---
-  const [stagingRunning, setStagingRunning] = useState(false);
-  const [stagingReport, setStagingReport] = useState<any | null>(null);
-  const [stagingSuccessCount, setStagingSuccessCount] = useState(0);
-  const [stagingTotalCount, setStagingTotalCount] = useState(0);
-  const [stagingProgress, setStagingProgress] = useState(0);
+  // --- Production Diagnostic Suite State ---
+  const [productionRunning, setProductionRunning] = useState(false);
+  const [productionReport, setProductionReport] = useState<any | null>(null);
+  const [productionSuccessCount, setProductionSuccessCount] = useState(0);
+  const [productionTotalCount, setProductionTotalCount] = useState(0);
+  const [productionProgress, setProductionProgress] = useState(0);
 
-  const runStagingDiagnostics = async () => {
-    setStagingRunning(true);
-    setStagingReport(null);
-    setStagingProgress(5);
-    toast.show("Initializing Staging Calibration sweep...", "info");
+  const runProductionDiagnostics = async () => {
+    setProductionRunning(true);
+    setProductionReport(null);
+    setProductionProgress(5);
+    toast.show("Initializing production verification sweep...", "info");
     
-    // Simulate initial sequence scan step
+    // Show progress while the live verification endpoint runs
     const interval = setInterval(() => {
-      setStagingProgress(p => p < 85 ? p + Math.floor(Math.random() * 15) + 5 : p);
+      setProductionProgress(p => p < 85 ? p + Math.floor(Math.random() * 15) + 5 : p);
     }, 250);
 
     try {
-      const res = await fetch("/api/staging/verify-all");
-      if (!res.ok) throw new Error("Staging API verification endpoint failed.");
+      const res = await fetch("/api/production/verify-all");
+      if (!res.ok) throw new Error("Production verification endpoint failed.");
       const data = await res.json();
       
       clearInterval(interval);
-      setStagingProgress(100);
-      setStagingReport(data);
+      setProductionProgress(100);
+      setProductionReport(data);
       
       // Calculate active successes
       let itemsChecked = 0;
@@ -244,22 +244,22 @@ export const SettingsScreen = ({
           if (data.apiConnectivity[k].reachable) okCount++;
         });
       }
-      setStagingTotalCount(itemsChecked);
-      setStagingSuccessCount(okCount);
-      toast.show(`Staging verification done! ${okCount}/${itemsChecked} nodes validated.`, okCount === itemsChecked ? "success" : "info");
+      setProductionTotalCount(itemsChecked);
+      setProductionSuccessCount(okCount);
+      toast.show(`Production verification done! ${okCount}/${itemsChecked} nodes validated.`, okCount === itemsChecked ? "success" : "info");
     } catch (err: any) {
       clearInterval(interval);
-      setStagingProgress(0);
-      toast.show("Staging verification error. Connected to simulated failover.", "error");
+      setProductionProgress(0);
+      toast.show("Production verification error. Verification endpoint unavailable.", "error");
       console.error(err);
     } finally {
-      setStagingRunning(false);
+      setProductionRunning(false);
     }
   };
 
   // OBD-II Link Dropdown Preset State
   const [selectedObdPreset, setSelectedObdPreset] = useState(() => {
-    if (!obdKey) return "simulated";
+    if (!obdKey) return "custom";
     if (obdKey.includes("OBDLink")) return "obdlink";
     if (obdKey.includes("ELM327")) return "elm327";
     return "custom";
@@ -267,7 +267,7 @@ export const SettingsScreen = ({
 
   const handleSave = () => {
     setError(null);
-    if (configMode === "sandbox") {
+    if (configMode === "hosted") {
       // Clean or default keys
       onSave("", "", "", "", "");
       toast.show("Forge System Configuration active!", "success");
@@ -277,24 +277,21 @@ export const SettingsScreen = ({
     }
   };
 
-  const autoLinkSandbox = () => {
-    setConfigMode("sandbox");
+  const autoLinkHosted = () => {
+    setConfigMode("hosted");
     setGeminiKey("");
     setMeliKey("");
     setAlldataK("");
     setObdK("");
     setOpenaiKey("");
-    setSelectedObdPreset("simulated");
-    toast.show("Auto-Configured: Forge Cloud and OBD-II Simulator activated!", "success");
+    setSelectedObdPreset("custom");
+    toast.show("Hosted production defaults activated. Connect Bluetooth or USB OBD hardware for vehicle data.", "success");
   };
 
   const selectObdPresetAndAutoFill = (preset: string) => {
     setSelectedObdPreset(preset);
     setError(null);
-    if (preset === "simulated") {
-      setObdK("SIMULATED_OBD_STREAM_ENABLED");
-      toast.show("ECU Engine Simulator Mode activated.", "success");
-    } else if (preset === "obdlink") {
+    if (preset === "obdlink") {
       setObdK("OBDLink MX+ Bluetooth (Auto-Baud 115200)");
       toast.show("Optimized for high-speed OBDLink MX+ hardware adapters.", "success");
     } else if (preset === "elm327") {
@@ -314,11 +311,11 @@ export const SettingsScreen = ({
 
   // Status computation for user readability
   const getStatusBadge = (keyVal: string, term: string) => {
-    if (configMode === "sandbox") {
+    if (configMode === "hosted") {
       return (
         <span className="flex items-center gap-1 text-[9px] font-mono tracking-wider font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 px-2 py-0.5 rounded-full">
           <CheckCircle2 className="w-2.5 h-2.5" />
-          Forge Cloud Default (Free)
+          Hosted Default
         </span>
       );
     }
@@ -361,7 +358,7 @@ export const SettingsScreen = ({
 
         {/* Instant Auto Setup Button for non-technical users */}
         <button
-          onClick={autoLinkSandbox}
+          onClick={autoLinkHosted}
           className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest px-3.5 py-2 rounded-xl transition-all"
         >
           <Zap className="w-3.5 h-3.5 animate-pulse" />
@@ -377,24 +374,24 @@ export const SettingsScreen = ({
             How do you want Team Forge to connect?
           </h3>
           <p className="text-[11px] text-text-secondary leading-relaxed mb-4">
-            You don't need any complex API keys! Set Team Forge to **Automated Sandbox** to get fully active AI diagnostic features, repair logs, and simulator engines with zero setup.
+            Use Team Forge hosted production defaults for server-backed AI and app services. Vehicle telemetry still requires Bluetooth or USB OBD hardware.
           </p>
 
           <div className="grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-2xl border border-white/5">
             <button
               onClick={() => {
-                setConfigMode("sandbox");
-                toast.show("Switched to Automated Sandbox. No technical API knowledge required!", "success");
+                setConfigMode("hosted");
+                toast.show("Switched to hosted production defaults.", "success");
               }}
               className={`py-3 px-4 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 justify-center ${
-                configMode === "sandbox"
+                configMode === "hosted"
                   ? "bg-primary text-black font-extrabold shadow-[0_0_15px_rgba(245,166,35,0.2)]"
                   : "text-text-secondary hover:text-white"
               }`}
             >
               <Zap className="w-4 h-4" />
-              <span>Automated Sandbox</span>
-              <span className="text-[8px] opacity-70 lowercase font-normal">Super simple, pre-configured</span>
+              <span>Hosted Production</span>
+              <span className="text-[8px] opacity-70 lowercase font-normal">Uses server environment keys</span>
             </button>
 
             <button
@@ -415,52 +412,52 @@ export const SettingsScreen = ({
           </div>
         </div>
 
-        {/* 🛠️ Team Forge Staging Calibration Bench */}
+        {/* 🛠️ Team Forge Production Calibration Bench */}
         <div className="bg-zinc-950/85 border border-primary/20 p-6 rounded-[2.5rem] relative overflow-hidden space-y-4 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
           
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <span className="text-[9px] font-extrabold uppercase tracking-widest text-primary px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-full inline-block">
-                Staging Mode Verifications
+                Production Mode Verifications
               </span>
               <h3 className="text-white text-sm font-black uppercase tracking-wider font-display pt-1">
                 ⚙️ Team Forge Calibration Diagnostics
               </h3>
               <p className="text-[10px] text-zinc-400 font-sans max-w-md">
-                Query local codebase assemblies, read real-time federal API endpoints, and evaluate active sensor simulations prior to terminal production output.
+                Query local codebase assemblies, read real-time federal API endpoints, and evaluate active sensor connections prior to terminal production output.
               </p>
             </div>
             
             <button
-              onClick={runStagingDiagnostics}
-              disabled={stagingRunning}
+              onClick={runProductionDiagnostics}
+              disabled={productionRunning}
               className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-black font-extrabold text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50"
             >
-              <Activity className={`w-3.5 h-3.5 ${stagingRunning ? "animate-spin text-black" : "text-black"}`} />
-              {stagingRunning ? "Scanning..." : "Execute Test Suite"}
+              <Activity className={`w-3.5 h-3.5 ${productionRunning ? "animate-spin text-black" : "text-black"}`} />
+              {productionRunning ? "Scanning..." : "Execute Test Suite"}
             </button>
           </div>
 
-          {/* Staging diagnostics progress line */}
-          {stagingRunning && (
+          {/* Production diagnostics progress line */}
+          {productionRunning && (
             <div className="space-y-1.5 pt-2">
               <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
                 <span>Calibrating communication ports...</span>
-                <span>{stagingProgress}%</span>
+                <span>{productionProgress}%</span>
               </div>
               <div className="w-full bg-zinc-900 border border-white/5 h-2 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: "0%" }}
-                  animate={{ width: `${stagingProgress}%` }}
+                  animate={{ width: `${productionProgress}%` }}
                   className="bg-primary h-full rounded-full shadow-[0_0_8px_rgba(245,166,35,0.6)]"
                 />
               </div>
             </div>
           )}
 
-          {/* Staging Test Report Results Display */}
-          {stagingReport && (
+          {/* Production Test Report Results Display */}
+          {productionReport && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -469,9 +466,9 @@ export const SettingsScreen = ({
               {/* Score header */}
               <div className="flex items-center justify-between bg-black/40 p-3 rounded-2xl border border-white/5">
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${stagingSuccessCount === stagingTotalCount ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-primary shadow-[0_0_8px_rgba(245,166,35,0.4)]"}`} />
+                  <div className={`w-3 h-3 rounded-full ${productionSuccessCount === productionTotalCount ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-primary shadow-[0_0_8px_rgba(245,166,35,0.4)]"}`} />
                   <span className="text-[10px] font-black uppercase text-white tracking-widest font-mono">
-                    Calibration Result: {stagingSuccessCount} / {stagingTotalCount} Nodes Confirmed
+                    Calibration Result: {productionSuccessCount} / {productionTotalCount} Nodes Confirmed
                   </span>
                 </div>
                 <span className="text-[9px] bg-white/5 border border-white/10 text-white font-mono px-2.5 py-1 rounded-lg">
@@ -486,8 +483,8 @@ export const SettingsScreen = ({
                     📁 Core Codebase Assets
                   </span>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 no-scrollbar">
-                    {stagingReport.fileChecks && Object.keys(stagingReport.fileChecks).map((fname) => {
-                      const check = stagingReport.fileChecks[fname];
+                    {productionReport.fileChecks && Object.keys(productionReport.fileChecks).map((fname) => {
+                      const check = productionReport.fileChecks[fname];
                       return (
                         <div key={fname} className="flex justify-between items-center text-[10px] font-mono leading-none py-1">
                           <span className="text-zinc-400 truncate max-w-[150px]" title={fname}>{fname}</span>
@@ -513,8 +510,8 @@ export const SettingsScreen = ({
                     📡 Active REST Connection Nodes
                   </span>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 no-scrollbar">
-                    {stagingReport.apiConnectivity && Object.keys(stagingReport.apiConnectivity).map((nodeName) => {
-                      const check = stagingReport.apiConnectivity[nodeName];
+                    {productionReport.apiConnectivity && Object.keys(productionReport.apiConnectivity).map((nodeName) => {
+                      const check = productionReport.apiConnectivity[nodeName];
                       return (
                         <div key={nodeName} className="flex justify-between items-center text-[10px] font-mono leading-none py-1">
                           <span className="text-zinc-400 truncate max-w-[150px]" title={nodeName}>{nodeName}</span>
@@ -525,7 +522,7 @@ export const SettingsScreen = ({
                             </span>
                           ) : (
                             <span className="text-amber-500 font-bold shrink-0">
-                              ⏱️ Simulated
+                              Hardware Required
                             </span>
                           )}
                         </div>
@@ -537,8 +534,8 @@ export const SettingsScreen = ({
 
               {/* Server-side metadata display */}
               <div className="text-[9px] bg-black/40 border border-white/5 px-4 py-2.5 rounded-2xl font-mono text-zinc-500 flex justify-between items-center flex-wrap gap-2">
-                <span>Host Environment: Node {stagingReport.systemDiagnostics?.nodeVersion || "Unknown"} ({stagingReport.systemDiagnostics?.platform || "CloudRun"})</span>
-                <span>Active Mem (RSS): {(stagingReport.systemDiagnostics?.memoryUsage?.rss / (1024 * 1024)).toFixed(1)} MB</span>
+                <span>Host Environment: Node {productionReport.systemDiagnostics?.nodeVersion || "Unknown"} ({productionReport.systemDiagnostics?.platform || "CloudRun"})</span>
+                <span>Active Mem (RSS): {(productionReport.systemDiagnostics?.memoryUsage?.rss / (1024 * 1024)).toFixed(1)} MB</span>
               </div>
             </motion.div>
           )}
@@ -633,11 +630,10 @@ export const SettingsScreen = ({
                 onChange={(e) => selectObdPresetAndAutoFill(e.target.value)}
                 className="w-full bg-black/60 border border-white/10 rounded-xl py-3 px-4 text-xs text-white focus:outline-none focus:border-primary/50 transition-colors"
               >
-                <option value="simulated">🎮 Active Simulated Tester Mode (No Hardware Needed)</option>
-                <option value="obdlink">📱 OBDLink MX+ Bluetooth Adapter (Extremely Fast, 115200 bps)</option>
-                <option value="elm327">🔌 Generic Chinese ELM327 Bluetooth Adapter (Budget, 38400 bps)</option>
-                <option value="vgate">📡 Vgate iCar Pro Bluetooth Link (Power-saving, 115200 bps)</option>
-                <option value="custom">🛠️ Private Baud Rate / Custom Comport Driver</option>
+                <option value="obdlink">OBDLink MX+ Bluetooth Adapter (115200 bps)</option>
+                <option value="elm327">Generic ELM327 Bluetooth Adapter (38400 bps)</option>
+                <option value="vgate">Vgate iCar Pro Bluetooth Link (115200 bps)</option>
+                <option value="custom">Private Baud Rate / Custom Comport Driver</option>
               </select>
             </div>
 
@@ -661,7 +657,7 @@ export const SettingsScreen = ({
                     An <strong>OBD-II Bluetooth / WiFi adapter</strong> is a compact plug that slides into the port near your steering column. Using this selection ensures Team Forge streams live speed, fuel trim, and sensors correctly.
                   </p>
                   <p className="border-t border-white/5 pt-2">
-                    💡 <strong>Simulated Tester Mode</strong> simulates a virtual car's Engine Control Unit (ECU) right inside the web platform. Great for demoing.
+                    <strong>Hardware required:</strong> production telemetry uses a Bluetooth or USB OBD-II adapter connected to the vehicle.
                   </p>
                 </motion.div>
               )}
@@ -718,7 +714,7 @@ export const SettingsScreen = ({
                   className="overflow-hidden bg-black/40 p-3.5 rounded-xl border border-white/5 text-[11px] text-text-secondary leading-relaxed mt-2"
                 >
                   <p>
-                    AllData is a mechanical database providing diagrams for vehicles. Integrating your commercial license key populates actual components wiring details for active projects. When deactivated, Team Forge uses automated offline simulations.
+                    AllData is a mechanical database providing diagrams for vehicles. Integrating your commercial license key populates actual component wiring details for active projects. When deactivated, Team Forge will show a configuration-required state instead of synthetic diagrams.
                   </p>
                 </motion.div>
               )}

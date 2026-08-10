@@ -125,7 +125,6 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { generateChatResponse } from "./services/geminiService";
 import { useNavigation, Screen } from "./hooks/useNavigation";
 import { useObdTelemetry } from "./hooks/useObdTelemetry";
-import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
 
 // --- Utilities ---
 enum OperationType {
@@ -242,7 +241,11 @@ type AssistantMode =
   | "Heavy Equip. Tech"
   | "HVAC Technician"
   | "Field Welder"
-  | "Master Electrician";
+  | "Master Electrician"
+  | "Web Interaction"
+  | "Code Execution"
+  | "Task Coordinator"
+  | "File Manager";
 type ChatMessage = { role: "user" | "model" | "system"; text: string; image?: string; id?: string };
 
 type Task = {
@@ -1250,6 +1253,22 @@ const ChatScreen = ({
           systemInstruction +=
             "Master Electrician. Focus on commercial and residential wiring, high voltage systems, NEC code compliance, panel upgrades, and heavy-duty electrical troubleshooting.";
           break;
+        case "Web Interaction":
+          systemInstruction +=
+            "Web Interaction specialist. Help the user plan web navigation, authentication-aware workflows, form interactions, data extraction, validation, and error handling. If direct browser control is unavailable in this app, provide precise step-by-step instructions, selectors, data fields, and verification checks instead of pretending to operate the browser.";
+          break;
+        case "Code Execution":
+          systemInstruction +=
+            "Code Execution specialist and professional software engineer. Implement algorithms, computations, integrations, scripts, tests, validation plans, secure input handling, error handling, logging, and performance improvements. Provide executable code where useful and call out local environment requirements.";
+          break;
+        case "Task Coordinator":
+          systemInstruction +=
+            "Task coordination and workflow manager. Gather requirements, break complex work into ordered steps, identify the right specialist mode, track dependencies, flag safety/privacy constraints, and communicate concise progress updates.";
+          break;
+        case "File Manager":
+          systemInstruction +=
+            "File management specialist. Help organize outputs into clean markdown, reports, checklists, release notes, and saved artifacts. Preserve the user's language, use clear filenames and headings, and avoid exposing secrets.";
+          break;
         case "Operations":
         default:
           systemInstruction +=
@@ -1393,6 +1412,10 @@ const ChatScreen = ({
             "HVAC Technician",
             "Field Welder",
             "Master Electrician",
+            "Web Interaction",
+            "Code Execution",
+            "Task Coordinator",
+            "File Manager",
           ].map((m) => (
             <button
               key={m}
@@ -1416,6 +1439,10 @@ const ChatScreen = ({
               {m === "HVAC Technician" && <Thermometer className="w-3 h-3" />}
               {m === "Field Welder" && <Flame className="w-3 h-3" />}
               {m === "Master Electrician" && <Plug className="w-3 h-3" />}
+              {m === "Web Interaction" && <Search className="w-3 h-3" />}
+              {m === "Code Execution" && <Code className="w-3 h-3" />}
+              {m === "Task Coordinator" && <Layers className="w-3 h-3" />}
+              {m === "File Manager" && <FileText className="w-3 h-3" />}
               {m.split(" ")[0] === "Forge" ? m : m.split(" ")[0]}
             </button>
           ))}
@@ -1461,7 +1488,15 @@ const ChatScreen = ({
                                         ? "Striking an arc."
                                         : mode === "Master Electrician"
                                           ? "Checking the lines."
-                                          : "How can the team assist?"}
+                                          : mode === "Web Interaction"
+                                            ? "Ready to map the website workflow."
+                                            : mode === "Code Execution"
+                                              ? "Ready to implement and validate."
+                                              : mode === "Task Coordinator"
+                                                ? "Let's break down the mission."
+                                                : mode === "File Manager"
+                                                  ? "Ready to format and save outputs."
+                                                  : "How can the team assist?"}
               </p>
             </div>
 
@@ -1639,6 +1674,62 @@ const ChatScreen = ({
                   "Calculate proxy align byte",
                   "Locate BCM ground",
                   "Explain HS-CAN topology",
+                ].map((suggest) => (
+                  <button
+                    key={suggest}
+                    onClick={() => setInput(suggest)}
+                    className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {suggest}
+                  </button>
+                ))}
+              {mode === "Web Interaction" &&
+                [
+                  "Map login flow",
+                  "Extract page data",
+                  "Validate form steps",
+                ].map((suggest) => (
+                  <button
+                    key={suggest}
+                    onClick={() => setInput(suggest)}
+                    className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {suggest}
+                  </button>
+                ))}
+              {mode === "Code Execution" &&
+                [
+                  "Write a script",
+                  "Debug this error",
+                  "Add tests",
+                ].map((suggest) => (
+                  <button
+                    key={suggest}
+                    onClick={() => setInput(suggest)}
+                    className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {suggest}
+                  </button>
+                ))}
+              {mode === "Task Coordinator" &&
+                [
+                  "Create a plan",
+                  "Prioritize tasks",
+                  "Delegate work",
+                ].map((suggest) => (
+                  <button
+                    key={suggest}
+                    onClick={() => setInput(suggest)}
+                    className="bg-surface/50 border border-white/5 hover:border-primary/50 text-xs px-3 py-1.5 rounded-full text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {suggest}
+                  </button>
+                ))}
+              {mode === "File Manager" &&
+                [
+                  "Format report",
+                  "Create checklist",
+                  "Write release notes",
                 ].map((suggest) => (
                   <button
                     key={suggest}
@@ -1900,6 +1991,34 @@ const ChatScreen = ({
                       "NEC Code",
                       "Panel UPGRADE",
                       "Tracing Faults",
+                    ];
+                    break;
+                  case "Web Interaction":
+                    suggestions = [
+                      "Navigation steps",
+                      "Form fields",
+                      "Extract table",
+                    ];
+                    break;
+                  case "Code Execution":
+                    suggestions = [
+                      "Run validation",
+                      "Add error handling",
+                      "Refactor code",
+                    ];
+                    break;
+                  case "Task Coordinator":
+                    suggestions = [
+                      "Next milestone",
+                      "Risks",
+                      "Handoff plan",
+                    ];
+                    break;
+                  case "File Manager":
+                    suggestions = [
+                      "Markdown report",
+                      "Save checklist",
+                      "Summarize results",
                     ];
                     break;
                   case "Electrical Eng.":
@@ -2170,16 +2289,13 @@ const DiagnosticScreen = ({
     setIsScanning(true);
     setScanType(type === "quick" ? "Quick Scan" : "Deep Module Scan");
 
-    // Simulate scan sequence
+    // Send the live scan command after the UI enters scanning state.
     setTimeout(() => {
       onCommand("03"); // Request Emission-Related Diagnostic Trouble Codes
-    }, 1000);
-
-    setTimeout(() => {
       setIsScanning(false);
       setScanType("");
-      toast.show("Scan complete", "success");
-    }, 3000);
+      toast.show("Scan command completed", "success");
+    }, 1000);
   };
 
   const handleClear = () => {
@@ -2192,43 +2308,6 @@ const DiagnosticScreen = ({
       onCommand("04"); // Clear/Reset Emission-Related Diagnostic Info
       toast.show("Clear command sent", "info");
     }
-  };
-
-  const handleInjectFaults = () => {
-    if (!setDtcs) return;
-    setDtcs([
-      {
-        code: "P0133",
-        description: "O2 Sensor Circuit Slow Response (Bank 1 Sensor 1)",
-        status: "Pending",
-      },
-      {
-        code: "P0300",
-        description: "Random/Multiple Cylinder Misfire Detected (Critical Safety)",
-        status: "Permanent",
-      },
-      {
-        code: "C0035",
-        description: "Left Front Wheel Speed Sensor Circuit Malfunction",
-        status: "Stored",
-      },
-      {
-        code: "B1204",
-        description: "SRS Airbag Curtain Sensor Circuit Fault",
-        status: "Permanent",
-      },
-      {
-        code: "U0100",
-        description: "Lost Communication with Engine Control Module ECM",
-        status: "Permanent",
-      },
-      {
-        code: "P0113",
-        description: "Intake Air Temperature Sensor 1 Circuit High State",
-        status: "Stored",
-      },
-    ]);
-    toast.show("Loaded R&D Simulated DTC Multi-System Cluster!", "success");
   };
 
   return (
@@ -2461,7 +2540,6 @@ const DiagnosticScreen = ({
                       </div>
                     </div>
                   </div>
-                  {/* Simulated Freeze Frame Data */}
                   <div className="mt-2 pt-3 border-t border-red-500/10 grid grid-cols-2 gap-2">
                     <div className="flex justify-between items-center bg-black/40 px-2 py-1.5 rounded">
                       <span className="text-[8px] text-white/40 font-mono uppercase">
@@ -2513,14 +2591,6 @@ const DiagnosticScreen = ({
                 <br />
                 System OK
               </span>
-              {setDtcs && (
-                <button
-                  onClick={handleInjectFaults}
-                  className="mt-6 px-4 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 rounded-full text-[10px] uppercase font-black tracking-widest transition-all"
-                >
-                  Load simulated multi-system DTC cluster
-                </button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -2550,7 +2620,7 @@ export default function App() {
   >("All");
 
   // Diagnostic State
-  const [obdMode, setObdMode] = useState<"Bluetooth" | "USB" | "Simulated">("Simulated");
+  const [obdMode, setObdMode] = useState<"Bluetooth" | "USB">("Bluetooth");
   const { obdConnected, connect, sendCommand, logs: diagnosticLogs, addLog, telemetry, setLogs: setDiagnosticLogs } = useObdTelemetry(obdMode);
 
   
@@ -2633,7 +2703,7 @@ export default function App() {
     inventory: "",
     meliApiKey: import.meta.env.VITE_MELI_API_KEY || "Meli_SYSTEM_DEFAULT",
     alldataKey: import.meta.env.VITE_ALLDATA_API_KEY || "AllData_SYSTEM_DEFAULT",
-    obdKey: import.meta.env.VITE_OBD_API_KEY || "OBD_SYSTEM_DEFAULT",
+    obdKey: import.meta.env.VITE_OBD_API_KEY || "",
     openAiKey: import.meta.env.VITE_OPENAI_API_KEY || "sk-SYSTEM_DEFAULT",
     onboardingComplete: false,
   });
@@ -3116,38 +3186,11 @@ export default function App() {
   };
 
   const handleConnect = async () => {
-    if (obdConnected) {
-      if (obdRef.current) {
-         try {
-           await obdRef.current.disconnect();
-         } catch(e) {}
-         obdRef.current = null;
-      }
-      setObdConnected(false);
-      return;
-    }
-
     try {
-      if (obdMode === "Simulated") {
-        obdRef.current = new SimulatedObd();
-      } else if (obdMode === "Bluetooth") {
-        obdRef.current = new WebBluetoothObd();
-      } else if (obdMode === "USB") {
-        obdRef.current = new WebSerialObd();
-      }
-
-      if (!obdRef.current) return;
-      
-      await obdRef.current.connect();
-      setObdConnected(true);
-      
-      const res = await obdRef.current.sendCommand("ATI");
-      setDiagnosticLogs((prev) => [`[sys] RX: ${res}`, ...prev].slice(0, 50));
-      
-      toast.show(`Connected via ${obdMode}`, "success");
+      const connected = await connect();
+      toast.show(connected ? `Connected via ${obdMode}` : "Vehicle link disconnected", connected ? "success" : "info");
     } catch (err: any) {
       console.error(err);
-      obdRef.current = null;
       const msg =
         err.name === "SecurityError"
           ? "Hardware access requires top-level navigation. Open app in new tab."
@@ -3164,76 +3207,60 @@ export default function App() {
     setCurrentScreen("Chat");
   };
 
-  const handleDiagnosticCommand = async (command: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const txLog = `[${timestamp}] TX: ${command}`;
-    setDiagnosticLogs((prev) =>
-      [txLog, ...prev].slice(0, 50),
-    );
+  const decodeDtcs = (response: string): DTC[] => {
+    const bytes = (response.match(/[0-9A-Fa-f]{2}/g) || []).map((byte) => parseInt(byte, 16));
 
+    const serviceIndex = bytes.findIndex((byte) => byte === 0x43);
+    if (serviceIndex === -1) return [];
+
+    const dtcs: DTC[] = [];
+    const typeMap = ["P", "C", "B", "U"];
+    for (let i = serviceIndex + 1; i + 1 < bytes.length; i += 2) {
+      const a = bytes[i];
+      const b = bytes[i + 1];
+      if (a === 0 && b === 0) continue;
+      const code = `${typeMap[(a & 0xc0) >> 6]}${((a & 0x30) >> 4).toString()}${(a & 0x0f).toString(16).toUpperCase()}${((b & 0xf0) >> 4).toString(16).toUpperCase()}${(b & 0x0f).toString(16).toUpperCase()}`;
+      dtcs.push({ code, description: "Diagnostic trouble code reported by vehicle ECU", status: "Stored" });
+    }
+    return dtcs;
+  };
+
+  const persistDiagnosticLog = (text: string) => {
     if (user && activeProject) {
       addDoc(collection(db, "chats"), {
         role: "system",
-        text: txLog,
+        text,
         userId: user.uid,
         projectId: activeProject,
         createdAt: Date.now(),
       }).catch(console.error);
     }
+  };
 
-    if (!obdRef.current || !obdRef.current.isConnected()) {
-       toast.show("Not connected to vehicle", "error");
-       return;
+  const handleDiagnosticCommand = async (command: string) => {
+    if (!obdConnected) {
+      toast.show("Not connected to vehicle", "error");
+      return;
     }
 
     try {
-       const response = await obdRef.current.sendCommand(command);
-       const rxTimestamp = new Date().toLocaleTimeString();
-       const rxLog = `[${rxTimestamp}] RX: ${response}`;
-       setDiagnosticLogs((prev) =>
-         [rxLog, ...prev].slice(0, 50),
-       );
+      const response = await sendCommand(command);
+      persistDiagnosticLog(`[${new Date().toLocaleTimeString()}] TX: ${command}`);
+      persistDiagnosticLog(`[${new Date().toLocaleTimeString()}] RX: ${response}`);
 
-       if (user && activeProject) {
-         addDoc(collection(db, "chats"), {
-           role: "system",
-           text: rxLog,
-           userId: user.uid,
-           projectId: activeProject,
-           createdAt: Date.now(),
-         }).catch(console.error);
-       }
-
-       if (command === "03") {
-         if (response.includes("43")) {
-           setDetectedDtcs([
-             {
-               code: "P0133",
-               description: "O2 Sensor Circuit Slow Response (Bank 1 Sensor 1) [Simulated]",
-               status: "Pending",
-             },
-           ]);
-           toast.show("Diagnostic trouble codes detected", "error");
-         }
-       }
-       if (command === "04") {
-         setDetectedDtcs([]);
-         toast.show("DTC Memory Cleared", "success");
-       }
+      if (command.trim().toUpperCase() === "03") {
+        const dtcs = decodeDtcs(response);
+        setDetectedDtcs(dtcs);
+        toast.show(dtcs.length ? "Diagnostic trouble codes detected" : "No diagnostic trouble codes reported", dtcs.length ? "error" : "success");
+      }
+      if (command.trim().toUpperCase() === "04") {
+        setDetectedDtcs([]);
+        toast.show("DTC memory clear command acknowledged", "success");
+      }
     } catch (e: any) {
-       const errLog = `[sys] ERROR: ${e.message}`;
-       setDiagnosticLogs((prev) =>
-         [errLog, ...prev].slice(0, 50),
-       );
-       if (user && activeProject) {
-         addDoc(collection(db, "chats"), {
-           role: "system",
-           text: errLog,
-           userId: user.uid,
-           projectId: activeProject,
-           createdAt: Date.now(),
-         }).catch(console.error);
-       }
+      const errLog = `[sys] ERROR: ${e.message}`;
+      addLog(errLog);
+      persistDiagnosticLog(errLog);
     }
   };
 

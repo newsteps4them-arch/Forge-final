@@ -1,7 +1,46 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "../lib/obdConnection";
+import { ObdConnection, WebBluetoothObd, WebSerialObd } from "../lib/obdConnection";
 
-export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
+type ObdMode = "Bluetooth" | "USB";
+
+const parseBytes = (response: string) =>
+  (response.match(/[0-9A-Fa-f]{2}/g) || []).map((byte) => parseInt(byte, 16));
+
+const parsePidValue = (response: string, pid: number): number | null => {
+  const bytes = parseBytes(response);
+  const index = bytes.findIndex((byte, i) => byte === 0x41 && bytes[i + 1] === pid);
+  if (index === -1) return null;
+  const a = bytes[index + 2];
+  const b = bytes[index + 3];
+  if (a === undefined) return null;
+
+  switch (pid) {
+    case 0x0c:
+      return b === undefined ? null : ((a * 256) + b) / 4;
+    case 0x05:
+      return (a * 9) / 5 - 40;
+    case 0x0d:
+      return a;
+    case 0x04:
+    case 0x11:
+      return (a * 100) / 255;
+    case 0x0b:
+      return a * 0.145038;
+    case 0x0f:
+      return (a * 9) / 5 - 40;
+    case 0x10:
+      return b === undefined ? null : ((256 * a + b) / 100);
+    case 0x0e:
+      return a / 2 - 64;
+    case 0x06:
+    case 0x07:
+      return (a * 100) / 128 - 100;
+    default:
+      return null;
+  }
+};
+
+export function useObdTelemetry(mode: ObdMode) {
   const [obdConnected, setObdConnected] = useState(false);
   const [logs, setLogs] = useState<string[]>(() => {
     try {
@@ -13,8 +52,6 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   });
   const obdRef = useRef<ObdConnection | null>(null);
   const [telemetry, setTelemetry] = useState<any[]>([]);
-  
-  // Background polling interval reference
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -26,7 +63,7 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
   }, [logs]);
 
   const addLog = useCallback((log: string) => {
-    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const now = new Date().toISOString().replace("T", " ").substring(0, 19);
     setLogs((prev) => [`[${now}] ${log}`, ...prev].slice(0, 150));
   }, []);
 
@@ -37,13 +74,11 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
       } catch (e) {}
       obdRef.current = null;
       setObdConnected(false);
-      return false; // disconnected
+      return false;
     }
 
     try {
-      if (mode === "Simulated") {
-        obdRef.current = new SimulatedObd();
-      } else if (mode === "Bluetooth") {
+      if (mode === "Bluetooth") {
         obdRef.current = new WebBluetoothObd();
       } else if (mode === "USB") {
         obdRef.current = new WebSerialObd();
@@ -53,11 +88,11 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
 
       await obdRef.current.connect();
       setObdConnected(true);
-      
+
       const res = await obdRef.current.sendCommand("ATI");
       addLog(`[sys] RX: ${res}`);
-      
-      return true; // connected
+
+      return true;
     } catch (err: any) {
       obdRef.current = null;
       setObdConnected(false);
@@ -67,47 +102,57 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
 
   const sendCommand = useCallback(async (cmd: string) => {
     if (!obdRef.current || !obdConnected) throw new Error("Not connected");
-    const res = await obdRef.current.sendCommand(cmd);
     addLog(`[sys] TX: ${cmd}`);
+    const res = await obdRef.current.sendCommand(cmd);
     addLog(`[sys] RX: ${res}`);
     return res;
   }, [obdConnected, addLog]);
 
-  // Implement the background "Service" for polling PIDs
   const startPolling = useCallback(() => {
     if (pollingRef.current) clearInterval(pollingRef.current);
-    
-    // Create an async interval
+
     pollingRef.current = setInterval(async () => {
-       if (!obdRef.current || !obdRef.current.isConnected()) {
-           clearInterval(pollingRef.current!);
-           setObdConnected(false);
-           return;
-       }
-       try {
-           // Request RPM (01 0C)
-           const res = await obdRef.current.sendCommand("010C");
-           // Parse RPM manually based on ELM327 structure (for mock mostly)
-           if (res.includes("41 0C") || res.includes("410C")) {
-               const hexParts = res.split(" ");
-               let A = 0; let B = 0;
-               if (hexParts.length >= 4) {
-                 A = parseInt(hexParts[2], 16);
-                 B = parseInt(hexParts[3], 16);
-               }
-               const rpm = ((A * 256) + B) / 4;
-               
-               setTelemetry(prev => {
-                   const currTime = new Date().toLocaleTimeString('en-US', { hour12: false });
-                   const updated = [...prev, { time: currTime, RPM: rpm, Boost: Math.random() * 20 }];
-                   if (updated.length > 30) return updated.slice(updated.length - 30);
-                   return updated;
-               });
-           }
-       } catch (err) {
-           console.error("Polling error", err);
-       }
-    }, 2000); // Poll every 2 seconds
+      if (!obdRef.current || !obdRef.current.isConnected()) {
+        clearInterval(pollingRef.current!);
+        setObdConnected(false);
+        return;
+      }
+
+      try {
+        const pidRequests = [
+          ["010C", "RPM", 0x0c],
+          ["0105", "ECT", 0x05],
+          ["010D", "VSS", 0x0d],
+          ["0104", "Load", 0x04],
+          ["010B", "MAP", 0x0b],
+          ["010F", "IAT", 0x0f],
+          ["0110", "MAF", 0x10],
+          ["010E", "SPARK", 0x0e],
+          ["0106", "STFT1", 0x06],
+          ["0107", "LTFT1", 0x07],
+          ["0111", "TP", 0x11],
+        ] as const;
+
+        const sample: Record<string, number | string> = {
+          time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+        };
+
+        for (const [command, key, pid] of pidRequests) {
+          const response = await obdRef.current.sendCommand(command);
+          const value = parsePidValue(response, pid);
+          if (value !== null) sample[key] = Math.round(value * 10) / 10;
+        }
+
+        if (Object.keys(sample).length > 1) {
+          setTelemetry((prev) => {
+            const updated = [...prev, sample];
+            return updated.length > 30 ? updated.slice(updated.length - 30) : updated;
+          });
+        }
+      } catch (err) {
+        console.error("Polling error", err);
+      }
+    }, 2000);
   }, []);
 
   const stopPolling = useCallback(() => {
@@ -117,27 +162,21 @@ export function useObdTelemetry(mode: "Bluetooth" | "USB" | "Simulated") {
     }
   }, []);
 
-  // Android Lifecycle equivalence: Handle visibility changes
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // App goes to background -> Pause heavy operations / polling (onPause equivalent)
         stopPolling();
-      } else {
-        // App comes back -> Resume (onResume equivalent)
-        if (obdConnected) {
-          startPolling();
-        }
+      } else if (obdConnected) {
+        startPolling();
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    
-    // Automatically start polling when connected
+
     if (obdConnected) {
-       startPolling();
+      startPolling();
     } else {
-       stopPolling();
+      stopPolling();
     }
 
     return () => {

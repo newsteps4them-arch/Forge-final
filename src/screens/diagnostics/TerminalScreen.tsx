@@ -325,7 +325,14 @@ export const TerminalScreen = ({
             <Download className="w-4 h-4" />
           </button>
           <button
-            onClick={() => toast.show("Scripts not implemented", "info")}
+            onClick={() => {
+              const commands = transactions
+                .map((t) => t.tx?.content)
+                .filter(Boolean)
+                .join("\n");
+              localStorage.setItem("forge_saved_obd_script", commands);
+              toast.show(commands ? "Command script saved locally" : "No commands to save", commands ? "success" : "info");
+            }}
             className="p-2 border border-[#00ff41]/30 rounded-md text-[#00ff41]/70 hover:bg-[#00ff41]/10 transition-colors"
             title="Save Command Script"
           >
