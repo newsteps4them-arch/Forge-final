@@ -2,97 +2,54 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Forge OS: Multidisciplinary Engineering Suite
+# Run and deploy your AI Studio app
 
-Forge OS is a professional-grade workshop management and hardware diagnostic platform. It combines multimodal AI assistance with low-level hardware communication to create a unified hub for engineers, mechanics, and developers.
+This contains everything you need to run your app locally.
 
-## 🌟 Key Features
+View your app in AI Studio: https://ai.studio/apps/d176f2ad-cc8f-47d3-8f8a-bc017f7ae1f9
 
--   **Multimodal AI Integration**: Real-time assistance via Google Gemini for diagnostics, coding, and visual inspection.
--   **OBD-II Hardware Diagnostics**: Native support for ELM327 interfaces using Web Bluetooth and Web Serial APIs.
--   **Real-time Persistence**: Full synchronization of projects, tasks, and inventory with Firebase Firestore.
--   **Rugged UI/UX**: High-performance, technical dashboard designed for workshop environments.
--   **Automated Auto-Healing**: Autonomous project maintenance via the `forge_brain_v2.py` guardian.
+## Run Locally
 
-## 🛠 Tech Stack
+**Prerequisites:**  Node.js
 
--   **Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Lucide Icons.
--   **Backend**: Express.js (Proxy & Workspace Gateway).
--   **Mobile/Native**: CapacitorJS (Android Support).
--   **Cloud**: Firebase (Auth & NoSQL Database), Google Gemini AI.
--   **Guardian**: Python 3.10 with Gemini auto-healing logic.
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
 
 ---
 
-## 🚀 Getting Started
+# 🚀 Forge.OS: Go-To-Market & Commercial Launch Blueprint
 
-### Prerequisites
+Team Forge has been pre-configured with a dedicated **Launch Console** under the **Management** sidebar group to streamline your transition from development to a commercialised SaaS product.
 
--   **Node.js**: v18+ (v20+ recommended)
--   **Python**: v3.10+ (for Auto-Healing Guardian)
--   **Hardware**: BLE or USB OBD-II adapter (optional for simulated mode)
+## 💼 Core Marketing Hooks & Growth Loops Built-In
 
-### Local Development
+1. **Lead Generation Sandbox Flow**:
+   - The application has a live **Leads Pipeline** that syncs with your Firebase Firestore. Prospects can submit feedback, join waitlists, or request custom integrations, registering immediately.
+   - Use this shared preview URL as your landing page or pitching link to local workshop owners to gather interest and capture beta keys directly.
 
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/newsteps4them-arch/team.forge.git
-    cd team.forge
-    ```
+2. **Enterprise White-Label Customization**:
+   - Tweak the active Brand Hex colors, local tax coefficients, invoice titles, and currencies in the **White Label** tab. This allows you to instantly demonstrate customized franchise-branded views of Digital Vehicle Inspections (DVI) and Estimators to pitch premium retainers ($199–$799/mo).
 
-2.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
-
-3.  **Environment Setup**:
-    Create a `.env` file in the root directory and add your keys:
-    ```env
-    GEMINI_API_KEY="your_api_key_here"
-    ```
-
-4.  **Run the App**:
-    ```bash
-    npm run dev
-    ```
-    Access the app at `http://localhost:3000`.
+3. **"Diagnostic Shared Report" Organic Loop**:
+   - Our Digital Vehicle Inspection and estimate reports can be easily formatted with a branding footnote (*"Inspection secured using Forge.OS — Inspect Your Own"*) linked with a download or inquiry QR code to drive organic mechanic-to-car-owner viral loops.
 
 ---
 
-## 🔒 Security & Privacy
+## 📱 Packaging For Google Play & App Store Release
 
-Forge OS uses a backend proxy to handle all Gemini AI interactions, ensuring that API keys are never exposed to the client-side browser memory. All user data is secured via Firebase Authentication rules.
+Team Forge is integrated with **CapacitorJS** for smooth, low-overhead native wrappers.
 
-## 📱 Native Deployment (Android)
+### Automated CI/CD
+A fully functional GitHub Actions pipeline is declared in `.github/workflows/build-and-release-apk.yml`. To auto-release signed APK files:
+1. Push your repository upstream to your commercial GitHub organization.
+2. The GitHub runner automatically triggers a native Gradle packaging sequence, compiling, signing, and attaching a production-ready APK release package to your Releases tab.
 
-Team Forge is pre-configured for Capacitor. To run on Android:
+### Local Native Wrap (Android / iOS)
+1. **Sync Assets**: `npm run build && npx cap sync android`
+2. **Open Native UI**: `npx cap open android`
+3. **Release Build**: Inside Android Studio, use **Build > Generate Signed Bundle / APK** to get your Google Play distribution key.
 
-1.  **Build Web Assets**: `npm run build`
-2.  **Sync with Android**: `npx cap sync android`
-3.  **Open in Android Studio**: `npx cap open android`
-
----
-
-## 🧠 Forge Guardian (Auto-Healing)
-
-The project includes an autonomous "Guardian" (`forge_brain_v2.py`) that can identify and fix compilation errors or deprecations automatically using Gemini.
-
-Run the guardian locally:
-```bash
-python forge_brain_v2.py
-```
-*Note: Requires `GEMINI_API_KEY` set in environment or `.env`.*
-
----
-
-## 💼 Commercial Blueprint
-
-Forge OS includes built-in hooks for SaaS commercialization:
-- **White-Labeling**: Centralized branding configurations in the Management tab.
-- **Lead Generation**: Native Firestore-synced pipeline for beta testers and inquiries.
-- **Automated CI/CD**: Full GitHub Actions pipeline for generating signed APKs.
-
----
-<div align="center">
-  <i>"Forge the future of hardware-software integration."</i>
-</div>

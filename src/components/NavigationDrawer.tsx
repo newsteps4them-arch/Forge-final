@@ -1,10 +1,3 @@
-/**
- * NavigationDrawer Component
- *
- * A side-bar navigation menu that provides access to all major subsystems of Forge OS.
- * Categorizes functionality into Systems, Diagnostics, Tools & Repair, and Management.
- */
-
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -13,22 +6,15 @@ import {
   Terminal, Home, MessageSquare, BookOpen, Settings, Rocket
 } from "lucide-react";
 
-import { Screen } from "../hooks/useNavigation";
+type Screen = any;
 
 interface NavigationDrawerProps {
-  /** Visibility state of the drawer. */
   isOpen: boolean;
-  /** Callback to close the drawer. */
   onClose: () => void;
-  /** Navigation callback to switch screens. */
   onNavigate: (screen: Screen) => void;
-  /** The currently active screen ID. */
   currentScreen: Screen;
 }
 
-/**
- * Menu hierarchy definition for the drawer.
- */
 const MENU_GROUPS = [
   {
     title: "System",
@@ -79,7 +65,6 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -87,7 +72,6 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             onClick={onClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]"
           />
-          {/* Sidebar Menu */}
           <motion.div
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
@@ -95,8 +79,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             className="fixed top-0 left-0 bottom-0 w-[300px] sm:w-[320px] bg-[#050505] border-r border-white/5 z-[100] flex flex-col shadow-2xl hardware-pattern"
           >
-            {/* Header / Brand */}
-            <div className="flex items-center justify-between p-6 border-b border-primary/20 bg-primary/5 pt-safe">
+            <div className="flex items-center justify-between p-6 border-b border-primary/20 bg-primary/5">
               <h2 className="text-xl font-display font-black text-white tracking-widest uppercase">
                 Forge<span className="text-primary tracking-normal">.OS</span>
               </h2>
@@ -108,8 +91,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               </button>
             </div>
             
-            {/* Scrollable Items List */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-6 pb-32 pl-safe">
+            <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-6 pb-32">
               {MENU_GROUPS.map((group) => (
                 <div key={group.title} className="flex flex-col gap-2">
                   <h3 className="px-3 text-[10px] font-mono text-primary/70 uppercase tracking-[0.25em] font-bold">

@@ -224,7 +224,10 @@ export const GoToMarketScreen = ({ onBack }: { onBack: () => void }) => {
                 <h4 className="text-xs uppercase tracking-widest text-[#F5A623] font-bold mb-3 font-mono">🚀 How to Package For Google Play Store</h4>
                 <div className="space-y-3 text-[11px] text-text-secondary leading-relaxed">
                   <p>
-                    <strong>Step 1 (Offline Bundle):</strong> Ensure Capacitor is synchronized. Run <code className="bg-black px-1.5 py-0.5 rounded text-white font-mono">npx cap sync android</code> to port compiled files over.
+                    <strong>Step 1 (Automated Local Setup):</strong> Execute the provided shell script to automate GitHub cloning and Capacitor asset synchronization:
+                    <code className="block mt-1.5 bg-black px-2 py-1.5 rounded text-primary font-mono text-[10px] break-all border border-white/5">
+                      chmod +x ./scripts/setup-android-local.sh && ./scripts/setup-android-local.sh
+                    </code>
                   </p>
                   <p>
                     <strong>Step 2 (Local Build):</strong> Run Android Studio: <code className="bg-black px-1.5 py-0.5 rounded text-white font-mono">npx cap open android</code> to sign and generate a release AAB or APK.

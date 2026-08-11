@@ -8,75 +8,25 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.svg', 'pwa-512x512.svg', 'screenshot-mobile.jpg', 'screenshot-desktop.jpg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Forge OS: Engineering & Diagnostics',
-        short_name: 'Forge OS',
-        id: '/',
-        description: 'Professional Grade Multidisciplinary Engineering and Automotive Diagnostic Suite.',
-        theme_color: '#050505',
-        background_color: '#050505',
+        name: 'Team Forge',
+        short_name: 'Team Forge',
+        description: 'Elite multidisciplinary development agency app.',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
-        orientation: 'portrait',
-        categories: ['productivity', 'utilities', 'education'],
         icons: [
           {
-            src: 'icon-192.png',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'icon-512.png',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-192x192.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any'
-          },
-          {
-            src: 'pwa-512x512.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'maskable'
-          }
-        ],
-        screenshots: [
-          {
-            src: 'screenshot-mobile.jpg',
-            sizes: '1080x1920',
-            type: 'image/jpeg',
-            form_factor: 'narrow',
-            label: 'Mobile Diagnostic Dashboard'
-          },
-          {
-            src: 'screenshot-desktop.jpg',
-            sizes: '1920x1080',
-            type: 'image/jpeg',
-            form_factor: 'wide',
-            label: 'Desktop Engineering Hub'
-          }
-        ]
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

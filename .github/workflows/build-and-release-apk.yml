@@ -4,21 +4,12 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**.md'
-      - 'STORE_LISTING.md'
-      - 'PITCH.md'
-      - 'docs/**'
   workflow_dispatch:
     inputs:
       version:
         description: 'Release version (e.g., 1.0.0)'
         required: false
         default: 'auto'
-
-concurrency:
-  group: build-release-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -46,7 +37,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Synchronize Env Secrets
         run: |

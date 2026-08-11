@@ -27,10 +27,6 @@ service cloud.firestore {
       return resource.data;
     }
 
-    function isEmailVerified() {
-      return !('email' in request.auth.token) || request.auth.token.email_verified == true;
-    }
-
     // --- Users Collection ---
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
@@ -38,11 +34,8 @@ service cloud.firestore {
       allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && (
         // Action: Update Profile
         incoming().diff(existing()).affectedKeys().hasOnly([
-          'assistantName', 'wakeWord', 'customVoiceEnabled', 'customVoiceUrl',
-          'userName', 'apiKey', 'vehicleYear', 'vehicleMake', 'vehicleModel',
-          'vehicleVin', 'vehicleProtocol', 'vehicleInfo', 'inventory',
-          'meliApiKey', 'alldataKey', 'obdKey', 'openAiKey', 'onboardingComplete',
-          'email', 'updatedAt'
+          'assistantName', 'wakeWord', 'userName', 'apiKey', 
+          'vehicleInfo', 'inventory', 'onboardingComplete', 'email', 'updatedAt'
         ])
       );
 
@@ -50,7 +43,9 @@ service cloud.firestore {
         return data.keys().hasAll(['userName', 'onboardingComplete']) &&
                data.userName is string && data.userName.size() <= 100 &&
                data.onboardingComplete is bool &&
-               (data.updatedAt == null || data.updatedAt is timestamp || data.updatedAt is int);
+               (data.assistantName == null || (data.assistantName is string && data.assistantName.size() <= 100)) &&
+               (data.email == null || (data.email is string && data.email.size() <= 200)) &&
+               (data.updatedAt == null || data.updatedAt is timestamp);
       }
     }
 
@@ -58,10 +53,10 @@ service cloud.firestore {
     match /projects/{projectId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(projectId) && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(projectId) &&
+      allow create: if isSignedIn() && isValidId(projectId) && 
                       incoming().userId == request.auth.uid && 
                       isValidProject(incoming());
-      allow update: if isSignedIn() && isValidId(projectId) &&
+      allow update: if isSignedIn() && isValidId(projectId) && 
                       existing().userId == request.auth.uid && 
                       incoming().userId == request.auth.uid && 
                       isValidProject(incoming()) && (
@@ -72,9 +67,7 @@ service cloud.firestore {
       function isValidProject(data) {
         return data.keys().hasAll(['name', 'userId']) &&
                data.name is string && data.name.size() <= 100 &&
-               data.userId == request.auth.uid &&
-               (data.createdAt == null || data.createdAt is timestamp || data.createdAt is int) &&
-               (data.updatedAt == null || data.updatedAt is timestamp || data.updatedAt is int);
+               data.userId == request.auth.uid;
       }
     }
 
@@ -82,19 +75,19 @@ service cloud.firestore {
     match /tasks/{taskId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(taskId) && resource.data.userId == request.auth.uid;
-
-      allow create: if isSignedIn() && isValidId(taskId) &&
+      
+      allow create: if isSignedIn() && isValidId(taskId) && 
                       incoming().userId == request.auth.uid && 
                       isValidTask(incoming());
-
-      allow update: if isSignedIn() && isValidId(taskId) &&
+                      
+      allow update: if isSignedIn() && isValidId(taskId) && 
                       existing().userId == request.auth.uid && 
                       incoming().userId == request.auth.uid && 
                       isValidTask(incoming()) && (
                         // Action: Edit Task
                         incoming().diff(existing()).affectedKeys().hasOnly(['text', 'completed', 'category', 'priority', 'dueDate', 'updatedAt'])
                       );
-
+                      
       allow delete: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid;
 
       function isValidTask(data) {
@@ -103,15 +96,17 @@ service cloud.firestore {
                data.completed is bool &&
                data.userId == request.auth.uid &&
                data.priority in ['Low', 'Medium', 'High'] &&
+               (data.category == null || (data.category is string && data.category.size() <= 50)) &&
+               (data.dueDate == null || (data.dueDate is string && data.dueDate.size() <= 20)) &&
                (data.createdAt == null || data.createdAt is int || data.createdAt is timestamp) &&
-               (data.updatedAt == null || data.updatedAt is timestamp || data.updatedAt is int);
+               (data.updatedAt == null || data.updatedAt is timestamp);
       }
     }
 
     // --- Chat Collection ---
     match /chats/{chatId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(chatId) &&
+      allow create: if isSignedIn() && isValidId(chatId) && 
                       incoming().userId == request.auth.uid && 
                       isValidChat(incoming());
 
@@ -120,48 +115,22 @@ service cloud.firestore {
                data.role in ['user', 'model', 'system'] &&
                data.text is string && data.text.size() <= 10000 &&
                data.userId == request.auth.uid &&
-               data.projectId is string &&
-               (data.createdAt == null || data.createdAt is int || data.createdAt is timestamp);
+               data.projectId is string;
       }
     }
 
     // --- Inventory Collection ---
     match /inventory/{itemId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && isValidId(itemId) && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(itemId) && isEmailVerified() &&
-                      incoming().userId == request.auth.uid && 
-                      isValidItem(incoming());
-      allow update: if isSignedIn() && isValidId(itemId) && isEmailVerified() &&
-                      existing().userId == request.auth.uid && 
-                      incoming().userId == request.auth.uid && 
-                      isValidItem(incoming());
-      allow delete: if isSignedIn() && isValidId(itemId) && existing().userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidItem(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidItem(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
 
       function isValidItem(data) {
         return data.keys().hasAll(['name', 'quantity', 'userId']) &&
-               data.keys().hasOnly(['name', 'quantity', 'userId', 'category']) &&
                data.name is string && data.name.size() <= 100 &&
-               data.quantity is int &&
-               data.userId == request.auth.uid &&
-               (data.category == null || (data.category is string && data.category.size() <= 100));
-      }
-    }
-
-    // --- Leads Collection ---
-    match /leads/{leadId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && isValidId(leadId);
-      allow create: if isSignedIn() && isValidId(leadId) && isEmailVerified() && isValidLead(incoming());
-
-      function isValidLead(data) {
-        return data.keys().hasAll(['name', 'email', 'business', 'interest', 'timestamp']) &&
-               data.keys().hasOnly(['name', 'email', 'business', 'interest', 'timestamp']) &&
-               data.name is string && data.name.size() <= 100 &&
-               data.email is string && data.email.size() <= 200 &&
-               data.business is string && data.business.size() <= 200 &&
-               data.interest is string && data.interest.size() <= 100 &&
-               data.timestamp is string && data.timestamp.size() <= 50;
+               data.quantity is int;
       }
     }
   }

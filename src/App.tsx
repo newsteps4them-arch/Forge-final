@@ -1,19 +1,5 @@
-/**
- * Team Forge: Engineering Suite - Main Application Entry
- *
- * This application is a professional-grade workshop management and diagnostic tool.
- * Core features:
- * - Project & Task Management (Syncing to Firestore)
- * - Multimodal AI Integration (Gemini-powered Chat & Vision)
- * - OBD-II Hardware Diagnostics (Web Bluetooth & Web Serial)
- * - Specialized Engineering Hub Screens
- *
- * Structure:
- * - Onboarding flow for initial setup.
- * - MainDashboard: Central hub for project overview.
- * - Specialized screens in src/screens for different engineering tasks.
- */
-
+import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -64,6 +50,7 @@ import {
   Flag,
   Terminal,
   Activity,
+  RefreshCw,
   Zap,
   Bluetooth,
   Link as LinkIcon,
@@ -84,7 +71,6 @@ import {
   Thermometer,
   Plug,
   ScanEye,
-  Mail,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { NotificationContainer } from "./components/NotificationContainer";
@@ -116,21 +102,14 @@ import { CameraCapture } from "./components/CameraCapture";
 import { SettingsScreen } from "./screens/settings/SettingsScreen";
 import { MainDashboard } from "./screens/main/MainDashboard";
 import { toast } from "./lib/notifications";
-import { Capacitor } from "@capacitor/core";
-import { storage } from "./lib/storage";
 import {
   auth,
   db,
   googleProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup, signInWithCredential, GoogleAuthProviderClass,
   signInAnonymously,
   signOut,
   onAuthStateChanged,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
   doc,
   getDoc,
   setDoc,
@@ -197,7 +176,7 @@ type DTC = {
   status: "Stored" | "Pending" | "Permanent";
 };
 
-export type OnboardingData = {
+type OnboardingData = {
   assistantName: string;
   wakeWord: string;
   customVoiceEnabled: boolean;
@@ -218,8 +197,40 @@ export type OnboardingData = {
   onboardingComplete: boolean;
 };
 
-
-export type AssistantMode =
+type Screen =
+  | "Welcome"
+  | "NameAssistant"
+  | "WakeWord"
+  | "VoiceClone"
+  | "AboutYou"
+  | "Inventory"
+  | "Vehicles"
+  | "Garage"
+  | "KnowledgeBase"
+  | "Ready"
+  | "Settings"
+  | "Main"
+  | "Chat"
+  | "Diagnostics"
+  | "LiveData"
+  | "Coding"
+  | "Terminal"
+  | "Integrations"
+  | "Estimator"
+  | "Topology"
+  | "Analytics"
+  | "VisualInspector"
+  | "GuidedDiagnostics"
+  | "Oscilloscope"
+  | "WiringDiagrams"
+  | "Index"
+  | "PartsCatalog"
+  | "CrmDashboard"
+  | "DviModule"
+  | "TimeClock"
+  | "GoToMarket"
+  | "AdasCalibration";
+type AssistantMode =
   | "Operations"
   | "Diagnostics Lead"
   | "Performance Tuner"
@@ -246,7 +257,7 @@ type Task = {
   dueDate?: string;
   userId: string;
   projectId: string;
-  updatedAt?: unknown;
+  updatedAt?: any;
 };
 
 type Project = {
@@ -288,7 +299,7 @@ const ChatHistoryWidget = ({
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as { id: string; text: string; role: string; createdAt: number }))
+        .map((doc) => ({ id: doc.id, ...doc.data() } as any))
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         .slice(0, 5);
       setRecentChats(fetchedMessages);
@@ -541,48 +552,6 @@ const WelcomeScreen = ({
   onLogin: () => void;
   onLoginAnon: () => void;
 }) => {
-  const [email, setEmail] = React.useState("");
-  const [isSending, setIsSending] = React.useState(false);
-  const [linkSent, setLinkSent] = React.useState(false);
-
-  const handleSendLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes('@')) {
-      toast.show('Please enter a valid email address.', 'error');
-      return;
-    }
-    setIsSending(true);
-    try {
-      // BUG FIX: The `url` in actionCodeSettings must exactly match one of the
-      // Authorized Domains configured in Firebase Console → Authentication →
-      // Settings → Authorized domains.  Using `window.location.href` (which
-      // may contain query params or hash) can cause auth/invalid-continue-uri
-      // errors.  We use `window.location.origin + window.location.pathname`
-      // to produce a clean, canonical URL that is always authorised.
-      const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', email);
-      setLinkSent(true);
-      toast.show('Sign-in link sent! Check your inbox (and spam folder).', 'success');
-    } catch (error) {
-      const err = error as { code?: string; message?: string };
-      const friendly =
-        err.code === 'auth/operation-not-allowed'
-          ? 'Email link sign-in is not enabled. Please contact the administrator.'
-          : err.code === 'auth/invalid-continue-uri'
-            ? 'Invalid redirect URL. Please check your Firebase Authorized Domains.'
-            : err.code === 'auth/missing-continue-uri'
-              ? 'A redirect URL is required for email link sign-in.'
-              : `Failed to send link: ${err.message}`;
-      toast.show(friendly, 'error');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
   const [embers] = React.useState(() => {
     return [...Array(12)].map((_, i) => ({
       id: i,
@@ -701,35 +670,6 @@ const WelcomeScreen = ({
           />
           Authenticate User
         </button>
-
-        {/* Email Passwordless Sign-In */}
-        <form onSubmit={handleSendLink} className="space-y-3 p-4 bg-white/5 border border-white/5 rounded-[1.5rem] backdrop-blur-sm">
-          <div className="relative flex items-center">
-            <Mail className="absolute left-4 text-text-dim w-4 h-4" />
-            <input
-              type="email"
-              placeholder="ENTER EMAIL FOR MAGIC LINK..."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isSending || linkSent}
-              className="w-full bg-black/50 border border-white/10 rounded-[1rem] py-3.5 pl-11 pr-5 text-xs text-white font-mono placeholder-white/20 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all uppercase tracking-wider"
-              required
-            />
-            {linkSent && (
-              <span className="absolute right-4 text-green-500 text-[9px] font-mono tracking-widest animate-pulse">
-                SENT_OK
-              </span>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={isSending || linkSent}
-            className="w-full bg-primary/10 hover:bg-primary/20 disabled:bg-white/5 border border-primary/20 text-primary disabled:text-text-dim py-3.5 px-6 rounded-[1rem] text-[10px] font-bold uppercase tracking-[0.25em] transition-all active:scale-[0.98] flex items-center justify-center gap-2 font-mono"
-          >
-            {isSending ? "TRANSMITTING..." : linkSent ? "CHECK YOUR INBOX" : "REQUEST SIGN-IN LINK"}
-          </button>
-        </form>
-
         <div className="flex items-center gap-4 px-4">
           <div className="h-[2px] bg-white/5 flex-1" />
           <span className="text-[10px] text-text-dim uppercase tracking-[0.4em] font-black">
@@ -762,7 +702,7 @@ const SetupScreen = ({
 }: {
   title: string;
   subtitle: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: any;
   placeholder: string;
   value: string;
   onChange: (val: string) => void;
@@ -826,7 +766,7 @@ const VehicleSetupScreen = ({
   onNext,
 }: {
   onboarding: OnboardingData;
-  updateData: (key: keyof OnboardingData, value: string | boolean) => void;
+  updateData: (key: keyof OnboardingData, value: any) => void;
   onNext: () => void;
 }) => {
   return (
@@ -894,9 +834,32 @@ const VehicleSetupScreen = ({
           </div>
 
           <div className="relative group">
-            <label className="text-[10px] uppercase tracking-widest text-text-dim mb-1.5 block font-bold">
-              VIN / Serial Number (Optional)
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-[10px] uppercase tracking-widest text-text-dim block font-bold">
+                VIN / Serial Number (Optional)
+              </label>
+              {onboarding.vehicleVin && onboarding.vehicleVin.trim().length >= 5 && (
+                <button
+                  type="button"
+                  onClick={handleDecodeVin}
+                  disabled={isDecodingVin}
+                  className="text-[9px] uppercase tracking-wider font-extrabold text-primary hover:underline flex items-center gap-1 disabled:opacity-50 transition-all cursor-pointer"
+                  id="vin-decode-action-btn"
+                >
+                  {isDecodingVin ? (
+                    <>
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin text-primary" />
+                      Decoding...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-2.5 h-2.5 text-primary" />
+                      Auto-Decode via NHTSA
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <input
               type="text"
               value={onboarding.vehicleVin}
@@ -1050,7 +1013,7 @@ const ChatScreen = ({
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() } as ChatMessage & { createdAt: number }))
+        .map((doc) => ({ id: doc.id, ...doc.data() } as ChatMessage & { createdAt: any }))
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       setMessages(fetchedMessages);
     });
@@ -1124,45 +1087,17 @@ const ChatScreen = ({
   const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
-    interface SpeechRecognitionEvent {
-      resultIndex: number;
-      results: {
-        length: number;
-        [index: number]: {
-          isFinal: boolean;
-          [index: number]: {
-            transcript: string;
-          };
-        };
-      };
-    }
-
-    interface WebkitSpeechRecognition {
-      continuous: boolean;
-      interimResults: boolean;
-      onresult: (event: SpeechRecognitionEvent) => void;
-      onerror: (event: unknown) => void;
-      onend: () => void;
-      start: () => void;
-      stop: () => void;
-    }
-
-    interface SpeechRecognitionWindow extends Window {
-      SpeechRecognition?: new () => WebkitSpeechRecognition;
-      webkitSpeechRecognition?: new () => WebkitSpeechRecognition;
-    }
-
-    let recognition: WebkitSpeechRecognition | null = null;
+    let recognition: any = null;
     const SpeechRecognition =
-      (window as unknown as SpeechRecognitionWindow).SpeechRecognition ||
-      (window as unknown as SpeechRecognitionWindow).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
     if (SpeechRecognition && isRecording) {
       recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = false;
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
+      recognition.onresult = (event: any) => {
         let transcript = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
@@ -1179,6 +1114,7 @@ const ChatScreen = ({
       };
 
       recognition.onend = () => {
+        // if it stops organically, restart if isRecording is true, but since that can loop, just turn it off
         setIsRecording(false);
       };
 
@@ -1198,14 +1134,10 @@ const ChatScreen = ({
   }, [isRecording]);
 
   const handleMicClick = () => {
-    interface SpeechRecognitionWindow extends Window {
-      SpeechRecognition?: unknown;
-      webkitSpeechRecognition?: unknown;
-    }
     if (
       !(
-        (window as unknown as SpeechRecognitionWindow).SpeechRecognition ||
-        (window as unknown as SpeechRecognitionWindow).webkitSpeechRecognition
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition
       )
     ) {
       alert("Speech recognition is not supported in this browser.");
@@ -1284,7 +1216,13 @@ const ChatScreen = ({
           break;
         case "Forge Developer":
           systemInstruction +=
-            "Forge Developer. You are an expert in full-stack web and mobile development, focusing on building diagnostic tools, telematics dashboards, and cloud integrations for vehicles.";
+            "Forge Developer. You are an expert in full-stack web and mobile development, focusing on building diagnostic tools, telematics dashboards, and cloud integrations for vehicles. ";
+          systemInstruction +=
+            "You are aware that this app is deployed as a PWA and also packaged natively for Android using Capacitor. ";
+          systemInstruction +=
+            "The repository is at https://github.com/newsteps4them-arch/team.forge.git. The local Android setup script is located at scripts/setup-android-local.sh, which automates cloning, npm install, npm run build, and npx cap sync android. ";
+          systemInstruction +=
+            "Assist the user with any Gradle, Android Studio, or Capacitor sync issues.";
           break;
         case "Fleet Manager":
           systemInstruction +=
@@ -1358,9 +1296,8 @@ const ChatScreen = ({
       if (autoSpeak) {
         speakText(response);
       }
-    } catch (error) {
-      const err = error as Error;
-      toast.show(err.message || "AI Error", "error");
+    } catch (error: any) {
+      toast.show(error.message || "AI Error", "error");
     } finally {
       setLoading(false);
     }
@@ -1388,8 +1325,8 @@ const ChatScreen = ({
         />
       )}
       {/* Tech Header */}
-      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 sm:pt-6 md:pt-10 pb-4 bg-[#050505]/90 backdrop-blur-xl flex flex-col gap-3 border-b border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-10 pb-4 bg-[#050505]/90 backdrop-blur-xl flex flex-col gap-3 border-b border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff41]/50 to-transparent" />
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
@@ -1811,7 +1748,7 @@ const ChatScreen = ({
       </div>
 
       {/* Floating Input Footer */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 pb-6 sm:pb-8 md:pb-12 glass border-t border-white/5">
+      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 pb-8 glass border-t border-white/5">
         {image && (
           <div className="mb-3 relative inline-block mx-2">
             <img
@@ -2453,10 +2390,10 @@ const DiagnosticScreen = ({
                       {activeTab === "system" ? "Detected Category Areas" : "Severity Categorization"}
                     </div>
                     <div className="space-y-1.5">
-                      {chartData.map((item) => {
+                      {chartData.map((item, idx) => {
                         const percentage = Math.round((item.value / dtcs.length) * 100);
                         return (
-                          <div key={item.name} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
+                          <div key={idx} className="flex items-center justify-between bg-black/30 px-3 py-1.5 border border-white/5 rounded-xl">
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                               <span className="text-[10px] text-white/80 font-mono uppercase">{item.name}</span>
@@ -2622,6 +2559,55 @@ export default function App() {
   const [detectedDtcs, setDetectedDtcs] = useState<DTC[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  const [isDecodingVin, setIsDecodingVin] = useState(false);
+
+  const handleDecodeVin = async () => {
+    const vin = onboarding.vehicleVin?.trim();
+    if (!vin) {
+      toast.show("Please enter a VIN first.", "info");
+      return;
+    }
+    if (vin.length < 5) {
+      toast.show("VIN must be at least 5 characters to decode.", "info");
+      return;
+    }
+    setIsDecodingVin(true);
+    toast.show(`Querying NHTSA database for VIN: ${vin}...`, "info");
+    try {
+      const res = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/${vin}?format=json`);
+      const data = await res.json();
+      if (data && data.Results) {
+        let year = "";
+        let make = "";
+        let model = "";
+        data.Results.forEach((item: any) => {
+          if (item.Variable === "Model Year") year = item.Value || "";
+          if (item.Variable === "Make") make = item.Value || "";
+          if (item.Variable === "Model") model = item.Value || "";
+        });
+
+        if (make) {
+          setOnboarding(prev => ({
+            ...prev,
+            vehicleYear: year || prev.vehicleYear,
+            vehicleMake: make,
+            vehicleModel: model || prev.vehicleModel
+          }));
+          toast.show(`Successfully decoded: ${year} ${make} ${model}`, "success");
+        } else {
+          toast.show("No matching vehicle records found for this VIN in VPIC database.", "info");
+        }
+      } else {
+        toast.show("Could not decode vehicle VIN via NHTSA database.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.show("Network error connecting to NHTSA VPIC Decoder.", "error");
+    } finally {
+      setIsDecodingVin(false);
+    }
+  };
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -2655,87 +2641,15 @@ export default function App() {
   });
 
   // Auth Listener
-  // BUG FIX: The previous listener set the user but never navigated away from
-  // the Welcome screen on its own.  Navigation was delegated entirely to the
-  // profile-load effect, which fires in a separate useEffect after `user`
-  // changes.  If the profile-load effect threw (e.g. Firestore permission
-  // denied for anonymous users) the screen stayed on "Welcome" forever.
-  // We now also handle getRedirectResult here so that Google sign-in via
-  // redirect (used as a fallback when popups are blocked) is processed on
-  // every app mount.
   useEffect(() => {
-    // Process any pending redirect-based Google sign-in result first.
-    // This is a no-op when there is no pending redirect.
-    getRedirectResult(auth).catch((err: { code?: string; message?: string }) => {
-      // auth/no-current-user is expected when there is no redirect pending.
-      if (err?.code !== 'auth/no-current-user') {
-        console.error('getRedirectResult error:', err);
-        toast.show(`Google sign-in failed: ${err.message}`, 'error');
-      }
-    });
-
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
       if (u) {
-        toast.show(`Signed in as ${u.displayName || u.email || 'Anonymous'}`, 'success');
+        toast.show(`Signed in as ${u.displayName || u.email}`, "success");
       }
     });
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Handle Email Link Sign-in redirection
-  // BUG FIX 1: `setAuthLoading(false)` was missing from the success path.
-  //   After `signInWithEmailLink` resolves, `onAuthStateChanged` fires and
-  //   sets authLoading=false, but only if the listener is already mounted.
-  //   On a cold page-load triggered by clicking the email link, there is a
-  //   race condition where the listener may not have fired yet, leaving the
-  //   spinner visible indefinitely.  We now explicitly clear it on success.
-  // BUG FIX 2: The URL cleanup used `window.location.pathname` which strips
-  //   the hash fragment.  On some hosting setups (e.g. hash-router) this
-  //   caused a blank screen.  We now preserve the hash.
-  useEffect(() => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      const performEmailSignIn = async () => {
-        let email = window.localStorage.getItem('emailForSignIn');
-        if (!email) {
-          email = window.prompt('Please enter your email to confirm sign-in:');
-        }
-        if (!email) {
-          toast.show('Email confirmation required to sign in.', 'error');
-          return;
-        }
-        setAuthLoading(true);
-        try {
-          await signInWithEmailLink(auth, email, window.location.href);
-          window.localStorage.removeItem('emailForSignIn');
-          // Clean up the OOB code from the URL without losing the hash.
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.origin + window.location.pathname + window.location.hash,
-          );
-          toast.show('Successfully signed in with email link!', 'success');
-          // Explicitly clear loading — onAuthStateChanged may fire after this.
-          setAuthLoading(false);
-        } catch (error) {
-          const err = error as { code?: string; message?: string };
-          // auth/invalid-action-code: link already used or expired.
-          // auth/invalid-email: stored email doesn't match the link.
-          const friendly =
-            err.code === 'auth/invalid-action-code'
-              ? 'This sign-in link has expired or already been used. Please request a new one.'
-              : err.code === 'auth/invalid-email'
-                ? 'The email address does not match the sign-in link. Please try again.'
-                : `Failed to sign in: ${err.message}`;
-          toast.show(friendly, 'error');
-          setAuthLoading(false);
-        }
-      };
-      performEmailSignIn();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch Projects and Tasks on login
@@ -2783,21 +2697,18 @@ export default function App() {
             !fetchedProjects.find((p) => p.id === activeProject)
           ) {
             // Check local storage first
-            const loadSavedProject = async () => {
-              try {
-                const saved = await storage.getItem(
-                  `forge_active_project_${user.uid}`,
-                );
-                if (saved && fetchedProjects.find((p) => p.id === saved)) {
-                  setActiveProject(saved);
-                } else {
-                  setActiveProject(fetchedProjects[0].id);
-                }
-              } catch (e) {
+            try {
+              const saved = localStorage.getItem(
+                `forge_active_project_${user.uid}`,
+              );
+              if (saved && fetchedProjects.find((p) => p.id === saved)) {
+                setActiveProject(saved);
+              } else {
                 setActiveProject(fetchedProjects[0].id);
               }
-            };
-            loadSavedProject();
+            } catch (e) {
+              setActiveProject(fetchedProjects[0].id);
+            }
           }
         }
       },
@@ -2851,41 +2762,18 @@ export default function App() {
   // Fetch User Profile
   useEffect(() => {
     if (!user) return;
-
-    // BUG FIX: Anonymous users have no Firestore profile document and the
-    // previous code silently caught the Firestore permission error without
-    // navigating, leaving them stuck on the Welcome screen.
-    // We now:
-    //  1. Skip the Firestore fetch for anonymous users and route them directly
-    //     to onboarding (NameAssistant).
-    //  2. On any Firestore error for authenticated users, fall back to
-    //     onboarding rather than leaving the app in a broken state.
-    if (user.isAnonymous) {
-      setCurrentScreen('NameAssistant');
-      return;
-    }
-
     const loadProfile = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           const profile = userDoc.data() as OnboardingData;
           setOnboarding(profile);
-          if (profile.onboardingComplete) {
-            setCurrentScreen('Main');
-          } else {
-            // Profile exists but onboarding was never completed — resume it.
-            setCurrentScreen('NameAssistant');
-          }
+          if (profile.onboardingComplete) setCurrentScreen("Main");
         } else {
-          // New user — start onboarding.
-          setCurrentScreen('NameAssistant');
+          setCurrentScreen("NameAssistant");
         }
       } catch (e) {
-        // Firestore permission errors (e.g. rules not yet deployed) must not
-        // leave the user stranded.  Log the error and fall back to onboarding.
-        console.error('Profile load failed — falling back to onboarding:', e);
-        setCurrentScreen('NameAssistant');
+        console.error("Profile load failed", e);
       }
     };
     loadProfile();
@@ -3017,99 +2905,50 @@ export default function App() {
   useEffect(() => {
     if (user && activeProject) {
       try {
-        storage.setItem(`forge_active_project_${user.uid}`, activeProject);
+        localStorage.setItem(`forge_active_project_${user.uid}`, activeProject);
       } catch (e) {
-        console.warn("storage not available", e);
+        console.warn("localStorage not available", e);
       }
     }
   }, [activeProject, user]);
 
   const handleLogin = async () => {
-    // BUG FIX: On native Capacitor (Android/iOS) and in browsers that block
-    // third-party popups, `signInWithPopup` throws auth/popup-blocked or
-    // auth/cancelled-popup-request.  The previous code only showed an error
-    // toast and left the user unable to sign in.
-    // We now automatically fall back to `signInWithRedirect` in those cases.
-    // `getRedirectResult` (called in the auth listener useEffect above) will
-    // pick up the result when the app reloads after the redirect.
-    const isNative = Capacitor.isNativePlatform();
-    if (isNative) {
-      // Popups are not supported inside a Capacitor WebView.
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (error) {
-        const err = error as { message?: string };
-        toast.show(`Google sign-in failed: ${err.message}`, 'error');
-      }
-      return;
-    }
-
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      const err = error as { code?: string; message?: string };
-      if (
-        err.code === 'auth/popup-blocked' ||
-        err.code === 'auth/cancelled-popup-request' ||
-        err.code === 'auth/popup-closed-by-user'
-      ) {
-        // Popup was blocked or closed — fall back to redirect flow.
-        toast.show('Popup blocked. Redirecting to Google sign-in…', 'info');
-        try {
-          await signInWithRedirect(auth, googleProvider);
-        } catch (redirectErr) {
-          const rErr = redirectErr as { message?: string };
-          toast.show(`Google sign-in failed: ${rErr.message}`, 'error');
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        if (result.credential?.idToken) {
+          const credential = GoogleAuthProviderClass.credential(result.credential.idToken);
+          await signInWithCredential(auth, credential);
         }
-      } else if (err.code === 'auth/operation-not-allowed') {
-        toast.show(
-          'Google sign-in is not enabled. Please contact the administrator.',
-          'error',
-        );
       } else {
-        toast.show(`Login failed: ${err.message}`, 'error');
+        await signInWithPopup(auth, googleProvider);
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        toast.show("Login popup was blocked or closed. Please allow popups.", "error");
+      } else {
+        toast.show(`Login failed: ${error.message}`, "error");
       }
     }
   };
 
   const handleLoginAnon = async () => {
-    // BUG FIX: The previous implementation called `handleNext()` both on
-    // success AND in the catch block.  This advanced the screen to
-    // NameAssistant before `onAuthStateChanged` had fired, meaning `user`
-    // was still null when the profile-load effect ran, causing it to bail
-    // out immediately.  The user was then stuck in onboarding with no auth.
-    // We now let `onAuthStateChanged` + the profile-load effect handle
-    // navigation, consistent with the Google sign-in flow.
     try {
       await signInAnonymously(auth);
-      // Navigation is handled by the profile-load useEffect once user is set.
-    } catch (error) {
-      const err = error as { code?: string; message?: string };
-      if (err.code === 'auth/operation-not-allowed') {
-        toast.show(
-          'Anonymous sign-in is not enabled. Please contact the administrator.',
-          'error',
-        );
-      } else {
-        toast.show(`Offline login failed: ${err.message}`, 'error');
-      }
+      toast.show("Signed in as Offline User", "info");
+      handleNext();
+    } catch (error: any) {
+      toast.show(`Offline Login failed: ${error.message}`, "error");
+      handleNext();
     }
   };
 
   const handleLogout = async () => {
-    // BUG FIX: The previous implementation signed out of Firebase but did not
-    // reset the navigation state.  The user remained on "Main" (or wherever
-    // they were) with `user` set to null, causing Firestore listeners to fail
-    // and leaving the UI in an inconsistent state.
-    // We now navigate back to Welcome immediately after sign-out so the app
-    // re-enters the unauthenticated state cleanly.
     try {
       await signOut(auth);
-      setCurrentScreen('Welcome');
-      toast.show('Signed out successfully.', 'info');
-    } catch (error) {
-      const err = error as { message?: string };
-      toast.show(`Logout failed: ${err.message}`, 'error');
+      toast.show("Signed out successfully", "info");
+    } catch (error: any) {
+      toast.show(`Logout failed: ${error.message}`, "error");
     }
   };
 
@@ -3287,20 +3126,42 @@ export default function App() {
   };
 
   const handleConnect = async () => {
-    try {
-      const isConnectedNow = await connect();
-      if (isConnectedNow) {
-        toast.show(`Connected via ${obdMode}`, "success");
-      } else {
-        toast.show("Disconnected from OBD", "info");
+    if (obdConnected) {
+      if (obdRef.current) {
+         try {
+           await obdRef.current.disconnect();
+         } catch(e) {}
+         obdRef.current = null;
       }
-    } catch (err) {
-      const error = err as { name?: string; message?: string };
-      console.error(error);
+      setObdConnected(false);
+      return;
+    }
+
+    try {
+      if (obdMode === "Simulated") {
+        obdRef.current = new SimulatedObd();
+      } else if (obdMode === "Bluetooth") {
+        obdRef.current = new WebBluetoothObd();
+      } else if (obdMode === "USB") {
+        obdRef.current = new WebSerialObd();
+      }
+
+      if (!obdRef.current) return;
+      
+      await obdRef.current.connect();
+      setObdConnected(true);
+      
+      const res = await obdRef.current.sendCommand("ATI");
+      setDiagnosticLogs((prev) => [`[sys] RX: ${res}`, ...prev].slice(0, 50));
+      
+      toast.show(`Connected via ${obdMode}`, "success");
+    } catch (err: any) {
+      console.error(err);
+      obdRef.current = null;
       const msg =
-        error.name === "SecurityError"
+        err.name === "SecurityError"
           ? "Hardware access requires top-level navigation. Open app in new tab."
-          : error.message || "Connection failed";
+          : err.message || "Connection failed";
       toast.show(msg, "error");
     }
   };
@@ -3330,15 +3191,18 @@ export default function App() {
       }).catch(console.error);
     }
 
-    if (!obdConnected) {
+    if (!obdRef.current || !obdRef.current.isConnected()) {
        toast.show("Not connected to vehicle", "error");
        return;
     }
 
     try {
-       const response = await sendCommand(command);
+       const response = await obdRef.current.sendCommand(command);
        const rxTimestamp = new Date().toLocaleTimeString();
        const rxLog = `[${rxTimestamp}] RX: ${response}`;
+       setDiagnosticLogs((prev) =>
+         [rxLog, ...prev].slice(0, 50),
+       );
 
        if (user && activeProject) {
          addDoc(collection(db, "chats"), {
@@ -3366,9 +3230,8 @@ export default function App() {
          setDetectedDtcs([]);
          toast.show("DTC Memory Cleared", "success");
        }
-    } catch (e) {
-       const error = e as Error;
-       const errLog = `[sys] ERROR: ${error.message}`;
+    } catch (e: any) {
+       const errLog = `[sys] ERROR: ${e.message}`;
        setDiagnosticLogs((prev) =>
          [errLog, ...prev].slice(0, 50),
        );
@@ -3384,7 +3247,7 @@ export default function App() {
     }
   };
 
-  const updateData = (key: keyof OnboardingData, value: string | boolean) => {
+  const updateData = (key: keyof OnboardingData, value: any) => {
     setOnboarding((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -3437,7 +3300,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern pt-safe pb-safe pl-safe pr-safe">
+    <div className="flex flex-col h-screen w-full bg-black selection:bg-primary/30 overflow-hidden hardware-pattern">
       <TopStatusBar 
         onSettingsClick={onboarding.onboardingComplete ? () => setCurrentScreen("Settings") : undefined} 
         onMenuClick={onboarding.onboardingComplete ? () => setIsDrawerOpen(true) : undefined}
@@ -3451,36 +3314,15 @@ export default function App() {
       />
       
       <NotificationContainer />
-      <div className="flex-1 w-full flex items-center justify-center p-0 md:p-4 lg:p-6 2xl:p-12 bg-transparent">
+      <div className="flex-1 w-full flex items-center justify-center p-0 lg:p-6 bg-transparent">
         {/* Rugged Scanner Device Container (Tablet/Widescreen on Desktop) */}
-        <div className="w-full h-full lg:max-w-6xl xl:max-w-[1400px] 2xl:max-w-[1600px] bg-[#0A0A0A] md:rounded-[2.5rem] relative overflow-hidden md:border-[10px] lg:border-[14px] border-[#1d1d1d] md:ring-4 lg:ring-8 ring-[#0f0f0f] shadow-[0_0_100px_-10px_rgba(245,166,35,0.15),inset_0_0_0_1px_rgba(255,255,255,0.05)] flex flex-col dotted-pattern">
+        <div className="w-full h-full lg:max-w-6xl xl:max-w-7xl bg-[#0A0A0A] lg:rounded-[2rem] relative overflow-hidden lg:border-[8px] border-[#1d1d1d] lg:ring-4 ring-[#0f0f0f] shadow-[0_0_100px_-10px_rgba(245,166,35,0.15),inset_0_0_0_1px_rgba(255,255,255,0.05)] flex flex-col dotted-pattern">
           {/* Hardware Header accents */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent z-40 hidden md:block" />
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent z-40 hidden lg:block" />
 
           <div className="flex-1 overflow-y-auto no-scrollbar relative z-10 pt-2 lg:pt-4">
             <AnimatePresence mode="wait">
-              {authLoading ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center h-full bg-[#050505] p-8"
-                >
-                  <div className="relative mb-10">
-                    <div className="absolute inset-[-20px] bg-primary/20 rounded-full blur-2xl animate-pulse" />
-                    <Hammer className="text-primary w-16 h-16 relative z-10" />
-                  </div>
-                  <div className="space-y-2 text-center">
-                    <h2 className="text-xl font-display font-black text-white tracking-widest uppercase">Initializing Forge</h2>
-                    <p className="text-[10px] font-mono text-text-dim uppercase tracking-[0.3em] animate-pulse">Syncing_Neural_Link...</p>
-                  </div>
-                </motion.div>
-              ) : currentScreen === "Welcome" && !user && (
-                // BUG FIX: Guard against briefly re-rendering the Welcome screen
-                // when `user` is already set but `currentScreen` hasn't been
-                // updated yet by the profile-load effect.  Without this guard,
-                // a returning user would see a flash of the login screen.
+              {currentScreen === "Welcome" && (
                 <WelcomeScreen
                   key="welcome"
                   onNext={handleNext}
@@ -3546,31 +3388,12 @@ export default function App() {
                   alldataKey={onboarding.alldataKey}
                   obdKey={onboarding.obdKey}
                   openAiKey={onboarding.openAiKey}
-                  onSave={async (api, meli, alldata, obd, openai) => {
-                    const updatedOnboarding = {
-                      ...onboarding,
-                      apiKey: api,
-                      meliApiKey: meli,
-                      alldataKey: alldata,
-                      obdKey: obd,
-                      openAiKey: openai,
-                    };
-                    setOnboarding(updatedOnboarding);
-                    if (user) {
-                      try {
-                        await setDoc(doc(db, "users", user.uid), {
-                          ...updatedOnboarding,
-                          email: user.email,
-                          updatedAt: serverTimestamp(),
-                        });
-                        toast.show("Connections updated in cloud profile", "success");
-                      } catch (e) {
-                        console.error("Failed to sync profile connections:", e);
-                        toast.show("Saved locally (Cloud sync failed)", "warning");
-                      }
-                    } else {
-                      toast.show("Saved locally (Offline Mode)", "info");
-                    }
+                  onSave={(api, meli, alldata, obd, openai) => {
+                    updateData("apiKey", api);
+                    updateData("meliApiKey", meli);
+                    updateData("alldataKey", alldata);
+                    updateData("obdKey", obd);
+                    updateData("openAiKey", openai);
                     setCurrentScreen("Main");
                   }}
                   onBack={() => goBack()}
@@ -3725,6 +3548,10 @@ export default function App() {
                   onBack={() => goBack()}
                   connectedIds={connectedIntegrations}
                   onToggleConnection={handleToggleIntegration}
+                  vehicleMake={onboarding.vehicleMake}
+                  vehicleModel={onboarding.vehicleModel}
+                  vehicleYear={onboarding.vehicleYear}
+                  vehicleVin={onboarding.vehicleVin}
                 />
               )}
 

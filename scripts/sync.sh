@@ -92,6 +92,9 @@ link_repository() {
     git config --global user.name "Forge Guardian"
     git config --global user.email "guardian@forge.local"
     
+    # Securely mask credentials in log outputs
+    local masked_url=$(echo "$url" | sed -E 's/\/\/([^:]*):?([^@]*)@/\/\/****@/')
+
     # Check if origin already exists
     if git remote | grep -q "^$REMOTE$"; then
         log "Updating remote origin URL..."
@@ -100,7 +103,7 @@ link_repository() {
         log "Adding remote origin URL..."
         git remote add "$REMOTE" "$url"
     fi
-    success "Repository linked with origin remote: $url"
+    success "Repository linked with origin remote: $masked_url"
 }
 
 check_changes() {

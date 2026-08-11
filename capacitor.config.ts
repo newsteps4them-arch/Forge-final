@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.forge.app',
-  appName: 'Forge OS',
+  appName: 'Team Forge',
   webDir: 'dist'
 };
 

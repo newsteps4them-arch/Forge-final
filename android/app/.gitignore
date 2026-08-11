@@ -1,8 +1,2 @@
 /build/*
 !/build/.npmkeep
-
-# Signing material — never commit these
-release.keystore
-*.jks
-*.keystore
-keystore.properties

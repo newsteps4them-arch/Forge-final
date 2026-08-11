@@ -8,38 +8,18 @@ MAX_LOOPS = 3
 LOG_FILE = "FORGE_HEALING_LOG.md"
 
 def setup_gemini():
-    # Load from .env if present
-    if os.path.exists(".env"):
-        with open(".env", "r") as f:
-            for line in f:
-                line = line.strip()
-                if "=" in line and not line.startswith("#"):
-                    k, v = line.split("=", 1)
-                    k = k.strip()
-                    v = v.strip().strip('"').strip("'")
-                    os.environ[k] = v
-
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("VITE_GEMINI_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("❌ GEMINI_API_KEY or VITE_GEMINI_API_KEY not set in environment or .env file")
-        sys.exit(1)
-
-    try:
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel("gemini-1.5-pro")
-    except Exception as e:
-        print(f"❌ Failed to configure Gemini: {e}")
-        sys.exit(1)
+        print("❌ GEMINI_API_KEY not set"); sys.exit(1)
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel("gemini-1.5-pro")
 
 def detect_project():
     root = Path(".")
-    # Prioritize Node.js for this repository
-    if (root / "package.json").exists():
-        print("✓ Detected: Node.js")
-        return "node"
     if (root / "pyproject.toml").exists() or (root / "requirements.txt").exists():
-        print("✓ Detected: Python")
-        return "python"
+        print("✓ Detected: Python"); return "python"
+    if (root / "package.json").exists():
+        print("✓ Detected: Node.js"); return "node"
     return "python"
 
 def heal_workflows():
@@ -55,7 +35,6 @@ def heal_workflows():
         ("setup-python@v3", "setup-python@v4"),
         ("cache@v3", "cache@v4"),
         ("setup-node@v3", "setup-node@v4"),
-        ("actions/setup-java@v3", "actions/setup-java@v4"),
     ]
     
     changed = False
@@ -66,7 +45,7 @@ def heal_workflows():
         for old, new in fixes:
             if old in content:
                 content = content.replace(old, new)
-                print(f"  🔧 Fixed: {old} → {new} in {workflow_file.name}")
+                print(f"  🔧 Fixed: {old} → {new}")
                 changed = True
         
         if content != original:
@@ -77,118 +56,57 @@ def heal_workflows():
 def run_tests(ptype):
     try:
         if ptype == "python":
-            res = subprocess.run(["python", "-m", "py_compile", "."], capture_output=True, text=True, timeout=60)
-            if res.returncode != 0:
-                return res.stderr or res.stdout or "Compilation failed"
+            res = subprocess.run(["python", "-m", "py_compile", "."], capture_output=True, text=True, timeout=30)
+            return res.stderr if res.returncode != 0 else None
         elif ptype == "node":
-            npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
-            # Try lint first, fallback to build if lint fails or doesn't exist
-            res = subprocess.run([npm_cmd, "run", "lint"], capture_output=True, text=True, timeout=60)
-            if res.returncode != 0:
-                # If lint failed, we return the output as the error to fix
-                return (res.stdout or "") + "\n" + (res.stderr or "")
-        return None
+            res = subprocess.run(["npm", "run", "lint"], capture_output=True, text=True, timeout=30)
+            return res.stderr if res.returncode != 0 else None
     except Exception as e:
-        return f"Test Execution Error: {str(e)}"
-
-def clean_json_response(text):
-    if not text:
-        return None
-    # Remove markdown code blocks if present
-    text = text.strip()
-    if text.startswith("```json"):
-        text = text[7:]
-    elif text.startswith("```"):
-        text = text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
-    return text.strip()
+        return str(e)
+    return None
 
 def get_fix(error, ptype, model):
-    prompt = (
-        f"You are the Forge Guardian, an autonomous AI maintenance agent. Fix this {ptype} error:\n\n"
-        f"ERROR_LOG:\n{error[:2000]}\n\n"
-        f"INSTRUCTION:\n"
-        f"Identify the file causing the issue. Provide the relative path and the complete fixed code.\n"
-        f"Return a JSON object with exactly two keys: 'file' and 'code'.\n"
-        f"Do NOT include any commentary outside the JSON."
-    )
+    prompt = f"Fix this {ptype} error:\n{error[:800]}\n\nReturn JSON with 'code' key containing ```{ptype}``` block"
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
-        )
-        return clean_json_response(response.text)
-    except Exception as e:
-        print(f"   ⚠ Gemini API Error: {e}")
-        # Fallback without JSON mode
-        try:
-            response = model.generate_content(prompt)
-            return clean_json_response(response.text)
-        except:
-            return None
+        return model.generate_content(prompt).text
+    except:
+        return None
 
-def log_healing(loop, error, file_path, success):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    status = "SUCCESS" if success else "FAILED"
+def extract_code(text, ptype):
+    match = re.search(rf"```{ptype}(.*?)```", text, re.DOTALL)
+    return match.group(1).strip() if match else None
+
+def log_it(loop, error, resp):
     with open(LOG_FILE, "a") as f:
-        f.write(f"\n### [{timestamp}] Loop {loop} — {status}\n")
-        f.write(f"**Target File:** `{file_path}`\n")
-        f.write(f"**Error Summary:**\n```\n{error[:500]}\n```\n")
+        f.write(f"\n## Loop {loop} — {datetime.now().isoformat()}\n")
+        f.write(f"**Error:** {error[:300]}\n**Response:** {resp[:400]}\n")
 
 def main():
-    print("\n🔥 Forge Guardian v2.1 Activated\n")
+    print("\n🔧 Forge Guardian v2 Starting...\n")
     
-    print("🔍 Inspecting CI/CD Workflows...")
+    print("🔍 Scanning GitHub Actions workflows...")
     if heal_workflows():
-        print("✅ Workflow optimizations applied.\n")
+        print("✅ Fixed deprecated GitHub Actions\n")
     
     model = setup_gemini()
     ptype = detect_project()
     print()
     
-    for loop in range(1, MAX_LOOPS + 1):
-        print(f"📋 Loop {loop}/{MAX_LOOPS}: Running system diagnostics...")
+    for loop in range(MAX_LOOPS):
         error = run_tests(ptype)
-
         if not error:
-            print("✨ All systems operational. No issues detected.\n")
+            print("✅ All checks passed!\n")
             return
         
-        print(f"🔎 Issue identified. Consulting Gemini for remediation...")
-        fix_json = get_fix(error, ptype, model)
-
-        if fix_json:
-            try:
-                data = json.loads(fix_json)
-                file_path = data.get("file")
-                code_content = data.get("code")
-
-                if file_path and code_content:
-                    print(f"🛠  Applying fix to: {file_path}")
-                    # Ensure directory exists
-                    Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-                    Path(file_path).write_text(code_content, encoding="utf-8")
-
-                    # Verify fix
-                    print("🔄 Verifying remediation...")
-                    new_error = run_tests(ptype)
-                    success = (new_error is None)
-                    log_healing(loop, error, file_path, success)
-
-                    if success:
-                        print(f"✅ Issue resolved in {file_path}!\n")
-                        return
-                    else:
-                        print(f"⚠ Fix applied to {file_path} but diagnostics still failing.")
-                else:
-                    print("❌ Received invalid remediation data (missing 'file' or 'code')")
-            except Exception as ex:
-                print(f"❌ Failed to parse or apply remediation: {ex}")
+        print(f"🔍 Loop {loop+1}/{MAX_LOOPS}: Requesting Gemini fix...")
+        fix = get_fix(error, ptype, model)
+        if fix:
+            log_it(loop+1, error, fix)
+            print(f"   ✏ Fix received")
         else:
-            print("❌ Failure: Could not generate remediation plan.")
+            print(f"   ⚠ Could not get fix")
     
-    print(f"\n📝 Healing sequence completed. View `{LOG_FILE}` for details.\n")
+    print(f"\n📋 Log saved to: {LOG_FILE}\n")
 
 if __name__ == "__main__":
     main()

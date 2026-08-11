@@ -7,8 +7,6 @@ NC='\033[0m'
 log() { echo -e "${CYAN}[RECOVERY]${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1"; }
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
 soft_recovery() {
     echo ""
     echo -e "${CYAN}LEVEL 1: SOFT RECOVERY${NC}"
@@ -20,7 +18,7 @@ soft_recovery() {
     npm cache clean --force 2>/dev/null || true
     success "npm cache cleared"
     log "Clearing lock files..."
-    rm -f "$PROJECT_ROOT/.sync-lock"
+    rm -f ~/forge-final/.sync-lock
     success "Lock files cleared"
     echo ""
     success "Level 1 recovery complete"
@@ -35,7 +33,7 @@ medium_recovery() {
     rm -rf ~/.gradle/caches
     success "Gradle cache removed"
     log "Cleaning git repository..."
-    cd "$PROJECT_ROOT"
+    cd ~/forge-final
     git gc --aggressive --prune 2>/dev/null || true
     success "Git repository optimized"
     echo ""
@@ -47,7 +45,7 @@ hard_recovery() {
     echo -e "${CYAN}LEVEL 3: HARD RECOVERY${NC}"
     echo ""
     medium_recovery
-    cd "$PROJECT_ROOT"
+    cd ~/forge-final
     log "Removing node_modules..."
     rm -rf node_modules
     success "node_modules removed"
@@ -74,7 +72,7 @@ nuclear_recovery() {
         log "Nuclear recovery cancelled"
         return 0
     fi
-    cd "$PROJECT_ROOT"
+    cd ~/forge-final
     log "Fetching latest from GitHub..."
     git fetch origin
     success "Fetched"
@@ -91,7 +89,7 @@ nuclear_recovery() {
 }
 show_menu() {
     echo ""
-    echo -e "${CYAN}FORGE EMERGENCY RECOVERY${NC}"
+    echo -e "${CYAN}FORGE-FINAL EMERGENCY RECOVERY${NC}"
     echo ""
     echo "1) SOFT    - Clear caches (safe)"
     echo "2) MEDIUM  - Remove build artifacts"

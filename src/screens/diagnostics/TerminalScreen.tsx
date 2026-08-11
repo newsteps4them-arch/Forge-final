@@ -1,12 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Terminal, Send, Save, Download, Tv, ChevronDown, ChevronRight, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, Terminal, Send, Save, Download, Tv, ChevronDown, ChevronRight, ChevronsUpDown, TextSearch } from "lucide-react";
 import { toast } from "../../lib/notifications";
 
 // Helper to parse each flat log line into metadata
-const parseLogLine = (log: string, index: number = 0) => {
+const parseLogLine = (log: string) => {
   const isTxVal = log.includes("TX:") || log.startsWith(">") || log.includes("[sys] TX:");
-  const isErrorVal = log.toLowerCase().includes("error") || log.toLowerCase().includes("failed");
+  const logLower = log.toLowerCase();
+  const isErrorVal = 
+    logLower.includes("error") || 
+    logLower.includes("failed") || 
+    logLower.includes("invalid") || 
+    logLower.includes("stopped") || 
+    logLower.includes("abort") || 
+    logLower.includes("exception") || 
+    logLower.includes("no data") || 
+    log.includes("?");
   
   let content = log;
   let timestamp = "";
@@ -19,7 +28,6 @@ const parseLogLine = (log: string, index: number = 0) => {
   content = content.replace(/^(TX:|RX:|>\s*|\[sys\]\s*TX:|\[sys\]\s*RX:)\s*/i, "");
   
   return {
-    id: `log-${index}-${timestamp}-${content}`,
     raw: log,
     isTx: isTxVal,
     isError: isErrorVal,
@@ -44,7 +52,7 @@ const parseTransactions = (flatLogs: string[]): CommandTransaction[] => {
   let currentTx: CommandTransaction | null = null;
   
   chronological.forEach((log, index) => {
-    const parsed = parseLogLine(log, index);
+    const parsed = parseLogLine(log);
     
     if (parsed.isTx) {
       if (currentTx) {
@@ -75,14 +83,41 @@ const parseTransactions = (flatLogs: string[]): CommandTransaction[] => {
   return transactions;
 };
 
+const getTransactionDate = (t: CommandTransaction): Date | null => {
+  const ts = t.tx?.timestamp || (t.responses[0]?.timestamp);
+  if (ts && ts !== "sys") {
+    if (ts.includes("-")) {
+      const cleanTs = ts.trim().replace(" ", "T");
+      const d = new Date(cleanTs);
+      if (!isNaN(d.getTime())) return d;
+    } else if (ts.includes(":")) {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const d = new Date(`${todayStr}T${ts.trim()}`);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return null;
+};
+
 // ResponseLineItem handles individual line truncation and folding to prevent layout disruption with huge outputs
-const ResponseLineItem = ({ resp }: { resp: ReturnType<typeof parseLogLine> }) => {
+const ResponseLineItem = ({ resp, codeScanEnabled }: { resp: ReturnType<typeof parseLogLine>, codeScanEnabled?: boolean }) => {
   const [expanded, setExpanded] = useState(false);
   const isTooLong = resp.content.length > 80;
   
   const displayedContent = isTooLong && !expanded 
     ? `${resp.content.substring(0, 80)}...` 
     : resp.content;
+
+  const renderHighlightedContent = (content: string) => {
+    if (!codeScanEnabled) return content;
+    const parts = content.split(/(error|failed|invalid|exception|abort|syntax error|no data)/gi);
+    return parts.map((part, i) => {
+      if (i % 2 === 1) {
+        return <span key={i} className="bg-red-500/20 text-red-400 font-bold border border-red-500/50 px-1 rounded mx-0.5 animate-pulse">{part}</span>;
+      }
+      return part;
+    });
+  };
 
   return (
     <div className={`flex items-start gap-3 text-sm py-0.5 ${resp.isError ? "text-red-500" : "text-[#00ff41]/80"}`}>
@@ -96,7 +131,7 @@ const ResponseLineItem = ({ resp }: { resp: ReturnType<typeof parseLogLine> }) =
         </span>
       )}
       <div className="flex-1 font-mono break-all text-xs md:text-sm">
-        <span>{displayedContent}</span>
+        <span>{renderHighlightedContent(displayedContent)}</span>
         {isTooLong && (
           <button 
             onClick={(e) => {
@@ -124,16 +159,66 @@ export const TerminalScreen = ({
 }) => {
   const [input, setInput] = useState("");
   const [crtEnabled, setCrtEnabled] = useState(true);
+  const [codeScanEnabled, setCodeScanEnabled] = useState(false);
   const [collapsedTxIds, setCollapsedTxIds] = useState<Record<string, boolean>>({});
   const logEndRef = useRef<HTMLDivElement>(null);
-  const linkRef = useRef<HTMLAnchorElement>(null);
+
+  // "all" | "no-system" (hides system initialization stream/orphans) | "commands" (raw commands and replies) | "errors"
+  const [filterMode, setFilterMode] = useState<"all" | "no-system" | "commands" | "errors">("all");
+
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   // Parse transactions for rendering folding nodes
   const transactions = parseTransactions(logs);
 
+  // Apply filtering logic to find matching transaction telemetry frames with status & date constraints
+  const filteredTransactions = transactions.filter(t => {
+    // 1. Category Status Filters
+    if (filterMode === "no-system") {
+      if (t.tx === null) return false;
+    }
+    if (filterMode === "commands") {
+      if (t.tx === null) return false;
+    }
+    if (filterMode === "errors") {
+      const txHasError = t.tx?.isError || false;
+      const rxHasError = t.responses.some(r => r.isError);
+      if (!txHasError && !rxHasError) return false;
+    }
+
+    // 2. Date-Range Session filter bounds
+    const tDate = getTransactionDate(t);
+    if (startDate || endDate) {
+      if (!tDate) {
+        // Fallback check: if timestamp is unparsed or "sys", check if today falls inside range
+        const today = new Date();
+        if (startDate) {
+          const start = new Date(`${startDate}T00:00:00`);
+          if (today < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(`${endDate}T23:59:59`);
+          if (today > end) return false;
+        }
+      } else {
+        if (startDate) {
+          const start = new Date(`${startDate}T00:00:00`);
+          if (tDate < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(`${endDate}T23:59:59`);
+          if (tDate > end) return false;
+        }
+      }
+    }
+
+    return true; // "all"
+  });
+
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+  }, [logs, filterMode, startDate, endDate]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -157,13 +242,13 @@ export const TerminalScreen = ({
       }).join("\n");
       
     const encodedUri = encodeURI(csvContent);
-    if (linkRef.current) {
-      const link = linkRef.current;
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `TorquePro_Log_${new Date().getTime()}.csv`);
-      link.click();
-      toast.show("Logs exported as CSV for Torque Pro", "success");
-    }
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `TorquePro_Log_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.show("Logs exported as CSV for Torque Pro", "success");
   };
 
   // Toggles collapsing for *all* transactions that contain outputs
@@ -217,6 +302,14 @@ export const TerminalScreen = ({
           </button>
           
           <button
+            onClick={() => setCodeScanEnabled(prev => !prev)}
+            className={`p-2 border border-[#00ff41]/30 rounded-md transition-colors ${codeScanEnabled ? "bg-[#00ff41]/20 text-[#00ff41]" : "text-[#00ff41]/70 hover:bg-[#00ff41]/10"}`}
+            title="Toggle Code Scan"
+          >
+            <TextSearch className="w-4 h-4" />
+          </button>
+          
+          <button
             onClick={() => setCrtEnabled(prev => !prev)}
             className={`p-2 border border-[#00ff41]/30 rounded-md transition-colors ${crtEnabled ? "bg-[#00ff41]/20 text-[#00ff41]" : "text-[#00ff41]/70 hover:bg-[#00ff41]/10"}`}
             title="Toggle CRT Scanlines"
@@ -249,8 +342,149 @@ export const TerminalScreen = ({
           SYSTEM v4.5 ONLINE
         </div>
         
-        {/* Render transactions as folded/unfolded groups */}
-        {transactions.map((t) => {
+        {/* INTERACTIVE NEON FILTER CONTROL PANEL */}
+        <div className="bg-[#00ff41]/5 border border-[#00ff41]/20 p-4 rounded-none space-y-4 mb-6" id="terminal-filter-panel">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#00ff41] uppercase tracking-wider select-none">
+              <span className="w-1.5 h-1.5 bg-[#00ff41] rounded-full animate-pulse" />
+              <span>Telemetry Stream Filter Matrix:</span>
+            </div>
+            
+            {/* Quick Presets for Date Range */}
+            <div className="flex gap-2.5 items-center">
+              <span className="text-[9px] text-[#00ff41]/50 uppercase tracking-widest font-mono">Date Presets:</span>
+              <button
+                id="preset-btn-today"
+                onClick={() => {
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  setStartDate(todayStr);
+                  setEndDate(todayStr);
+                  toast.show("Range set to today's records.", "success");
+                }}
+                className="text-[9px] px-2 py-1 bg-[#00ff41]/10 text-[#00ff41] hover:bg-[#00ff41]/25 border border-[#00ff41]/30 uppercase transition-all cursor-pointer"
+              >
+                Today
+              </button>
+              <button
+                id="preset-btn-clear"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  toast.show("Resetting all historical sessions.", "info");
+                }}
+                className="text-[9px] px-2 py-1 bg-white/5 text-zinc-400 hover:text-[#00ff41] hover:bg-[#00ff41]/20 border border-white/10 hover:border-[#00ff41]/30 uppercase transition-all cursor-pointer"
+              >
+                Clear Range
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <button
+              id="filter-btn-all"
+              onClick={() => {
+                setFilterMode("all");
+                toast.show("Displaying all telemetry sequence frames.", "info");
+              }}
+              className={`text-[10px] px-3.5 py-1.5 border uppercase font-mono tracking-widest transition-all cursor-pointer ${
+                filterMode === "all"
+                  ? "bg-[#00ff41] text-black border-[#00ff41] font-extrabold"
+                  : "bg-transparent text-[#00ff41]/70 border-[#00ff41]/30 hover:border-[#00ff41] hover:text-[#00ff41]"
+              }`}
+            >
+              [ All Frames ]
+            </button>
+            <button
+              id="filter-btn-no-sys"
+              onClick={() => {
+                setFilterMode("no-system");
+                toast.show("Filtered: Hiding start-up stream & beacon logs.", "info");
+              }}
+              className={`text-[10px] px-3.5 py-1.5 border uppercase font-mono tracking-widest transition-all cursor-pointer ${
+                filterMode === "no-system"
+                  ? "bg-[#00ff41] text-black border-[#00ff41] font-extrabold"
+                  : "bg-transparent text-[#00ff41]/70 border-[#00ff41]/30 hover:border-[#00ff41] hover:text-[#00ff41]"
+              }`}
+            >
+              [ Hide System Info ]
+            </button>
+            <button
+              id="filter-btn-commands"
+              onClick={() => {
+                setFilterMode("commands");
+                toast.show("Filtered: Focusing only on HEX commands & direct responses.", "info");
+              }}
+              className={`text-[10px] px-3.5 py-1.5 border uppercase font-mono tracking-widest transition-all cursor-pointer ${
+                filterMode === "commands"
+                  ? "bg-[#00ff41] text-black border-[#00ff41] font-extrabold"
+                  : "bg-transparent text-[#00ff41]/70 border-[#00ff41]/30 hover:border-[#00ff41] hover:text-[#00ff41]"
+              }`}
+            >
+              [ Raw Cmd/Resp ]
+            </button>
+            <button
+              id="filter-btn-errors"
+              onClick={() => {
+                setFilterMode("errors");
+                toast.show("Filtered: Querying system faults & query anomalies.", "info");
+              }}
+              className={`text-[10px] px-3.5 py-1.5 border uppercase font-mono tracking-widest transition-all cursor-pointer ${
+                filterMode === "errors"
+                  ? "bg-[#00ff41]/20 text-red-400 border-red-500 font-extrabold shadow-[0_0_8px_rgba(239,68,68,0.2)]"
+                  : "bg-transparent text-red-500/70 border-red-500/30 hover:border-red-500 hover:text-red-400"
+              }`}
+            >
+              [ Faults & Errors Only ]
+            </button>
+          </div>
+
+          {/* Date Picker Range Row */}
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-[#00ff41]/10 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[#00ff41]/50 text-[10px] uppercase tracking-widest">Session Start:</span>
+              <input
+                type="date"
+                id="input-start-date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  toast.show(`Start boundary set: ${e.target.value}`, "info");
+                }}
+                className="bg-black/80 text-[#00ff41] border border-[#00ff41]/30 rounded-none px-2 py-1 text-xs focus:outline-none focus:border-[#00ff41] select-none [color-scheme:dark]"
+              />
+            </div>
+            
+            <span className="text-[#00ff41]/30 hidden sm:inline">|</span>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[#00ff41]/50 text-[10px] uppercase tracking-widest">Session End:</span>
+              <input
+                type="date"
+                id="input-end-date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  toast.show(`End boundary set: ${e.target.value}`, "info");
+                }}
+                className="bg-black/80 text-[#00ff41] border border-[#00ff41]/30 rounded-none px-2 py-1 text-xs focus:outline-none focus:border-[#00ff41] select-none [color-scheme:dark]"
+              />
+            </div>
+
+            {(startDate || endDate) && (
+              <span className="ml-auto text-[10px] text-[#00ff41] font-bold animate-pulse uppercase tracking-wider">
+                ⚡ Active Session Frame Focus Mode
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Render filtered transactions as folded/unfolded groups */}
+        {filteredTransactions.length === 0 ? (
+          <div className="text-center py-12 border border-[#00ff41]/20 bg-[#00ff41]/5 text-[#00ff41]/40 text-xs font-mono uppercase tracking-widest leading-relaxed">
+            -- NO VALID TELEMETRY SEQUENCE FRAMES UNDER FILTER "{filterMode.replace("-", " ")}" --
+          </div>
+        ) : (
+          filteredTransactions.map((t) => {
           const isCollapsed = !!collapsedTxIds[t.id];
           const hasResponses = t.responses.length > 0;
           
@@ -272,11 +506,16 @@ export const TerminalScreen = ({
                 </div>
                 {!isCollapsed && (
                   <div className="space-y-1">
-                    {t.responses.map((resp) => (
-                      <div key={resp.id} className="flex items-start gap-3 text-[#00ff41]/70 font-mono text-xs">
+                    {t.responses.map((resp, idx) => (
+                      <div key={idx} className="flex items-start gap-3 text-[#00ff41]/70 font-mono text-xs">
                         <span className="opacity-50 select-none flex-shrink-0">RX</span>
                         <span className="opacity-30">|</span>
-                        <span className="break-all">{resp.content}</span>
+                        <span className="break-all">
+                          {codeScanEnabled ? (() => {
+                            const parts = resp.content.split(/(error|failed|invalid|exception|abort|syntax error|no data)/gi);
+                            return parts.map((part, i) => i % 2 === 1 ? <span key={i} className="bg-red-500/20 text-red-400 font-bold border border-red-500/50 px-1 rounded mx-0.5 animate-pulse">{part}</span> : part);
+                          })() : resp.content}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -337,14 +576,15 @@ export const TerminalScreen = ({
                   {/* Visual vertical connector rail */}
                   <div className="absolute left-[21px] top-0 bottom-4 w-[1px] bg-[#00ff41]/15 pointer-events-none" />
 
-                  {t.responses.map((resp) => (
-                    <ResponseLineItem key={resp.id} resp={resp} />
+                  {t.responses.map((resp, idx) => (
+                    <ResponseLineItem key={idx} resp={resp} codeScanEnabled={codeScanEnabled} />
                   ))}
                 </div>
               )}
             </div>
           );
-        })}
+        })
+      )}
 
         {/* Flashing cursor sequence line */}
         <div className="flex items-start gap-3 text-[#00ff41] animate-pulse py-1">
@@ -353,26 +593,6 @@ export const TerminalScreen = ({
            <span className="w-2 h-4 bg-[#00ff41] inline-block" />
         </div>
         <div ref={logEndRef} />
-      </div>
-
-      {/* Preset Macro Buttons */}
-      <div className="px-6 mb-3 flex flex-wrap gap-2 relative z-10 select-none">
-        {[
-          { label: "Adapter Info", cmd: "ATI" },
-          { label: "Voltage", cmd: "ATRV" },
-          { label: "Engine RPM", cmd: "01 0C" },
-          { label: "Speed", cmd: "01 0D" },
-          { label: "Scan DTCs", cmd: "03" },
-          { label: "Clear DTCs", cmd: "04" },
-        ].map((m) => (
-          <button
-            key={m.cmd}
-            onClick={() => onCommand(m.cmd)}
-            className="px-3 py-1.5 border border-[#00ff41]/20 bg-[#00ff41]/5 hover:bg-[#00ff41]/20 text-[#00ff41]/80 hover:text-[#00ff41] text-[10px] font-mono uppercase transition-colors"
-          >
-            {m.label} ({m.cmd})
-          </button>
-        ))}
       </div>
 
       <div className="px-6 relative z-10">
@@ -394,7 +614,6 @@ export const TerminalScreen = ({
             </button>
         </div>
       </div>
-      <a ref={linkRef} className="hidden" style={{ display: "none" }} />
     </motion.div>
   );
 };

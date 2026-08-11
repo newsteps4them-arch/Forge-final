@@ -213,17 +213,17 @@ export const IndexScreen = ({ onBack, onNavigate }: { onBack: () => void, onNavi
             <h3 className="text-[10px] font-black uppercase tracking-widest text-primary border-b border-white/10 pb-2 mb-4">
               {category}
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {INDEX_ITEMS.filter(item => item.category === category).map((item) => (
                 <div
                   key={item.title}
                   onClick={() => onNavigate(item.target)}
-                  className="cursor-pointer bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-primary/30 hover:bg-white/10 transition-all group"
+                  className="cursor-pointer bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-primary/30 hover:bg-white/10 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
                       <div
-                        className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}
+                        className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color}`}
                       >
                         <item.icon className="w-5 h-5" />
                       </div>
@@ -232,12 +232,12 @@ export const IndexScreen = ({ onBack, onNavigate }: { onBack: () => void, onNavi
                       </h3>
                     </div>
                     {item.team && (
-                       <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 bg-black/50 text-white/40 border border-white/5 rounded-md font-mono hidden xl:inline-block">
+                       <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 bg-black/50 text-white/40 border border-white/5 rounded-md font-mono hidden sm:inline-block">
                          {item.team}
                        </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-white/60 leading-relaxed sm:pl-14">
+                  <p className="text-[11px] text-white/60 leading-relaxed pl-14">
                     {item.desc}
                   </p>
                 </div>

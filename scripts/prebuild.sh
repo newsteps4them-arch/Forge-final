@@ -11,8 +11,7 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1"; }
 warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 heal() { echo -e "${CYAN}🔧${NC} $1"; }
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$PROJECT_ROOT"
+cd ~/forge-final
 check_git_repo() {
     log "Checking git repository..."
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -64,7 +63,7 @@ check_gradle() {
 }
 check_storage() {
     log "Checking available storage..."
-    local available=$(df . | tail -1 | awk '{print $4}')
+    local available=$(df ~/forge-final | tail -1 | awk '{print $4}')
     local available_mb=$((available / 1024))
     if [ "$available_mb" -lt 500 ]; then
         error "Insufficient storage: ${available_mb}MB (need 500MB)"
