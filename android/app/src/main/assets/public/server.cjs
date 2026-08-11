@@ -231,7 +231,7 @@ async function startServer() {
   app.post("/api/git/sync", async (req, res) => {
     try {
       const { commitMessage } = req.body;
-      const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
+      const msg = commitMessage ? `"${commitMessage.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : "";
       const { stdout, stderr } = await execAsync(`bash scripts/sync.sh sync ${msg}`);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
     } catch (error) {
