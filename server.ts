@@ -3,11 +3,11 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
 import dotenv from "dotenv";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 dotenv.config();
 
@@ -168,7 +168,7 @@ async function startServer() {
   // GitHub Git Sync API Gateway
   app.get("/api/git/status", async (req, res) => {
     try {
-      const { stdout } = await execAsync("bash scripts/sync.sh --check");
+      const { stdout } = await execFileAsync("bash", ["scripts/sync.sh", "--check"]);
       let isInitialized = false;
       try {
         await fs.access(path.join(process.cwd(), ".git"));
@@ -216,7 +216,7 @@ async function startServer() {
         const cleanUrlPart = withoutProto.includes("@") ? withoutProto.split("@")[1] : withoutProto;
         finalUrl = `https://${cleanToken}@${cleanUrlPart}`;
       }
-      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh --link "${finalUrl}"`);
+      const { stdout, stderr } = await execFileAsync("bash", ["scripts/sync.sh", "--link", finalUrl]);
       res.json({ success: true, message: "Repository linked successfully.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Link API Error:", error);
@@ -227,8 +227,9 @@ async function startServer() {
   app.post("/api/git/sync", async (req, res) => {
     try {
       const { commitMessage } = req.body;
-      const msg = commitMessage ? `"${commitMessage.replace(/"/g, '\\"')}"` : "";
-      const { stdout, stderr } = await execAsync(`bash scripts/sync.sh sync ${msg}`);
+      const syncArgs = ["scripts/sync.sh", "sync"];
+      if (commitMessage) syncArgs.push(commitMessage);
+      const { stdout, stderr } = await execFileAsync("bash", syncArgs);
       res.json({ success: true, message: "Synchronized with remote repo.", output: stdout || stderr });
     } catch (error: any) {
       console.error("Git Sync API Error:", error);
