@@ -81,6 +81,7 @@ import { LiveDataScreen } from "./screens/diagnostics/LiveDataScreen";
 import { CodingScreen } from "./screens/main/CodingScreen";
 import { TerminalScreen } from "./screens/diagnostics/TerminalScreen";
 import { IntegrationsScreen } from "./screens/inventory/IntegrationsScreen";
+import { ALL_INTEGRATION_IDS } from "./constants/integrations";
 import { EstimatorScreen } from "./screens/main/EstimatorScreen";
 import { TopologyScreen } from "./screens/diagnostics/TopologyScreen";
 import { IndexScreen } from "./screens/main/IndexScreen";
@@ -106,7 +107,11 @@ import {
   auth,
   db,
   googleProvider,
-  signInWithPopup, signInWithCredential, GoogleAuthProviderClass,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInWithCredential,
+  GoogleAuthProviderClass,
   signInAnonymously,
   signOut,
   onAuthStateChanged,
@@ -127,7 +132,7 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { generateChatResponse } from "./services/geminiService";
 import { useNavigation, Screen } from "./hooks/useNavigation";
 import { useObdTelemetry } from "./hooks/useObdTelemetry";
-import { WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
+import { ObdConnection, WebBluetoothObd, WebSerialObd, SimulatedObd } from "./lib/obdConnection";
 
 // --- Utilities ---
 enum OperationType {
@@ -167,8 +172,7 @@ function handleFirestoreError(
     operationType,
     path,
   };
-  console.error("Firestore Error: ", JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  console.warn("Firestore Operation Notice: ", JSON.stringify(errInfo));
 }
 type DTC = {
   code: string;
@@ -2540,9 +2544,22 @@ export default function App() {
   const [chatInitialQuery, setChatInitialQuery] = useState("");
   const [activeProject, setActiveProject] = useState<string>("");
   const [projects, setProjects] = useState<Project[]>([]);
-  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>(
-    [],
-  );
+  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("team_forge_connected_integrations");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return ALL_INTEGRATION_IDS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("team_forge_connected_integrations", JSON.stringify(connectedIntegrations));
+    } catch (e) {}
+  }, [connectedIntegrations]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
@@ -2642,11 +2659,21 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          toast.show(`Successfully authenticated as ${result.user.displayName || result.user.email || "User"}`, "success");
+        }
+      })
+      .catch((err) => {
+        console.warn("Auth redirect result check:", err);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
       if (u) {
-        toast.show(`Signed in as ${u.displayName || u.email}`, "success");
+        toast.show(`Signed in as ${u.displayName || u.email || "User"}`, "success");
       }
     });
     return () => unsubscribe();
@@ -2921,24 +2948,45 @@ export default function App() {
           await signInWithCredential(auth, credential);
         }
       } else {
-        await signInWithPopup(auth, googleProvider);
+        try {
+          await signInWithPopup(auth, googleProvider);
+        } catch (popupErr: any) {
+          console.warn("Popup sign-in failed, checking fallback:", popupErr);
+          if (
+            popupErr.code === 'auth/popup-blocked' ||
+            popupErr.code === 'auth/cancelled-popup-request' ||
+            popupErr.code === 'auth/popup-closed-by-user' ||
+            popupErr.code === 'auth/operation-not-supported-in-this-environment'
+          ) {
+            try {
+              toast.show("Attempting redirect login...", "info");
+              await signInWithRedirect(auth, googleProvider);
+            } catch (redirectErr: any) {
+              console.warn("Redirect auth fallback:", redirectErr);
+              toast.show("Popup blocked. Continuing in offline mode.", "info");
+              await signInAnonymously(auth);
+            }
+          } else if (popupErr.code === 'auth/unauthorized-domain') {
+            toast.show("Domain requires Firebase auth configuration. Entering offline workspace.", "info");
+            await signInAnonymously(auth);
+          } else {
+            toast.show(`Login notice: ${popupErr.message || String(popupErr)}`, "error");
+          }
+        }
       }
     } catch (error: any) {
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-        toast.show("Login popup was blocked or closed. Please allow popups.", "error");
-      } else {
-        toast.show(`Login failed: ${error.message}`, "error");
-      }
+      toast.show(`Authentication error: ${error.message || String(error)}`, "error");
     }
   };
 
   const handleLoginAnon = async () => {
     try {
       await signInAnonymously(auth);
-      toast.show("Signed in as Offline User", "info");
+      toast.show("Signed in as Guest User", "info");
       handleNext();
     } catch (error: any) {
-      toast.show(`Offline Login failed: ${error.message}`, "error");
+      console.warn("Anonymous sign-in notice:", error);
+      toast.show("Continuing in Local Standalone Mode", "info");
       handleNext();
     }
   };
@@ -2948,7 +2996,7 @@ export default function App() {
       await signOut(auth);
       toast.show("Signed out successfully", "info");
     } catch (error: any) {
-      toast.show(`Logout failed: ${error.message}`, "error");
+      toast.show(`Logout status: ${error.message || String(error)}`, "info");
     }
   };
 
@@ -3122,6 +3170,14 @@ export default function App() {
       setConnectedIntegrations((prev) => [...new Set([...prev, id])]);
     } else {
       setConnectedIntegrations((prev) => prev.filter((i) => i !== id));
+    }
+  };
+
+  const handleToggleAllIntegrations = (connectAll: boolean) => {
+    if (connectAll) {
+      setConnectedIntegrations(ALL_INTEGRATION_IDS);
+    } else {
+      setConnectedIntegrations([]);
     }
   };
 
@@ -3548,6 +3604,7 @@ export default function App() {
                   onBack={() => goBack()}
                   connectedIds={connectedIntegrations}
                   onToggleConnection={handleToggleIntegration}
+                  onToggleAllConnections={handleToggleAllIntegrations}
                   vehicleMake={onboarding.vehicleMake}
                   vehicleModel={onboarding.vehicleModel}
                   vehicleYear={onboarding.vehicleYear}

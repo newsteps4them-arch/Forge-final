@@ -1,0 +1,88 @@
+export const INTERGRATIONS = [
+  {
+    id: "meli",
+    name: "Meli (Chief of Staff)",
+    type: "AI Coordination",
+    desc: "Autonomous infrastructure that connects and orchestrates your context across apps.",
+    dev: "Full Rank",
+  },
+  {
+    id: "alldata",
+    name: "ALLDATA",
+    type: "Repair Info",
+    desc: "OEM repair information and schematics",
+    dev: "ALLDATA LLC",
+  },
+  {
+    id: "mitchell1",
+    name: "Mitchell 1 (ProDemand)",
+    type: "Service Manuals",
+    desc: "Wiring diagrams and service procedures",
+    dev: "Mitchell Repair Info",
+  },
+  {
+    id: "identifix",
+    name: "Identifix (Direct-Hit)",
+    type: "Diagnostics",
+    desc: "Confirmed fixes and diagnostic hotline data",
+    dev: "Identifix",
+  },
+  {
+    id: "snapon",
+    name: "Snap-on Connect",
+    type: "Professional",
+    desc: "Secure diagnostics sync & cloud backup",
+    dev: "Snap-on Inc.",
+  },
+  {
+    id: "forscan",
+    name: "FORScan",
+    type: "OEM Ford/Mazda",
+    desc: "Advanced module configuration logs",
+    dev: "FORScan Team",
+  },
+  {
+    id: "torque",
+    name: "Torque Pro",
+    type: "Telemetry",
+    desc: "Export logs to CSV or sync via local web server for telemetry ingestion.",
+    dev: "Ian Hawkins",
+  },
+  {
+    id: "alfaobd",
+    name: "AlfaOBD",
+    type: "FCA Group",
+    desc: "Body computer & proxy alignment logs",
+    dev: "AlfaOBD Apps",
+  },
+  {
+    id: "repair2",
+    name: "RepairSolutions2",
+    type: "Consumer Data",
+    desc: "Share diagnostic data or use our BLE scanner support.",
+    dev: "Innova Electronics",
+  },
+  {
+    id: "nexpart",
+    name: "Nexpart B2B",
+    type: "Parts Ordering",
+    desc: "Wholesale parts catalog and ordering",
+    dev: "WHI Solutions",
+  },
+  {
+    id: "nhtsa",
+    name: "NHTSA Recalls",
+    type: "Gov Database",
+    desc: "Federal safety recalls and complaints",
+    dev: "NHTSA",
+  },
+  {
+    id: "carfax",
+    name: "CARFAX",
+    type: "Vehicle History",
+    desc: "Service records and VIN decoding",
+    dev: "CARFAX Inc.",
+  },
+];
+
+export const ALL_INTEGRATION_IDS = INTERGRATIONS.map((i) => i.id);

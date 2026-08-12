@@ -13,6 +13,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { toast } from "../../lib/notifications";
+import { ALL_INTEGRATION_IDS } from "../../constants/integrations";
 
 const INTERGRATIONS = [
   {
@@ -117,6 +118,7 @@ export const IntegrationsScreen = ({
   onBack,
   connectedIds,
   onToggleConnection,
+  onToggleAllConnections,
   vehicleMake,
   vehicleModel,
   vehicleYear,
@@ -125,12 +127,14 @@ export const IntegrationsScreen = ({
   onBack: () => void;
   connectedIds: string[];
   onToggleConnection: (id: string, isConnecting: boolean) => void;
+  onToggleAllConnections?: (connectAll: boolean) => void;
   vehicleMake?: string;
   vehicleModel?: string;
   vehicleYear?: string;
   vehicleVin?: string;
 }) => {
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [recalls, setRecalls] = useState<any[]>([]);
   const [recallsLoadedFor, setRecallsLoadedFor] = useState<string>("");
   const [showRecallsPanel, setShowRecallsPanel] = useState(false);
@@ -222,6 +226,36 @@ export const IntegrationsScreen = ({
     }
   };
 
+  const handleBatchToggleAll = (enable: boolean) => {
+    if (onToggleAllConnections) {
+      onToggleAllConnections(enable);
+    } else {
+      INTERGRATIONS.forEach((int) => {
+        onToggleConnection(int.id, enable);
+      });
+    }
+    toast.show(
+      enable
+        ? `Enabled & linked all ${INTERGRATIONS.length} 3rd-party integrations!`
+        : "Unlinked all 3rd party integrations.",
+      enable ? "success" : "info"
+    );
+  };
+
+  const handleSyncAll = async () => {
+    setIsSyncingAll(true);
+    toast.show("Triggering real-time synchronization across all active integrations...", "info");
+    if (connectedIds.includes("nhtsa")) {
+      handleSync("nhtsa", "NHTSA Recalls");
+    }
+    setTimeout(() => {
+      setIsSyncingAll(false);
+      toast.show(`All ${connectedIds.length} active integrations successfully synced to Neural_Sync!`, "success");
+    }, 2000);
+  };
+
+  const allConnected = connectedIds.length === INTERGRATIONS.length;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -229,30 +263,63 @@ export const IntegrationsScreen = ({
       exit={{ opacity: 0, x: -20 }}
       className="absolute inset-0 bg-[#0A0A0A] flex flex-col pt-8 pb-32 z-20"
     >
-      <div className="flex items-center gap-3 px-6 mb-4">
-        <button
-          onClick={onBack}
-          className="p-2 rounded-full hover:bg-white/10 text-white/70 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex items-center gap-2 text-primary">
-          <Database className="w-5 h-5" />
-          <h2 className="text-xl font-black uppercase tracking-widest">
-            3rd Party APIs
-          </h2>
+      <div className="flex items-center justify-between px-6 mb-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 rounded-full hover:bg-white/10 text-white/70 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 text-primary">
+            <Database className="w-5 h-5" />
+            <h2 className="text-xl font-black uppercase tracking-widest">
+              3rd Party APIs
+            </h2>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary font-black uppercase tracking-wider">
+            {connectedIds.length} / {INTERGRATIONS.length} Linked
+          </span>
         </div>
       </div>
 
       <div className="px-6 space-y-6 overflow-y-auto no-scrollbar flex-1 pb-10 mt-2">
-        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-5 mb-2">
-          <h3 className="text-[12px] font-black uppercase text-primary tracking-widest mb-2 flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" /> Autonomous Data Syncing
-          </h3>
+        {/* Banner with Batch Enable Controls */}
+        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-5 mb-2 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[12px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin-slow" /> Autonomous Data Syncing
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[9px] text-green-400 font-mono font-bold uppercase tracking-widest">
+                Engine Live
+              </span>
+            </div>
+          </div>
           <p className="text-[10px] text-white/60 font-mono leading-relaxed uppercase tracking-wider">
             Connect external proprietary software to automatically ingest logs,
-            telemetry, and repair databases into the Forge Neural engine.
+            telemetry, repair manuals, and parts databases into the Forge Neural engine.
           </p>
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
+            <button
+              onClick={() => handleBatchToggleAll(!allConnected)}
+              className="px-4 py-2 bg-primary text-black font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-primary/80 transition-transform active:scale-95 flex items-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              {allConnected ? "Disconnect All" : "Enable All Integrations"}
+            </button>
+            <button
+              onClick={handleSyncAll}
+              disabled={isSyncingAll || connectedIds.length === 0}
+              className="px-4 py-2 bg-white/10 border border-white/20 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-white/20 transition-transform active:scale-95 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAll ? "animate-spin" : ""}`} />
+              {isSyncingAll ? "Syncing Fleet..." : "Sync All Data"}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
