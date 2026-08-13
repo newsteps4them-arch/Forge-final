@@ -17,10 +17,7 @@ interface D3StreamChartProps {
   height?: number;
 }
 
-// ⚡ Bolt Optimization: Memoize the chart component to prevent unnecessary re-renders
-// when the parent LiveDataScreen state changes but chart data remains identical.
-// Impact: Reduces CPU utilization during live data streams by skipping expensive D3 calculations.
-export const D3StreamChart: React.FC<D3StreamChartProps> = React.memo(({
+export const D3StreamChart: React.FC<D3StreamChartProps> = ({
   data,
   dataKey,
   unit,
@@ -269,4 +266,4 @@ export const D3StreamChart: React.FC<D3StreamChartProps> = React.memo(({
       </div>
     </div>
   );
-});
+};

@@ -12,10 +12,7 @@ import {
 } from "recharts";
 
 // Component for a dynamic circular gauge
-// ⚡ Bolt Optimization: Memoize gauge to prevent re-rendering all gauges
-// when the global telemetry ticker updates if this specific gauge's value hasn't changed.
-// Impact: Significantly reduces React reconciliation overhead during high-frequency telemetry updates.
-const CircularGauge = React.memo(({
+const CircularGauge = ({
   value,
   max,
   label,
@@ -68,7 +65,7 @@ const CircularGauge = React.memo(({
       </div>
     </div>
   );
-});
+};
 
 const AVAILABLE_PIDS = [
   { id: "RPM", name: "Engine RPM", group: "General", unit: "RPM", icon: Activity },
