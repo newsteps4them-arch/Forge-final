@@ -21,7 +21,7 @@ echo "Extracting..."
 unzip -q "$TMPDIR/$DIST_ZIP" -d "$TMPDIR"
 
 # Place a minimal gradle wrapper jar extracted from distribution
-WRAPPER_DIR="android/gradle/wrapper"
+WRAPPER_DIR="gradle/wrapper"
 mkdir -p "$WRAPPER_DIR"
 # Extract wrapper jar from distribution
 DIST_WRAPPER_JAR="$TMPDIR/gradle-${GRADLE_VERSION}/lib/gradle-wrapper.jar"
