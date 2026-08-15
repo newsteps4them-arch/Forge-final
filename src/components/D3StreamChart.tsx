@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, memo } from "react";
 import * as d3 from "d3";
 
 export interface TelemetryPoint {
@@ -17,7 +17,7 @@ interface D3StreamChartProps {
   height?: number;
 }
 
-export const D3StreamChart: React.FC<D3StreamChartProps> = ({
+export const D3StreamChart: React.FC<D3StreamChartProps> = memo(({
   data,
   dataKey,
   unit,
@@ -266,4 +266,4 @@ export const D3StreamChart: React.FC<D3StreamChartProps> = ({
       </div>
     </div>
   );
-};
+});

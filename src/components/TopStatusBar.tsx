@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import {
   Wifi,
   BatteryFull,
@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
-export const TopStatusBar = ({ 
+export const TopStatusBar = memo(({
   onSettingsClick,
   onMenuClick 
 }: { 
@@ -100,4 +100,4 @@ export const TopStatusBar = ({
       </div>
     </div>
   );
-};
+});
