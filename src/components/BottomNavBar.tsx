@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Home, LayoutGrid, MessageSquare, Box } from "lucide-react";
 
 const TABS = [
@@ -8,7 +8,7 @@ const TABS = [
   { id: "Inventory", label: "Assets", icon: Box },
 ];
 
-export const BottomNavBar = ({
+export const BottomNavBar = memo(({
   currentTab,
   onTabSelect,
 }: {
@@ -47,6 +47,4 @@ export const BottomNavBar = ({
       })}
     </div>
   );
-};
-
-
+});

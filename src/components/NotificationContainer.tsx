@@ -9,7 +9,8 @@ import {
   X,
 } from "lucide-react";
 
-export function NotificationContainer() {
+// Wrapped in React.memo to prevent unnecessary re-renders when the parent App component re-renders
+export const NotificationContainer = React.memo(function NotificationContainer() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const dismiss = (id: string) => {
@@ -55,7 +56,7 @@ export function NotificationContainer() {
       </AnimatePresence>
     </div>
   );
-}
+});
 
 function getTypeStyles(type: AppNotification["type"]) {
   switch (type) {
