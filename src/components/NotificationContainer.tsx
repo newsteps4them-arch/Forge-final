@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast, AppNotification } from "../lib/notifications";
 import {
@@ -12,7 +12,7 @@ import {
 // ⚡ Bolt Optimization: Wrapped NotificationContainer in React.memo
 // This component receives no props and relies only on internal state and a toast subscription.
 // Memoizing it prevents unnecessary re-renders when the parent App component updates.
-export const NotificationContainer = React.memo(function NotificationContainer() {
+export const NotificationContainer = memo(function NotificationContainer() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const dismiss = (id: string) => {
