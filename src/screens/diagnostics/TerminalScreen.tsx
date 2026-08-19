@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Terminal, Send, Save, Download, Tv, ChevronDown, ChevronRight, ChevronsUpDown, TextSearch } from "lucide-react";
 import { toast } from "../../lib/notifications";
@@ -170,10 +170,11 @@ export const TerminalScreen = ({
   const [endDate, setEndDate] = useState<string>("");
 
   // Parse transactions for rendering folding nodes
-  const transactions = parseTransactions(logs);
+  const transactions = useMemo(() => parseTransactions(logs), [logs]);
 
   // Apply filtering logic to find matching transaction telemetry frames with status & date constraints
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
     // 1. Category Status Filters
     if (filterMode === "no-system") {
       if (t.tx === null) return false;
@@ -215,6 +216,7 @@ export const TerminalScreen = ({
 
     return true; // "all"
   });
+  }, [transactions, filterMode, startDate, endDate]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
