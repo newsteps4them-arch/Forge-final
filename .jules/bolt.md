@@ -4,3 +4,6 @@
 ## 2025-02-18 - Memoizing derived state in TerminalScreen
 **Learning:** Parsing log lines and sorting them into transaction objects on every keystroke was creating significant UI latency. In React, expensive derivations of frequent updates (like real-time telemetry logs and text search input) should always be wrapped in `useMemo`. When you have arrays of complex derivations passing through multiple filter steps, each step needs memoization to cut the rendering cost.
 **Action:** Always wrap list parsing, formatting, and filtering inside `useMemo` when working with frequently updating state variables (like log streams) to prevent redundant work on every parent re-render.
+## 2024-08-30 - [Performance Optimization: React Memo in Chat Lists]
+**Learning:** Large lists rendered alongside frequently updating state (like a text input) can cause O(N) re-renders, which block the main thread and degrade the user experience during typing. This is especially true for chat screens where the list keeps growing.
+**Action:** Extract list item components and wrap them in `React.memo` (or `memo` from `"react"`). Ensure they only rely on stable props (like primitive values or unchanged objects) to bypass unnecessary reconciliations.
