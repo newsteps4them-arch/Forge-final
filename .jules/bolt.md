@@ -4,3 +4,6 @@
 ## 2025-02-18 - Memoizing derived state in TerminalScreen
 **Learning:** Parsing log lines and sorting them into transaction objects on every keystroke was creating significant UI latency. In React, expensive derivations of frequent updates (like real-time telemetry logs and text search input) should always be wrapped in `useMemo`. When you have arrays of complex derivations passing through multiple filter steps, each step needs memoization to cut the rendering cost.
 **Action:** Always wrap list parsing, formatting, and filtering inside `useMemo` when working with frequently updating state variables (like log streams) to prevent redundant work on every parent re-render.
+## 2026-09-04 - Memoizing TaskItem component
+**Learning:** `TaskItem` is a highly reused component in a list, rendered many times. When interacting with lists (e.g. typing in inputs, completing tasks), the parent re-renders causing expensive re-renders for all `TaskItem` instances. Memoizing it prevents unnecessary re-renders.
+**Action:** Always consider `React.memo` for list items that receive primarily stable props or primitive values, especially when the parent has frequent state updates.

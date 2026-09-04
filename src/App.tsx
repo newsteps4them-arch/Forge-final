@@ -346,7 +346,9 @@ const ChatHistoryWidget = ({
   );
 };
 
-const TaskItem = ({
+// ⚡ Bolt Optimization: Wrapped TaskItem in React.memo
+// TaskItem is rendered in a list. Memoizing it prevents unnecessary re-renders of all items when the parent state updates.
+const TaskItem = React.memo(({
   task,
   onToggle,
   onDelete,
@@ -545,7 +547,7 @@ const TaskItem = ({
       </AnimatePresence>
     </>
   );
-};
+});
 
 const WelcomeScreen = ({
   onNext,
